@@ -1,4 +1,6 @@
-import { BffHttpError } from './bff-http-error';
+import type { ActivityLogBlockedError } from '@forestadmin/agent-client';
+
+import { BffHttpError, isSerializableError } from './bff-http-error';
 
 export function unknownCollection(message = 'Unknown collection'): BffHttpError {
   return new BffHttpError(404, 'unknown_collection', message);
@@ -175,6 +177,25 @@ export function auditNotAuthorized(
   message = 'Not authorized to write the activity log for this request',
 ): BffHttpError {
   return new BffHttpError(403, 'audit_not_authorized', message);
+}
+
+const NO_AUDIT_ENDPOINT_MESSAGE =
+  'The Forest server does not expose the endpoint the activity log is written through, so the ' +
+  'operation was not performed';
+
+/**
+ * A credential this edge failed to resolve is already one of its own answers — an expired session,
+ * a plan lacking the feature, a deployment minting no audit token — so it is answered as is.
+ */
+export function auditErrorOf(error: ActivityLogBlockedError): unknown {
+  if (error.reason === 'notAuthorized') return auditNotAuthorized();
+  if (isSerializableError(error.cause)) return error.cause;
+
+  if (error.reason === 'endpointAbsent') {
+    return auditUnavailable(undefined, NO_AUDIT_ENDPOINT_MESSAGE);
+  }
+
+  return auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
 }
 
 export function environmentUnresolved(): BffHttpError {

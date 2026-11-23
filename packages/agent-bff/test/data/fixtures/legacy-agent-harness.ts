@@ -15,7 +15,6 @@ import createErrorMiddleware from '../../../src/http/error-middleware';
 import CapabilitiesCache from '../../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../../src/read-model/read-model-store';
 import SchemaCache from '../../../src/read-model/schema-cache';
-import { passthroughActivityLogs } from '../../helpers/activity-log';
 
 export const AUTH_SECRET = 'b0bdf0a639c16bae8851dd24ee3d79ef0a352e957c5b86cb';
 
@@ -137,7 +136,6 @@ export function buildLegacyApp(agentUrl: string, { liana }: { liana?: string } =
       store,
       transport: createHttpTransport({ agentUrl }),
       logger: noopLogger,
-      activityLogs: passthroughActivityLogs(),
     }),
   );
 

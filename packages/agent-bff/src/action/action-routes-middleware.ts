@@ -4,16 +4,16 @@ import type {
   AgentActionClient,
   AgentActionClientOptions,
 } from './agent-action-client';
-import type { ActivityLogWriter } from '../activity-log/activity-log-writer';
 import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
+import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
 
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
-  AgentHttpError,
+  ActivityLogBlockedError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
@@ -23,7 +23,7 @@ import { mapActionForm } from './action-form-mapper';
 import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
-import { AgentTimeoutError } from '../agent/create-agent-http-requester';
+import { activityLogContextOf } from '../auth/activity-log-context';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
@@ -33,41 +33,15 @@ import {
 } from '../http/agent-route-helpers';
 import { BffHttpError } from '../http/bff-http-error';
 import {
-  ACTION_REQUIRES_APPROVAL_TYPE,
   actionError,
-  actionOutcomeUnknown,
   actionRequiresApproval,
   invalidRequest,
-  isActionOutcomeUnknown,
   unknownAction,
 } from '../http/bff-local-errors';
 
 const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
 
 const EXECUTE_VERB = 'execute';
-
-/**
- * An approval request is a business outcome, not a failure: the action was routed for review. The
- * BFF answers it with a 403, but recording the entry as `failed` would make the same event count
- * differently here and in mcp-server, which records it as a success — and action-failure statistics
- * would mix refusals with runs that never happened.
- */
-function isApprovalRequest(error: unknown): boolean {
-  return error instanceof BffHttpError && error.type === ACTION_REQUIRES_APPROVAL_TYPE;
-}
-
-/**
- * Failures after which the execute may have reached the agent and run: a timeout, a connection reset
- * once the request was sent, or a gateway's 502 or 504 in front of the agent, which the agent itself
- * never answers. A refused connection or a 503 means the agent was never reached, so it stays a
- * failure.
- */
-function mayHaveRun(error: unknown): boolean {
-  if (error instanceof AgentTimeoutError) return true;
-  if (error instanceof AgentHttpError) return error.status === 502 || error.status === 504;
-
-  return (error as { code?: unknown } | null)?.code === 'ECONNRESET';
-}
 
 interface ActionRequestBody {
   recordIds?: unknown;
@@ -126,31 +100,18 @@ export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
-  activityLogs: ActivityLogWriter;
+  activityLogsService?: ActivityLogsServiceInterface;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
-  /** Bounds the execute call alone; the transport's own timeout applies when omitted. */
-  actionTimeoutMs?: number;
 }
 
-interface ActionHandlerArgs<TAction extends ActionForm> {
+interface FormHandlerArgs {
   ctx: Context;
-  action: TAction;
+  action: ActionForm;
   values: Record<string, unknown>;
   logger: Logger;
 }
 
-interface ExecuteHandlerArgs extends ActionHandlerArgs<Action> {
-  actionTimeoutMs?: number;
-  /** Names the pending log an operator has to check when the outcome is unknown. */
-  target: { collection: string; actionName: string; recordIds: string[] };
-}
-
-async function handleForm({
-  ctx,
-  action,
-  values,
-  logger,
-}: ActionHandlerArgs<ActionForm>): Promise<void> {
+async function handleForm({ ctx, action, values, logger }: FormHandlerArgs): Promise<void> {
   // Each agent-hitting call is wrapped on its own; getFields/extractRawLayout/mapping stay outside
   // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
   // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
@@ -160,14 +121,11 @@ async function handleForm({
   ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action), logger);
 }
 
-async function handleExecute({
-  ctx,
-  action,
-  values,
-  logger,
-  actionTimeoutMs,
-  target,
-}: ExecuteHandlerArgs): Promise<void> {
+async function fillValues(
+  action: Action,
+  values: Record<string, unknown>,
+  logger: Logger,
+): Promise<void> {
   try {
     await action.setFields(values);
   } catch (error) {
@@ -179,49 +137,68 @@ async function handleExecute({
   }
 
   assertActionValuesExecutable(action, logger);
+}
 
-  // execute() cannot go through the generic callAgent: agent-client turns the native action Error
-  // (HTTP 400) into ActionFormValidationError, a non-AgentHttpError the mapper would mislabel as a
-  // transport 502. So the semantic outcomes are caught here, everything else falls to the mapper.
+// execute() cannot go through the generic callAgent: agent-client turns the native action Error
+// (HTTP 400) into ActionFormValidationError, a non-AgentHttpError the mapper would mislabel as a
+// transport 502. So the semantic outcomes are caught here, everything else falls to the mapper.
+function toExecuteError(error: unknown, logger: Logger): unknown {
+  if (error instanceof BffHttpError || error instanceof ActivityLogBlockedError) return error;
+
+  if (error instanceof ActionRequiresApprovalError) {
+    return actionRequiresApproval(
+      error.message,
+      error.roleIdsAllowedToApprove !== undefined
+        ? { roleIdsAllowedToApprove: error.roleIdsAllowedToApprove }
+        : undefined,
+    );
+  }
+
+  if (error instanceof ActionFormValidationError) {
+    const { unstructuredCause } = error;
+
+    if (unstructuredCause) {
+      logger('Warn', 'Agent action 4xx carried no structured error; client message is generic', {
+        httpStatus: unstructuredCause.status,
+        cause: unstructuredCause.responseText ?? unstructuredCause.body,
+      });
+    }
+
+    const html = sanitizeActionHtml(error.html, logger);
+
+    return actionError(error.message, html === null ? undefined : { html });
+  }
+
+  return mapAgentError(error, { logger });
+}
+
+interface ExecuteHandlerArgs {
+  ctx: Context;
+  client: AgentActionClient;
+  params: { collection: string; actionName: string; recordIds: string[]; timezone: string };
+  refusal?: () => never;
+  values: Record<string, unknown>;
+  logger: Logger;
+}
+
+async function handleExecute({
+  ctx,
+  client,
+  params,
+  refusal,
+  values,
+  logger,
+}: ExecuteHandlerArgs): Promise<void> {
   let raw: unknown;
 
   try {
-    raw = await action.execute({ maxTimeAllowed: actionTimeoutMs });
+    raw = await client.executeAction({
+      ...params,
+      beforeCall: async () => refusal?.(),
+      fill: action => fillValues(action, values, logger),
+    });
   } catch (error) {
-    if (error instanceof ActionRequiresApprovalError) {
-      throw actionRequiresApproval(
-        error.message,
-        error.roleIdsAllowedToApprove !== undefined
-          ? { roleIdsAllowedToApprove: error.roleIdsAllowedToApprove }
-          : undefined,
-      );
-    }
-
-    if (error instanceof ActionFormValidationError) {
-      const { unstructuredCause } = error;
-
-      if (unstructuredCause) {
-        logger('Warn', 'Agent action 4xx carried no structured error; client message is generic', {
-          httpStatus: unstructuredCause.status,
-          cause: unstructuredCause.responseText ?? unstructuredCause.body,
-        });
-      }
-
-      const html = sanitizeActionHtml(error.html, logger);
-
-      throw actionError(error.message, html === null ? undefined : { html });
-    }
-
-    if (mayHaveRun(error)) {
-      logger('Warn', 'Action execute got no answer: outcome unknown', {
-        ...target,
-        cause: error instanceof Error ? error.message : String(error),
-      });
-
-      throw actionOutcomeUnknown();
-    }
-
-    throw mapAgentError(error, { logger });
+    throw toExecuteError(error, logger);
   }
 
   const { status, body } = mapActionExecuteResult(raw, logger);
@@ -242,9 +219,8 @@ export default function createActionRoutesMiddleware({
   store,
   transport,
   logger,
-  activityLogs,
+  activityLogsService,
   createClient = defaultCreateAgentActionClient,
-  actionTimeoutMs,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
     const match = ACTION_ROUTE.exec(ctx.path);
@@ -267,7 +243,7 @@ export default function createActionRoutesMiddleware({
     // TODO(PRD-673): distinguish disallowed from unknown when a separate exposure source exists.
     const allowed = readModel.isActionAllowed(collection, actionName);
 
-    const refuseUnknownAction = () => {
+    const refuseUnknownAction = (): never => {
       throw unknownAction(`Unknown action: ${collection}.${actionName}`);
     };
 
@@ -283,59 +259,33 @@ export default function createActionRoutesMiddleware({
       transport,
       token,
       actionEndpoints: readModel.getActionEndpoints(),
+      activityLog: activityLogsService && activityLogContextOf(ctx, activityLogsService, logger),
     });
 
-    const loadAction = () =>
-      callAgent(
-        () =>
-          client.loadAction({
-            collection,
-            actionName,
-            recordIds,
-            timezone: ctx.state.timezone as string,
-          }),
-        logger,
-      );
+    const params = { collection, actionName, recordIds, timezone: ctx.state.timezone as string };
 
     // The form is not audited, mirroring mcp-server, whose get-action-form tool writes no log
     // either: the record-touching event the trail records is the execution.
     if (verb !== EXECUTE_VERB) {
-      const action = await loadAction();
+      const action = await callAgent(() => client.loadAction(params), logger);
 
       await handleForm({ ctx, action, values, logger });
 
       return;
     }
 
-    // The whole sequence is audited, loadAction and setFields included, so the intent is recorded
-    // even when the attempt never reaches the agent's execute. The allow-list refusal is inside
-    // too, mirroring mcp-server, whose execute-action tool resolves the action within its own
-    // wrapper: an attempt on an action the caller may not trigger is exactly what the trail is
-    // for, and the record ids it names are only known once the body is read.
-    await activityLogs.record({
+    // The whole sequence is audited, loading the action and setting its values included, so the
+    // intent is recorded even when the attempt never reaches the agent's execute. The allow-list
+    // refusal is inside too, mirroring mcp-server, whose execute-action tool resolves the action
+    // within its own entry: an attempt on an action the caller may not trigger is exactly what the
+    // trail is for, and the record ids it names are only known once the body is read.
+    await handleExecute({
       ctx,
-      action: 'action',
-      context: {
-        collectionName: collection,
-        recordIds,
-        label: `triggered the action "${actionName}"`,
-      },
-      isCompletedDespite: isApprovalRequest,
-      isOutcomeUnknown: isActionOutcomeUnknown,
-      operation: async () => {
-        if (!allowed) refuseUnknownAction();
-
-        const action = await loadAction();
-
-        await handleExecute({
-          ctx,
-          action,
-          values,
-          logger,
-          actionTimeoutMs,
-          target: { collection, actionName, recordIds },
-        });
-      },
+      client,
+      params,
+      refusal: allowed ? undefined : refuseUnknownAction,
+      values,
+      logger,
     });
   };
 }

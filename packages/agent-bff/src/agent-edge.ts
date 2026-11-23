@@ -1,4 +1,3 @@
-import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
 import type { ResolvedApiKeyConfig } from './api-key/api-key-edge';
@@ -11,8 +10,6 @@ import type ReadModelStore from './read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import createActionRoutesMiddleware from './action/action-routes-middleware';
-import createActivityLogWriter from './activity-log/activity-log-writer';
-import createBffActivityLogsService from './activity-log/activity-logs-service';
 import createAgentStubMiddleware from './agent/agent-stub';
 import { createHttpTransport } from './agent/agent-transport';
 import createInProcessTransport from './agent/in-process-transport';
@@ -23,6 +20,7 @@ import {
   createApiKeyUnavailableGuard,
   resolveApiKeyConfig,
 } from './api-key/api-key-edge';
+import { createBffActivityLogsService } from './auth/activity-log-context';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import createForestServerTokenMiddleware from './auth/forest-server-token-middleware';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
@@ -130,11 +128,10 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
   );
 }
 
-// The routes that write an activity log come with the writer holding their pending transitions, so
-// the host can drain it when it stops.
+// The routes that write an activity log say so, so the host can drain the transitions when it stops.
 interface AgentRouteEdge {
   middlewares: Middleware[];
-  activityLogs?: ActivityLogWriter;
+  writesActivityLogs?: boolean;
 }
 
 // The data middleware falls through to the action middleware on a non-data path.
@@ -143,7 +140,6 @@ function buildAgentRouteMiddlewares(
   transport: AgentTransport | undefined,
   logger: Logger,
   permissionsCache: PermissionsCache,
-  actionTimeoutMs: number,
 ): AgentRouteEdge {
   if (!bundle) {
     logger(
@@ -172,18 +168,15 @@ function buildAgentRouteMiddlewares(
     return { middlewares: [permissionsMiddleware, createAgentStubMiddleware()] };
   }
 
-  const activityLogs = createActivityLogWriter({
-    service: createBffActivityLogsService(apiKeyConfig.forestServerUrl),
-    logger,
-  });
+  const activityLogsService = createBffActivityLogsService(apiKeyConfig.forestServerUrl);
 
   return {
     middlewares: [
       permissionsMiddleware,
-      createDataRoutesMiddleware({ store, transport, logger, activityLogs }),
-      createActionRoutesMiddleware({ store, transport, logger, activityLogs, actionTimeoutMs }),
+      createDataRoutesMiddleware({ store, transport, logger, activityLogsService }),
+      createActionRoutesMiddleware({ store, transport, logger, activityLogsService }),
     ],
-    activityLogs,
+    writesActivityLogs: true,
   };
 }
 
@@ -218,7 +211,7 @@ export function buildAiMiddlewares(
 interface AgentEdge {
   middlewares: Middleware[];
   invalidate(): void;
-  activityLogs?: ActivityLogWriter;
+  writesActivityLogs?: boolean;
   servesFilterOperators: boolean;
 }
 
@@ -246,19 +239,10 @@ export function buildAgentMiddlewares(
   const bundle = resolveReadModelBundle(config, logger, metrics);
   const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
-  const routeEdge = buildAgentRouteMiddlewares(
-    bundle,
-    transport,
-    logger,
-    permissionsCache,
-    config.actionTimeoutMs,
-  );
+  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache);
 
   const chain: Middleware[] = [
-    createAuthModeMiddleware({
-      authSecret: forestAuthSecret,
-      accessTokenKey: oauth.session?.accessTokenKey,
-    }),
+    createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     // After both auth middlewares: the resolver it lands reads what they put on the context.
     createForestServerTokenMiddleware({ session: oauth.session, logger }),
@@ -306,7 +290,7 @@ export function buildAgentMiddlewares(
       bundle?.store.invalidate();
       permissionsCache.clear();
     },
-    activityLogs: routeEdge.activityLogs,
+    writesActivityLogs: routeEdge.writesActivityLogs,
     servesFilterOperators: Boolean(bundle && transport),
   };
 }

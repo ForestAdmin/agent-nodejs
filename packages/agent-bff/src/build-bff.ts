@@ -8,6 +8,7 @@ import type { Metrics } from './ports/metrics-port';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Middleware } from 'koa';
 
+import { drainActivityLogs } from '@forestadmin/agent-client';
 import { normalizeDomainList } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
@@ -307,12 +308,10 @@ export default async function buildBff({
   const app = new Koa();
   for (const middleware of middlewares) app.use(middleware);
 
-  const { activityLogs } = agentEdge;
-
   return {
     callback: app.callback(),
     invalidate: agentEdge.invalidate,
-    drainActivityLogs: activityLogs && (timeoutMs => activityLogs.drain(timeoutMs)),
+    drainActivityLogs: agentEdge.writesActivityLogs ? drainActivityLogs : undefined,
     health: () => ({ ...health, configured: { ...health.configured } }),
   };
 }

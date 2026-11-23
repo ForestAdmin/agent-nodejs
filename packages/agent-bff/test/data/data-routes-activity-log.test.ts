@@ -1,9 +1,9 @@
-import type { ActivityLogWriter } from '../../src/activity-log/activity-log-writer';
 import type { AgentDataClient } from '../../src/data/agent-data-client';
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { Middleware } from 'koa';
 
+import { drainActivityLogs } from '@forestadmin/agent-client';
 import { HttpError } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
@@ -18,7 +18,6 @@ import {
   ACTIVITY_LOG_INDEX,
   API_KEY_SERVER_TOKEN,
   RENDERING_ID,
-  activityLogsOf,
   apiKeyCredentials,
   fakeActivityLogsService,
   forestServerTokenStep,
@@ -68,8 +67,7 @@ function buildApp({
   credentials?: Middleware;
   saasAccessToken?: string;
   logger?: Logger;
-}): { app: Koa; activityLogs: ActivityLogWriter } {
-  const activityLogs = activityLogsOf(service, logger);
+}): { app: Koa; activityLogs: { drain: typeof drainActivityLogs } } {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: noopLogger }));
@@ -86,12 +84,12 @@ function buildApp({
       store: storeOf(),
       transport: createHttpTransport({ agentUrl: AGENT_URL }),
       logger,
-      activityLogs,
+      activityLogsService: service,
       createClient: () => client as AgentDataClient,
     }),
   );
 
-  return { app, activityLogs };
+  return { app, activityLogs: { drain: drainActivityLogs } };
 }
 
 describe('data routes activity log', () => {
@@ -307,7 +305,7 @@ describe('data routes activity log', () => {
           action: 'listRelatedData',
           type: 'read',
           collectionName: 'users',
-          recordId: 'users-1',
+          recordIds: ['users-1'],
           label: 'list relation "posts" with search and filter',
         }),
       );

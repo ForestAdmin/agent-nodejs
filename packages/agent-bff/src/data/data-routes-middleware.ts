@@ -5,15 +5,17 @@ import type {
   RelationCountRequestBody,
   RelationListRequestBody,
 } from './agent-query';
-import type { ActivityLogWriter } from '../activity-log/activity-log-writer';
-import type { BffActivityLogAction } from '../activity-log/activity-logs-creator';
 import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type { PrimaryKeyField } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
+import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
+
+import { withActivityLog } from '@forestadmin/agent-client';
 
 import defaultCreateAgentDataClient from './agent-data-client';
 import {
@@ -29,6 +31,7 @@ import {
   parseRelationListRequest,
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
+import { activityLogContextOf } from '../auth/activity-log-context';
 import {
   callAgent,
   callAgentRecheckingExposure,
@@ -51,7 +54,7 @@ export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
-  activityLogs: ActivityLogWriter;
+  activityLogsService?: ActivityLogsServiceInterface;
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
 
@@ -63,7 +66,7 @@ interface RequestHandlerDeps {
   token: string;
   timezone: string;
   logger: Logger;
-  activityLogs: ActivityLogWriter;
+  activityLog?: ActivityLogContext;
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
@@ -121,7 +124,7 @@ async function resolveOwnCapabilities(
   return result;
 }
 
-function selectListAction(body: ListRequestBody): BffActivityLogAction {
+function selectListAction(body: ListRequestBody): 'index' | 'search' | 'filter' {
   if (hasSearch(body)) return 'search';
   if (hasFilter(body)) return 'filter';
 
@@ -152,12 +155,11 @@ async function listRecords(ctx: Context, body: ListRequestBody, deps: ListHandle
 }
 
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
-  await deps.activityLogs.record({
-    ctx,
-    action: selectListAction(body),
-    context: { collectionName: deps.collection },
-    operation: () => listRecords(ctx, body, deps),
-  });
+  await withActivityLog(
+    deps.activityLog,
+    { action: selectListAction(body), collectionName: deps.collection },
+    () => listRecords(ctx, body, deps),
+  );
 }
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
@@ -258,16 +260,16 @@ async function handleRelationList(
   body: RelationListRequestBody,
   deps: RelationListHandlerDeps,
 ) {
-  await deps.activityLogs.record({
-    ctx,
-    action: 'listRelatedData',
-    context: {
+  await withActivityLog(
+    deps.activityLog,
+    {
+      action: 'listRelatedData',
       collectionName: deps.collection,
-      recordId: body.parentId,
+      recordIds: [body.parentId],
       label: relationListLabel(deps.relation, body),
     },
-    operation: () => listRelatedRecords(ctx, body, deps),
-  });
+    () => listRelatedRecords(ctx, body, deps),
+  );
 }
 
 async function handleRelationCount(
@@ -334,7 +336,7 @@ export default function createDataRoutesMiddleware({
   store,
   transport,
   logger,
-  activityLogs,
+  activityLogsService,
   createClient = defaultCreateAgentDataClient,
 }: DataRoutesMiddlewareOptions): Middleware {
   return async function dataRoutesMiddleware(ctx, next) {
@@ -368,7 +370,7 @@ export default function createDataRoutesMiddleware({
       token,
       timezone: ctx.state.timezone as string,
       logger,
-      activityLogs,
+      activityLog: activityLogsService && activityLogContextOf(ctx, activityLogsService, logger),
     };
     const rawBody = ctx.request.body ?? {};
 

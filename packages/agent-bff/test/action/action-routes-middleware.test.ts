@@ -27,7 +27,6 @@ import {
   readModel,
   storeOf,
 } from '../helpers/action-routes';
-import { passthroughActivityLogs } from '../helpers/activity-log';
 
 const TRANSPORT = createHttpTransport({ agentUrl: 'https://agent.example.com' });
 
@@ -50,7 +49,6 @@ describe('action routes middleware', () => {
         store: storeOf(readModel),
         transport: createHttpTransport({ agentUrl: 'https://agent.example.com', timeoutMs: 2500 }),
         logger: noopLogger,
-        activityLogs: passthroughActivityLogs(),
         createClient,
       }),
     );
@@ -82,7 +80,6 @@ describe('action routes middleware', () => {
         store: storeOf(readModel),
         transport: TRANSPORT,
         logger: noopLogger,
-        activityLogs: passthroughActivityLogs(),
         createClient,
       }),
     );

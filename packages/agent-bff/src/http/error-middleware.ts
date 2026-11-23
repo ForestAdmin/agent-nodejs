@@ -1,7 +1,10 @@
 import type { Logger } from '../ports/logger-port';
 import type { Middleware } from 'koa';
 
+import { ActivityLogBlockedError } from '@forestadmin/agent-client';
+
 import { isSerializableError, toErrorBody } from './bff-http-error';
+import { auditErrorOf } from './bff-local-errors';
 
 export interface ErrorMiddlewareOptions {
   logger: Logger;
@@ -25,7 +28,9 @@ export default function createErrorMiddleware({ logger }: ErrorMiddlewareOptions
   return async function errorMiddleware(ctx, next) {
     try {
       await next();
-    } catch (error) {
+    } catch (thrown) {
+      const error = thrown instanceof ActivityLogBlockedError ? auditErrorOf(thrown) : thrown;
+
       if (isSerializableError(error)) {
         if (error.retryAfter !== undefined) ctx.set('Retry-After', String(error.retryAfter));
         ctx.status = error.status;

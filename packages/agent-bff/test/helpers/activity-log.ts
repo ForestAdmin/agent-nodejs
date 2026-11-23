@@ -1,14 +1,8 @@
-import type {
-  ActivityLogWriter,
-  RecordActivityLogOptions,
-} from '../../src/activity-log/activity-log-writer';
-import type { ActivityLogsWriter } from '../../src/activity-log/activity-logs-service';
 import type { Logger } from '../../src/ports/logger-port';
 import type { Middleware } from 'koa';
 
 import jsonwebtoken from 'jsonwebtoken';
 
-import createActivityLogWriter from '../../src/activity-log/activity-log-writer';
 import createForestServerTokenMiddleware from '../../src/auth/forest-server-token-middleware';
 import createSessionTokenCodec from '../../src/oauth/session-token';
 import createTokenCipher from '../../src/oauth/token-cipher';
@@ -25,7 +19,8 @@ export const testSessionTokens = createSessionTokenCodec(
   { now: () => Date.now(), sessionTtlSeconds: 3600, logger: () => undefined },
 );
 
-export interface FakeActivityLogsService extends ActivityLogsWriter {
+export interface FakeActivityLogsService {
+  createActivityLog: jest.Mock;
   createMcpActivityLog: jest.Mock;
   updateActivityLogStatus: jest.Mock;
 }
@@ -34,28 +29,13 @@ export function fakeActivityLogsService(
   overrides: Partial<FakeActivityLogsService> = {},
 ): FakeActivityLogsService {
   return {
+    createActivityLog: jest.fn(),
     createMcpActivityLog: jest.fn(async () => ({
       id: ACTIVITY_LOG_ID,
       attributes: { index: ACTIVITY_LOG_INDEX },
     })),
     updateActivityLogStatus: jest.fn(async () => undefined),
     ...overrides,
-  } as FakeActivityLogsService;
-}
-
-export function activityLogsOf(service: ActivityLogsWriter, logger: Logger): ActivityLogWriter {
-  return createActivityLogWriter({ service, logger });
-}
-
-export function passthroughActivityLogs(): ActivityLogWriter {
-  return {
-    record<T>(options: RecordActivityLogOptions<T>): Promise<T> {
-      return options.operation();
-    },
-
-    drain(): Promise<string[]> {
-      return Promise.resolve([]);
-    },
   };
 }
 

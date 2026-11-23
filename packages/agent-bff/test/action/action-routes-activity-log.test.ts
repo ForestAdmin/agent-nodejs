@@ -1,25 +1,22 @@
-import type { AgentActionClient } from '../../src/action/agent-action-client';
-import type { ActivityLogWriter } from '../../src/activity-log/activity-log-writer';
+import type { AgentTransport } from '../../src/agent/agent-transport';
 import type { Logger } from '../../src/ports/logger-port';
+import type { HttpRequester } from '@forestadmin/agent-client';
 import type { Middleware } from 'koa';
 
-import { ActionRequiresApprovalError } from '@forestadmin/agent-client';
+import { AgentHttpError, drainActivityLogs } from '@forestadmin/agent-client';
 import { HttpError } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
-import { createHttpTransport } from '../../src/agent/agent-transport';
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
-import { TIMEZONE, clientOf, makeAction, readModel, storeOf } from '../helpers/action-routes';
+import { TIMEZONE, readModel, storeOf } from '../helpers/action-routes';
 import {
   ACTIVITY_LOG_ID,
   ACTIVITY_LOG_INDEX,
   API_KEY_SERVER_TOKEN,
   RENDERING_ID,
-  activityLogsOf,
   apiKeyCredentials,
   fakeActivityLogsService,
   forestServerTokenStep,
@@ -29,26 +26,34 @@ import {
 
 const noopLogger: Logger = () => undefined;
 
+function agentAnswering(answer: () => Promise<unknown> = async () => ({ success: 'Done' })) {
+  return jest.fn(answer);
+}
+
+function transportTo(agent: jest.Mock): AgentTransport {
+  return {
+    url: 'https://agent.example.com',
+    createRequester: () => ({ query: agent } as unknown as HttpRequester),
+  };
+}
+
 function buildApp({
   service,
-  client,
+  agent = agentAnswering(),
   credentials = apiKeyCredentials(),
   saasAccessToken,
-  tokenStep = forestServerTokenStep(saasAccessToken),
 }: {
   service: ReturnType<typeof fakeActivityLogsService>;
-  client: AgentActionClient;
+  agent?: jest.Mock;
   credentials?: Middleware;
   saasAccessToken?: string;
-  tokenStep?: Middleware;
-}): { app: Koa; activityLogs: ActivityLogWriter } {
-  const activityLogs = activityLogsOf(service, noopLogger);
+}): Koa {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: noopLogger }));
   app.use(bodyParser());
   app.use(credentials);
-  app.use(tokenStep);
+  app.use(forestServerTokenStep(saasAccessToken));
   app.use(async (ctx, next) => {
     ctx.state.timezone = TIMEZONE;
     ctx.state.agentToken = 'agent-jwt';
@@ -57,27 +62,21 @@ function buildApp({
   app.use(
     createActionRoutesMiddleware({
       store: storeOf(readModel),
-      transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
+      transport: transportTo(agent),
       logger: noopLogger,
-      activityLogs,
-      createClient: () => client,
+      activityLogsService: service,
     }),
   );
 
-  return { app, activityLogs };
-}
-
-function executingAction() {
-  return makeAction({ execute: jest.fn(async () => ({ success: 'Done' })) });
+  return app;
 }
 
 describe('action routes activity log', () => {
   describe('when executing an action', () => {
     it('should record the action, its records and its label', async () => {
       const service = fakeActivityLogsService();
-      const { app } = buildApp({ service, client: clientOf(executingAction()) });
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42', '43'] });
 
@@ -88,7 +87,6 @@ describe('action routes activity log', () => {
         action: 'action',
         type: 'write',
         collectionName: 'users',
-        recordId: undefined,
         recordIds: ['42', '43'],
         label: 'triggered the action "approve"',
       });
@@ -96,20 +94,20 @@ describe('action routes activity log', () => {
 
     it('should record an attempt on an action the read model does not expose', async () => {
       const service = fakeActivityLogsService();
-      const { app } = buildApp({ service, client: clientOf(executingAction()) });
+      const agent = agentAnswering();
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service, agent }).callback())
         .post('/agent/v1/users/actions/ghost/execute')
         .send({ recordIds: ['42'] });
 
       expect(response.status).toBe(404);
+      expect(agent).not.toHaveBeenCalled();
       expect(service.createMcpActivityLog).toHaveBeenCalledWith({
         forestServerToken: API_KEY_SERVER_TOKEN,
         renderingId: String(RENDERING_ID),
         action: 'action',
         type: 'write',
         collectionName: 'users',
-        recordId: undefined,
         recordIds: ['42'],
         label: 'triggered the action "ghost"',
       });
@@ -117,12 +115,11 @@ describe('action routes activity log', () => {
 
     it('should mark that attempt failed', async () => {
       const service = fakeActivityLogsService();
-      const { app, activityLogs } = buildApp({ service, client: clientOf(executingAction()) });
 
-      await request(app.callback())
+      await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/ghost/execute')
         .send({ recordIds: ['42'] });
-      await activityLogs.drain();
+      await drainActivityLogs();
 
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
@@ -131,9 +128,8 @@ describe('action routes activity log', () => {
 
     it('should leave the form of an unexposed action unaudited, like every other form', async () => {
       const service = fakeActivityLogsService();
-      const { app } = buildApp({ service, client: clientOf(executingAction()) });
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/ghost/form')
         .send({ recordIds: ['42'] });
 
@@ -143,12 +139,11 @@ describe('action routes activity log', () => {
 
     it('should mark the log completed once the action ran', async () => {
       const service = fakeActivityLogsService();
-      const { app, activityLogs } = buildApp({ service, client: clientOf(executingAction()) });
 
-      await request(app.callback())
+      await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
-      await activityLogs.drain();
+      await drainActivityLogs();
 
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith({
         forestServerToken: API_KEY_SERVER_TOKEN,
@@ -159,17 +154,14 @@ describe('action routes activity log', () => {
 
     it('should mark the log failed when the action throws', async () => {
       const service = fakeActivityLogsService();
-      const form = makeAction({
-        execute: jest.fn(async () => {
-          throw new Error('the agent is down');
-        }),
+      const agent = agentAnswering(async () => {
+        throw new Error('the agent is down');
       });
-      const { app, activityLogs } = buildApp({ service, client: clientOf(form) });
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service, agent }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
-      await activityLogs.drain();
+      await drainActivityLogs();
 
       expect(response.status).toBe(502);
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
@@ -177,124 +169,39 @@ describe('action routes activity log', () => {
       );
     });
 
-    describe('when the execute times out', () => {
-      function timingOutAction() {
-        return makeAction({
-          execute: jest.fn(async () => {
-            throw new AgentTimeoutError('Timeout of 30000ms exceeded');
-          }),
+    it('should mark the log failed when a value names no field of the form', async () => {
+      const service = fakeActivityLogsService();
+      const agent = agentAnswering();
+
+      const response = await request(buildApp({ service, agent }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { ghost: 1 } });
+      await drainActivityLogs();
+
+      expect(response.status).toBe(400);
+      expect(agent).not.toHaveBeenCalled();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('should mark the log canceled when the action needs an approval', async () => {
+      const service = fakeActivityLogsService();
+      const agent = agentAnswering(async () => {
+        throw new AgentHttpError(403, {
+          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
         });
-      }
-
-      it('should leave the log pending, since the action may still have run', async () => {
-        const service = fakeActivityLogsService();
-        const { app, activityLogs } = buildApp({ service, client: clientOf(timingOutAction()) });
-
-        const response = await request(app.callback())
-          .post('/agent/v1/users/actions/approve/execute')
-          .send({ recordIds: ['42'] });
-
-        expect(response.status).toBe(504);
-        expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
-        await expect(activityLogs.drain()).resolves.toEqual([]);
-        expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
       });
 
-      it('should leave the log pending on a connection reset too', async () => {
-        const service = fakeActivityLogsService();
-        const resetting = makeAction({
-          execute: jest.fn(async () => {
-            throw Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
-          }),
-        });
-        const { app, activityLogs } = buildApp({ service, client: clientOf(resetting) });
-
-        await request(app.callback())
-          .post('/agent/v1/users/actions/approve/execute')
-          .send({ recordIds: ['42'] });
-
-        await expect(activityLogs.drain()).resolves.toEqual([]);
-        expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
-      });
-    });
-
-    it('should mark the log failed when setFields times out, since nothing ran', async () => {
-      const service = fakeActivityLogsService();
-      const form = makeAction({
-        setFields: jest.fn(async () => {
-          throw new AgentTimeoutError('Timeout of 10000ms exceeded');
-        }),
-      });
-      const { app, activityLogs } = buildApp({ service, client: clientOf(form) });
-
-      await request(app.callback())
+      const response = await request(buildApp({ service, agent }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
-      await activityLogs.drain();
-
-      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'failed' }),
-      );
-    });
-
-    it('should mark the log failed when loading the action times out', async () => {
-      const service = fakeActivityLogsService();
-      const loadAction = jest.fn(async () => {
-        throw new AgentTimeoutError('Timeout of 10000ms exceeded');
-      });
-      const { app, activityLogs } = buildApp({
-        service,
-        client: clientOf(executingAction(), loadAction as jest.Mock),
-      });
-
-      await request(app.callback())
-        .post('/agent/v1/users/actions/approve/execute')
-        .send({ recordIds: ['42'] });
-      await activityLogs.drain();
-
-      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'failed' }),
-      );
-    });
-
-    it('should mark the log failed when the action cannot even be loaded', async () => {
-      const service = fakeActivityLogsService();
-      const loadAction = jest.fn(async () => {
-        throw new Error('the agent is down');
-      });
-      const { app, activityLogs } = buildApp({
-        service,
-        client: clientOf(executingAction(), loadAction as jest.Mock),
-      });
-
-      await request(app.callback())
-        .post('/agent/v1/users/actions/approve/execute')
-        .send({ recordIds: ['42'] });
-      await activityLogs.drain();
-
-      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'failed' }),
-      );
-    });
-
-    it('should mark the log completed when the action was routed for approval', async () => {
-      const service = fakeActivityLogsService();
-      const form = makeAction({
-        execute: jest.fn(async () => {
-          throw new ActionRequiresApprovalError('Needs approval', [7]);
-        }),
-      });
-      const { app, activityLogs } = buildApp({ service, client: clientOf(form) });
-
-      const response = await request(app.callback())
-        .post('/agent/v1/users/actions/approve/execute')
-        .send({ recordIds: ['42'] });
-      await activityLogs.drain();
+      await drainActivityLogs();
 
       expect(response.status).toBe(403);
       expect(response.body.error.type).toBe('action_requires_approval');
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'completed' }),
+        expect.objectContaining({ status: 'canceled' }),
       );
     });
 
@@ -304,29 +211,40 @@ describe('action routes activity log', () => {
           throw new Error('the audit store is down');
         }),
       });
-      const loadAction = jest.fn(async () => executingAction());
-      const { app } = buildApp({
-        service,
-        client: clientOf(executingAction(), loadAction as jest.Mock),
-      });
+      const agent = agentAnswering();
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service, agent }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
 
       expect(response.status).toBe(503);
       expect(response.body.error.type).toBe('audit_unavailable');
       expect(response.headers['retry-after']).toBe('5');
-      expect(loadAction).not.toHaveBeenCalled();
+      expect(agent).not.toHaveBeenCalled();
+    });
+
+    it('should refuse without a retry hint when the server exposes no activity log endpoint', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async () => {
+          throw new HttpError('not implemented', 501);
+        }),
+      });
+
+      const response = await request(buildApp({ service }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(503);
+      expect(response.body.error.type).toBe('audit_unavailable');
+      expect(response.headers['retry-after']).toBeUndefined();
     });
 
     it('should refuse with audit_unavailable when the audit endpoint returns no log id', async () => {
       const service = fakeActivityLogsService({
         createMcpActivityLog: jest.fn(async () => ({ attributes: { index: ACTIVITY_LOG_INDEX } })),
       });
-      const { app } = buildApp({ service, client: clientOf(executingAction()) });
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
 
@@ -340,9 +258,8 @@ describe('action routes activity log', () => {
           throw new HttpError('Forbidden', 403);
         }),
       });
-      const { app } = buildApp({ service, client: clientOf(executingAction()) });
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
 
@@ -352,35 +269,32 @@ describe('action routes activity log', () => {
 
     it('should refuse with session_expired when the oauth session cannot be resolved', async () => {
       const service = fakeActivityLogsService();
-      const loadAction = jest.fn(async () => executingAction());
-      const { app } = buildApp({
-        service,
-        client: clientOf(executingAction(), loadAction as jest.Mock),
-        credentials: oauthCredentials(),
-        saasAccessToken: undefined,
-      });
+      const agent = agentAnswering();
 
-      const response = await request(app.callback())
+      const response = await request(
+        buildApp({
+          service,
+          agent,
+          credentials: oauthCredentials(),
+          saasAccessToken: undefined,
+        }).callback(),
+      )
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
 
       expect(response.status).toBe(401);
       expect(response.body.error.type).toBe('session_expired');
-      expect(loadAction).not.toHaveBeenCalled();
+      expect(agent).not.toHaveBeenCalled();
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
     it('should use the session token when the caller carries an oauth session', async () => {
       const service = fakeActivityLogsService();
       const saasAccessToken = sessionAccessToken();
-      const { app } = buildApp({
-        service,
-        client: clientOf(executingAction()),
-        credentials: oauthCredentials(),
-        saasAccessToken,
-      });
 
-      await request(app.callback())
+      await request(
+        buildApp({ service, credentials: oauthCredentials(), saasAccessToken }).callback(),
+      )
         .post('/agent/v1/users/actions/approve/execute')
         .send({ recordIds: ['42'] });
 
@@ -393,9 +307,8 @@ describe('action routes activity log', () => {
   describe('when loading an action form', () => {
     it('should write no log', async () => {
       const service = fakeActivityLogsService();
-      const { app } = buildApp({ service, client: clientOf(makeAction()) });
 
-      const response = await request(app.callback())
+      const response = await request(buildApp({ service }).callback())
         .post('/agent/v1/users/actions/approve/form')
         .send({ recordIds: ['42'] });
 
