@@ -100,7 +100,10 @@ export default abstract class RecordStepExecutor<
   // A step that writes lets the AI pick only among the records it may write to.
   protected async resolveRecordRef(
     prompt: string | undefined,
-    { preRecordedStepIndex, writes = false }: { preRecordedStepIndex?: number; writes?: boolean } = {},
+    {
+      preRecordedStepIndex,
+      writes = false,
+    }: { preRecordedStepIndex?: number; writes?: boolean } = {},
   ): Promise<RecordRef> {
     if (preRecordedStepIndex !== undefined) {
       const records = await this.listRecordRefs();
@@ -333,13 +336,16 @@ export default abstract class RecordStepExecutor<
       this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(
-        'You are an AI agent selecting the most relevant record for a workflow step.\n' +
-          'Choose the record whose collection best matches the user request.\n' +
-          'Pay attention to the collection name of each record.' +
-          (callRecord
-            ? `\nThis step runs inside a Sub-workflow call on "${identifiers[0]}", listed first: ` +
-              'prefer it unless the request names another record.'
-            : ''),
+        [
+          'You are an AI agent selecting the most relevant record for a workflow step.',
+          'Choose the record whose collection best matches the user request.',
+          'Pay attention to the collection name of each record.',
+          ...(callRecord
+            ? [
+                `This step runs inside a Sub-workflow call on "${identifiers[0]}", listed first: prefer it unless the request names another record.`,
+              ]
+            : []),
+        ].join('\n'),
       ),
       new HumanMessage(prompt ?? 'Select the most relevant record.'),
     ];
