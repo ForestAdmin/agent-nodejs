@@ -107,7 +107,7 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
           .collection(options.collectionName)
           .relation(options.relationName, options.parentRecordId);
 
-        let response: { records: unknown[]; totalCount?: number };
+        let response: { records: unknown[]; totalCount?: number | null };
 
         if (options.enableCount) {
           const [records, totalCount] = await Promise.all([

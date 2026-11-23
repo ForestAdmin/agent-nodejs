@@ -230,7 +230,7 @@ export default class AgentClientAgentPort implements AgentPort {
       const client = this.createClient(user, undefined, audit?.context);
       const rows = await client
         .collection(collection)
-        .relation(relation, id)
+        .relation(relation, id, relatedSchema.collectionName)
         .list<Record<string, unknown>>(
           {
             ...(limit !== null && { pagination: { size: limit, number: 1 } }),

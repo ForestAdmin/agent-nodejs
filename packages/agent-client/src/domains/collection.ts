@@ -17,7 +17,8 @@ import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
 import withActivityLogContext, { runCall } from '../activity-log/with-activity-log';
-import QuerySerializer from '../query-serializer';
+import toCount from '../count-response';
+import QuerySerializer, { hasFilters, searchOf } from '../query-serializer';
 import serializeRecordId from '../record-id';
 
 export type ExecuteActionOptions = BaseActionContext &
@@ -33,8 +34,8 @@ function serializeActionIds(context?: BaseActionContext): string[] {
 }
 
 function listActionOf(options?: SelectOptions): 'index' | 'search' | 'filter' {
-  if (options?.search?.trim()) return 'search';
-  if (options?.filters && Object.keys(options.filters).length > 0) return 'filter';
+  if (searchOf(options)) return 'search';
+  if (hasFilters(options)) return 'filter';
 
   return 'index';
 }
@@ -127,8 +128,15 @@ export default class Collection extends CollectionChart {
     return new Segment(undefined, this.name, this.httpRequester, options);
   }
 
-  relation(name: string, parentId: RecordId): Relation {
-    return new Relation(name, this.name, parentId, this.httpRequester, this.activityLog);
+  relation(name: string, parentId: RecordId, listedCollectionName?: string): Relation {
+    return new Relation(
+      name,
+      this.name,
+      parentId,
+      this.httpRequester,
+      this.activityLog,
+      listedCollectionName,
+    );
   }
 
   async search<Data = unknown>(content: string): Promise<Data[]> {
@@ -166,15 +174,14 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  async count(options?: SelectOptions): Promise<number> {
-    return Number(
-      (
-        await this.httpRequester.query<{ count: number }>({
-          method: 'get',
-          path: `/forest/${this.name}/count`,
-          query: QuerySerializer.serialize(options, this.name),
-        })
-      ).count,
+  async count(options?: SelectOptions): Promise<number | null> {
+    return toCount(
+      await this.httpRequester.query({
+        method: 'get',
+        path: `/forest/${this.name}/count`,
+        query: QuerySerializer.serialize(options, this.name),
+        skipDeserialization: true,
+      }),
     );
   }
 

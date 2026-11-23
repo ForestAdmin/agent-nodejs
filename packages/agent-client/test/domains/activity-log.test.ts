@@ -228,6 +228,24 @@ describe('activity logging inside agent-client calls', () => {
       ]);
     });
 
+    it.each([
+      [
+        { search: 'hello', filters: { field: 'title', operator: 'Present' } },
+        ' with search and filter',
+      ],
+      [{ search: 'hello' }, ' with search'],
+      [{ search: '   ', filters: { field: 'title', operator: 'Present' } }, ' with filter'],
+      [{ search: '   ', filters: {} }, ''],
+    ])('should label a list with the refinements %j really applies', async (options, suffix) => {
+      const { collection, entries } = setup();
+
+      await collection.relation('posts', 9).list(options as never);
+
+      expect(entries()).toEqual([
+        expect.objectContaining({ label: `list relation "posts"${suffix}` }),
+      ]);
+    });
+
     it('should open no entry for a count', async () => {
       const { collection, service } = setup();
 

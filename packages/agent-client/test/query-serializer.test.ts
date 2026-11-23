@@ -17,6 +17,61 @@ describe('QuerySerializer', () => {
       expect(result.search).toBe('john');
     });
 
+    describe('search', () => {
+      it('should trim the search', () => {
+        const result = QuerySerializer.serialize({ search: ' john ' }, 'users');
+
+        expect(result.search).toBe('john');
+      });
+
+      it('should leave a blank search out', () => {
+        const result = QuerySerializer.serialize({ search: '   ' }, 'users');
+
+        expect(result).not.toHaveProperty('search');
+      });
+
+      it('should send searchExtended when the search reaches related collections', () => {
+        const result = QuerySerializer.serialize(
+          { search: 'john', shouldSearchInRelation: true },
+          'users',
+        );
+
+        expect(result.searchExtended).toBe(true);
+      });
+
+      it('should leave searchExtended out when the search stays on the collection', () => {
+        const result = QuerySerializer.serialize(
+          { search: 'john', shouldSearchInRelation: false },
+          'users',
+        );
+
+        expect(result).not.toHaveProperty('searchExtended');
+      });
+
+      it('should leave searchExtended out when there is no search to extend', () => {
+        const result = QuerySerializer.serialize(
+          { search: ' ', shouldSearchInRelation: true },
+          'users',
+        );
+
+        expect(result).not.toHaveProperty('searchExtended');
+      });
+    });
+
+    describe('timezone', () => {
+      it('should send the time zone of the call', () => {
+        const result = QuerySerializer.serialize({ timezone: 'Asia/Tokyo' }, 'users');
+
+        expect(result.timezone).toBe('Asia/Tokyo');
+      });
+
+      it('should carry no time zone key when the call names none, so the client default applies', () => {
+        const result = QuerySerializer.serialize({ search: 'john' }, 'users');
+
+        expect(result).toStrictEqual({ search: 'john' });
+      });
+    });
+
     describe('pagination', () => {
       it('should serialize pagination with both size and number', () => {
         const result = QuerySerializer.serialize({ pagination: { size: 10, number: 2 } }, 'users');

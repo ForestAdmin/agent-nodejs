@@ -676,6 +676,24 @@ describe('declareListTool', () => {
           });
         });
 
+        it('should answer a null totalCount when count is deactivated for the collection', async () => {
+          countMock.mockResolvedValue(null);
+
+          const result = await registeredToolHandler(
+            { collectionName: 'users', enableCount: true },
+            mockExtra,
+          );
+
+          expect(result).toEqual({
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ records: [{ id: 1 }, { id: 2 }], totalCount: null }),
+              },
+            ],
+          });
+        });
+
         it('should pass the same options to both list and count', async () => {
           const filters = { field: 'status', operator: 'Equal', value: 'active' };
 

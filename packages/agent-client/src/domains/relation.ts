@@ -3,8 +3,17 @@ import type HttpRequester from '../http-requester';
 import type { RecordId, SelectOptions } from '../types';
 
 import { runCall } from '../activity-log/with-activity-log';
-import QuerySerializer from '../query-serializer';
+import toCount from '../count-response';
+import QuerySerializer, { hasFilters, searchOf } from '../query-serializer';
 import serializeRecordId from '../record-id';
+
+function refinementsOf(options?: SelectOptions): string {
+  const refinements = [searchOf(options) && 'search', hasFilters(options) && 'filter'].filter(
+    Boolean,
+  );
+
+  return refinements.length > 0 ? ` with ${refinements.join(' and ')}` : '';
+}
 
 export default class Relation {
   private readonly name: string;
@@ -12,6 +21,7 @@ export default class Relation {
   private readonly parentId: string;
   private readonly httpRequester: HttpRequester;
   private readonly activityLog?: ActivityLogContext;
+  private readonly listedCollectionName: string;
 
   constructor(
     name: string,
@@ -19,8 +29,10 @@ export default class Relation {
     parentId: RecordId,
     httpRequester: HttpRequester,
     activityLog?: ActivityLogContext,
+    listedCollectionName?: string,
   ) {
     this.name = name;
+    this.listedCollectionName = listedCollectionName ?? name;
     this.collectionName = collectionName;
     this.httpRequester = httpRequester;
     this.parentId = serializeRecordId(parentId);
@@ -37,27 +49,26 @@ export default class Relation {
         action: 'listRelatedData',
         collectionName: this.collectionName,
         recordIds: [this.parentId],
-        label: `list relation "${this.name}"`,
+        label: `list relation "${this.name}"${refinementsOf(options)}`,
       },
       activityLog,
       () =>
         this.httpRequester.query<Data[]>({
           method: 'get',
           path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
-          query: QuerySerializer.serialize(options, this.collectionName),
+          query: QuerySerializer.serialize(options, this.listedCollectionName),
         }),
     );
   }
 
-  async count(options?: SelectOptions): Promise<number> {
-    return Number(
-      (
-        await this.httpRequester.query<{ count: number }>({
-          method: 'get',
-          path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}/count`,
-          query: QuerySerializer.serialize(options, this.collectionName),
-        })
-      ).count,
+  async count(options?: SelectOptions): Promise<number | null> {
+    return toCount(
+      await this.httpRequester.query({
+        method: 'get',
+        path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}/count`,
+        query: QuerySerializer.serialize(options, this.listedCollectionName),
+        skipDeserialization: true,
+      }),
     );
   }
 

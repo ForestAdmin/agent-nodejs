@@ -4,6 +4,14 @@ import type { PlainFilter, PlainSortClause } from '@forestadmin/datasource-toolk
 import toWireFilter from './filter-wire-format';
 import HttpRequester from './http-requester';
 
+export function searchOf(options?: SelectOptions): string | undefined {
+  return options?.search?.trim() || undefined;
+}
+
+export function hasFilters(options?: SelectOptions): boolean {
+  return !!options?.filters && Object.keys(options.filters).length > 0;
+}
+
 export default class QuerySerializer {
   static serialize(query: SelectOptions, collectionName: string): Record<string, unknown> {
     if (!query) return {};
@@ -14,22 +22,29 @@ export default class QuerySerializer {
       filters,
       shouldSearchInRelation,
       pagination,
-      search,
       segmentQuery,
       connectionName,
+      timezone,
     } = query;
+    const search = searchOf(query);
 
-    return {
+    const serialized = {
       search,
       segmentQuery,
       connectionName,
+      timezone,
       sort: QuerySerializer.formatSort(sort),
       filters: QuerySerializer.formatFilters(filters),
-      searchExtended: !!shouldSearchInRelation,
+      searchExtended: search && shouldSearchInRelation ? true : undefined,
       'page[size]': pagination?.size,
       'page[number]': pagination?.number,
       ...(fields?.length ? QuerySerializer.formatFields(collectionName, fields) : {}),
     };
+
+    // An undefined `timezone` would erase the default the requester spreads this query over.
+    return Object.fromEntries(
+      Object.entries(serialized).filter(([, value]) => value !== undefined),
+    );
   }
 
   private static formatSort(sort: PlainSortClause | PlainSortClause[]): string {

@@ -431,11 +431,28 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.relation).toHaveBeenCalledWith('posts', [42]);
+      expect(mockCollection.relation).toHaveBeenCalledWith('posts', [42], 'posts');
       expect(result).toEqual([
         { collectionName: 'posts', recordId: [10], values: { id: 10, title: 'Post A' } },
         { collectionName: 'posts', recordId: [11], values: { id: 11, title: 'Post B' } },
       ]);
+    });
+
+    it('names the listed collection, which the agent keys the projection on', async () => {
+      mockRelation.list.mockResolvedValue([]);
+
+      await port.getRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'articles',
+          relatedSchema: postsSchema,
+          limit: null,
+        },
+        user,
+      );
+
+      expect(mockCollection.relation).toHaveBeenCalledWith('articles', [42], 'posts');
     });
 
     it('restores snake_case field names from camelCase deserialized rows', async () => {

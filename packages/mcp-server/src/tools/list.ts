@@ -116,7 +116,7 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
       try {
         const collection = rpcClient.collection(options.collectionName);
 
-        let response: { records: unknown[]; totalCount?: number };
+        let response: { records: unknown[]; totalCount?: number | null };
 
         if (options.enableCount) {
           const [records, totalCount] = await Promise.all([

@@ -31,4 +31,5 @@ export type SelectOptions = BaseOptions & {
   };
   segmentQuery?: string; // SQL query for live query segments
   connectionName?: string; // Connection name for live query segments
+  timezone?: string; // Time zone of this call, overriding the client default
 };

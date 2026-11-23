@@ -2,8 +2,6 @@ import type HttpRequester from '../../src/http-requester';
 
 import Relation from '../../src/domains/relation';
 
-jest.mock('../../src/http-requester');
-
 describe('Relation', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
 
@@ -70,6 +68,41 @@ describe('Relation', () => {
       });
     });
 
+    it('should key the projection on the listed collection', async () => {
+      const relation = new Relation('articles', 'users', 1, httpRequester, undefined, 'posts');
+      httpRequester.query.mockResolvedValue([]);
+
+      await relation.list({ fields: ['id', 'title'] });
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/1/relationships/articles',
+        query: { 'fields[posts]': 'id,title' },
+      });
+    });
+
+    it('should key the projection on the relation name when the listed collection is not given', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue([]);
+
+      await relation.list({ fields: ['id'] });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { 'fields[posts]': 'id' } }),
+      );
+    });
+
+    it('should send the time zone of the call', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue([]);
+
+      await relation.list({ timezone: 'Asia/Tokyo' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { timezone: 'Asia/Tokyo' } }),
+      );
+    });
+
     it('should return typed data', async () => {
       interface Post {
         id: number;
@@ -96,6 +129,7 @@ describe('Relation', () => {
         method: 'get',
         path: '/forest/users/1/relationships/posts/count',
         query: expect.any(Object),
+        skipDeserialization: true,
       });
       expect(result).toBe(42);
     });
@@ -110,8 +144,30 @@ describe('Relation', () => {
         method: 'get',
         path: '/forest/users/abc-123/relationships/posts/count',
         query: expect.any(Object),
+        skipDeserialization: true,
       });
       expect(result).toBe(10);
+    });
+
+    it('should return null when the agent answers that count is deactivated', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue({ meta: { count: 'deactivated' } });
+
+      await expect(relation.count()).resolves.toBeNull();
+    });
+
+    it('should read the raw count payload and send the time zone of the call', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue({ count: 5 });
+
+      await relation.count({ timezone: 'Asia/Tokyo' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/1/relationships/posts/count',
+        query: { timezone: 'Asia/Tokyo' },
+        skipDeserialization: true,
+      });
     });
 
     it('should pass options to query serializer for count', async () => {
@@ -124,6 +180,7 @@ describe('Relation', () => {
         method: 'get',
         path: '/forest/users/1/relationships/posts/count',
         query: expect.objectContaining({ search: 'draft' }),
+        skipDeserialization: true,
       });
     });
   });
