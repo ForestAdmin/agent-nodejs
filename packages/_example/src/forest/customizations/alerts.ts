@@ -26,6 +26,37 @@ const INVESTIGATION_TYPES = { AML: 'AML', FRAUD: 'FRAUD', ACCOUNT_TAKEOVER: 'ACC
 const INVESTIGATION_PRIORITIES = demoFields('investigations').find(
   field => field.name === 'priority',
 ).enum;
+const CLEARANCE_REASONS = demoFields('alerts').find(
+  field => field.name === 'clearance_reason',
+).enum;
+const CLEAR_NOTES = {
+  STRUCTURING: 'The deposits match the customer’s usual cash activity: no sign of splitting.',
+  RAPID_MOVEMENT: 'Money in and out matches a known pattern (salary, then rent and savings).',
+  UNUSUAL_VOLUME: 'The higher volume is explained by the customer’s declared profile.',
+  HIGH_RISK_COUNTRY: 'The payment to a high-risk country is a known family transfer.',
+  SANCTIONS_MATCH: 'Homonym: the name matches, the date of birth and country do not.',
+  SUSPICIOUS_PATTERN: 'Reviewed the pattern: consistent with the customer’s declared activity.',
+  CARD_TESTING: 'The small card payments were made by the customer (confirmed in the app).',
+  UNUSUAL_CARD_SPEND: 'The customer confirmed the card payments (travel abroad).',
+  NEW_DEVICE_NEW_PAYEE: 'The customer confirmed the new phone and the new payee.',
+  IMPOSSIBLE_TRAVEL: 'The two logins come from a VPN the customer uses: not two places.',
+  MULE_PATTERN: 'The incoming transfers are explained (shared flat, refunds from friends).',
+  INCOMING_FRAUD_RECALL: 'The sender’s bank withdrew its recall.',
+  CUSTOMER_REPORT: 'The customer recognised the payment after all.',
+  REPEATED_DISPUTES: 'The disputes were justified: merchant issues, not abuse.',
+  INVOICE_IBAN_CHANGE: 'The supplier confirmed its new IBAN by phone, on the number on file.',
+};
+const CLEAR_REASONS = {
+  SANCTIONS_MATCH: 'FALSE_POSITIVE',
+  IMPOSSIBLE_TRAVEL: 'FALSE_POSITIVE',
+  CARD_TESTING: 'VERIFIED_WITH_COUNTERPARTY',
+  UNUSUAL_CARD_SPEND: 'VERIFIED_WITH_COUNTERPARTY',
+  NEW_DEVICE_NEW_PAYEE: 'VERIFIED_WITH_COUNTERPARTY',
+  INVOICE_IBAN_CHANGE: 'VERIFIED_WITH_COUNTERPARTY',
+  CUSTOMER_REPORT: 'VERIFIED_WITH_COUNTERPARTY',
+  INCOMING_FRAUD_RECALL: 'ALREADY_INVESTIGATED',
+};
+const CALL_FIELDS = ['alert_type', 'call_outcome', 'called_at'];
 const FREEZE_REASONS = demoFields('accounts').find(field => field.name === 'freeze_reason').enum;
 const ALERT_FIELDS = ['id', 'reference', 'status', 'customer_id', 'category'];
 
@@ -76,6 +107,43 @@ async function sendForSecondLook(context, resultBuilder) {
 
   return resultBuilder.success(
     `${alert.reference} waits for a senior's second look, out of the alert queues: ${reason}.`,
+  );
+}
+
+const confirmedByPhone = alert => alert.call_outcome === 'CONFIRMED' && alert.called_at;
+
+async function defaultClearReason(context) {
+  const alert = await context.getRecord(CALL_FIELDS);
+  if (confirmedByPhone(alert)) return 'VERIFIED_WITH_COUNTERPARTY';
+
+  return CLEAR_REASONS[alert.alert_type] || 'EXPLAINED_BY_PROFILE';
+}
+
+async function defaultClearNote(context) {
+  const alert = await context.getRecord(CALL_FIELDS);
+  if (confirmedByPhone(alert)) return 'The customer confirmed on the phone.';
+
+  if (alert.call_outcome === 'NOT_REACHED' && alert.alert_type === 'IMPOSSIBLE_TRAVEL') {
+    return 'Customer abroad, not reached: the login came from their usual phone and no money moved.';
+  }
+
+  return CLEAR_NOTES[alert.alert_type] || 'Reviewed: no suspicious activity found.';
+}
+
+async function clearAlert(context, resultBuilder) {
+  const { alert, error } = await liveAlert(context);
+  if (error) return resultBuilder.error(error);
+
+  const { 'Clearance reason': reason, Note: note } = context.formValues;
+  await moveAlert(context, alert, 'CLEARED', note || reason, {
+    resolved_at: now(),
+    clearance_reason: reason,
+    resolution_notes: note || null,
+    reviewed_by: context.caller.email,
+  });
+
+  return resultBuilder.success(
+    `${alert.reference} cleared (${readable(reason)}): it leaves the alert queues.`,
   );
 }
 
@@ -189,6 +257,26 @@ export default (collection: AlertsCustomizer) =>
         },
       ],
       execute: sendForSecondLook,
+    })
+    .addAction('Clear alert', {
+      scope: 'Single',
+      form: [
+        {
+          label: 'Clearance reason',
+          type: 'Enum',
+          enumValues: CLEARANCE_REASONS,
+          isRequired: true,
+          defaultValue: defaultClearReason,
+        },
+        {
+          label: 'Note',
+          type: 'String',
+          widget: 'TextArea',
+          description: 'Pre-filled from the alert type or the call: adjust it to what you checked',
+          defaultValue: defaultClearNote,
+        },
+      ],
+      execute: clearAlert,
     })
     .addAction('Escalate', {
       scope: 'Single',
