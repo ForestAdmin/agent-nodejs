@@ -299,7 +299,7 @@ export interface ActivityLogWorkflow {
 export interface UpdateActivityLogStatusParams {
   forestServerToken: string;
   activityLog: ActivityLogResponse;
-  status: 'completed' | 'failed';
+  status: 'completed' | 'failed' | 'canceled';
 }
 
 /**
