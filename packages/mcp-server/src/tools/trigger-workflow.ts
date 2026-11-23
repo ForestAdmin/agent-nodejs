@@ -2,12 +2,14 @@ import type { McpWorkflowLookup } from '../http-client';
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { withActivityLog } from '@forestadmin/agent-client';
 import { NotFoundError } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
+import { activityLogContextOf } from '../utils/agent-caller';
 import getAuthContext from '../utils/auth-context';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 import { RETRY_WILL_NOT_HELP, carriesTransportDetail, isRetryable } from '../utils/workflow-error';
 
 const WORKFLOW_ID_DESCRIPTION =
@@ -160,54 +162,61 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         throw new Error(unavailableCollectionMessage(args.workflowId));
       }
 
-      const result = await withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'triggerWorkflow',
-        context: {
-          collectionName: workflow.collectionName,
-          recordId: args.recordId,
-          // One trigger writes two Activity Logs rows, and this is the first: it records the
-          // request, before the run exists. The orchestrator writes the second once the run is
-          // committed, labelled "triggered ... via MCP". The two deliberately do not share a
-          // wording — this one cannot carry a runId (that is what makes it fail-closed), and the
-          // second is best-effort, so a successful trigger can leave only this one. Identical
-          // labels made a single trigger read as two indistinguishable events, and made "how many
-          // workflows did assistants start?" answerable only by deduplicating on the runId.
-          label: `requested the workflow "${workflow.name}" via MCP`,
-        },
-        logger,
-        operation: () =>
-          forestServerClient.triggerMcpWorkflow({
-            forestServerToken,
-            renderingId,
-            workflowId: args.workflowId,
-            recordId: args.recordId,
-          }),
-        errorEnhancer: async (parsedMessage, originalError) => {
-          // Guard the race where the workflow is disabled/deleted between the lookup and the
-          // trigger.
-          if (originalError instanceof NotFoundError) {
-            return notMcpEnabledMessage(args.workflowId);
-          }
+      // One trigger writes two Activity Logs rows, and this is the first: it records the
+      // request, before the run exists. The orchestrator writes the second once the run is
+      // committed, labelled "triggered ... via MCP". The two deliberately do not share a
+      // wording — this one cannot carry a runId (that is what makes it fail-closed), and the
+      // second is best-effort, so a successful trigger can leave only this one. Identical
+      // labels made a single trigger read as two indistinguishable events, and made "how many
+      // workflows did assistants start?" answerable only by deduplicating on the runId.
+      const label = `requested the workflow "${workflow.name}" via MCP`;
 
-          // withActivityLog rethrows the parsed message as-is, so without this the raw transport
-          // failure of the start call itself reaches the model — the same leak the lookup above
-          // guards, one call later.
-          if (carriesTransportDetail(originalError)) {
-            logger(
-              'Error',
-              `Failed to trigger workflow "${args.workflowId}": ${
-                originalError instanceof Error ? originalError.message : String(originalError)
-              }`,
-            );
+      const errorEnhancer = async (parsedMessage: string, originalError: unknown) => {
+        // Guard the race where the workflow is disabled/deleted between the lookup and the
+        // trigger.
+        if (originalError instanceof NotFoundError) {
+          return notMcpEnabledMessage(args.workflowId);
+        }
 
-            return triggerUnavailableMessage(args.workflowId);
-          }
+        // The parsed message is rethrown as-is, so without this the raw transport failure of the
+        // start call itself reaches the model — the same leak the lookup above guards, one call
+        // later.
+        if (carriesTransportDetail(originalError)) {
+          logger(
+            'Error',
+            `Failed to trigger workflow "${args.workflowId}": ${
+              originalError instanceof Error ? originalError.message : String(originalError)
+            }`,
+          );
 
-          return parsedMessage;
-        },
-      });
+          return triggerUnavailableMessage(args.workflowId);
+        }
+
+        return parsedMessage;
+      };
+
+      let result: Awaited<ReturnType<typeof forestServerClient.triggerMcpWorkflow>>;
+
+      try {
+        result = await withActivityLog(
+          activityLogContextOf(extra, ctx),
+          {
+            action: 'triggerWorkflow',
+            collectionName: workflow.collectionName,
+            recordIds: [args.recordId],
+            label,
+          },
+          () =>
+            forestServerClient.triggerMcpWorkflow({
+              forestServerToken,
+              renderingId,
+              workflowId: args.workflowId,
+              recordId: args.recordId,
+            }),
+        );
+      } catch (error) {
+        throw await toToolError(error, { logger, errorEnhancer });
+      }
 
       return {
         content: [

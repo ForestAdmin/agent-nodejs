@@ -226,8 +226,7 @@ describe('declareGetActionFormTool', () => {
 
       expect(mockBuildClientWithActions).toHaveBeenCalledWith(
         mockExtra,
-        mockForestServerClient,
-        undefined,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
       );
     });
 

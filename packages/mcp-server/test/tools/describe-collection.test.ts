@@ -9,17 +9,14 @@ import filterSchema from '../../src/schemas/filter';
 import declareDescribeCollectionTool from '../../src/tools/describe-collection';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
-import withActivityLog from '../../src/utils/with-activity-log';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/schema-fetcher');
-jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -40,9 +37,6 @@ describe('declareDescribeCollectionTool', () => {
     jest.clearAllMocks();
 
     mockForestServerClient = createMockForestServerClient();
-
-    // Mock withActivityLog to execute the operation directly
-    mockWithActivityLog.mockImplementation(async options => options.operation());
 
     // Default mock for actions - return empty array
     mockGetActionsOfCollection.mockReturnValue([]);
@@ -200,7 +194,10 @@ describe('declareDescribeCollectionTool', () => {
 
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
+      expect(mockBuildClient).toHaveBeenCalledWith(
+        mockExtra,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
+      );
     });
 
     it('should fetch forest schema', async () => {
@@ -233,7 +230,7 @@ describe('declareDescribeCollectionTool', () => {
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
       expect(mockCollection).toHaveBeenCalledWith('users');
-      expect(mockCapabilities).toHaveBeenCalled();
+      expect(mockCapabilities).toHaveBeenCalledWith({ action: 'describeCollection' });
     });
 
     describe('when capabilities are available', () => {

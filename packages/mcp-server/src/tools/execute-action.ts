@@ -1,13 +1,19 @@
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { ActionRequiresApprovalError, isApprovalRequested } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import resolveUploadedFileValues from '../file-uploads/resolve';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
+
+const APPROVAL_NOT_FILED_MESSAGE =
+  'This action requires approval by another user before it runs, but this server could not file ' +
+  'the approval request: its Forest server URL, server token or rendering id is missing. Report ' +
+  'it to your Forest administrator.';
 
 interface ExecuteActionArgument {
   collectionName: string;
@@ -18,7 +24,7 @@ interface ExecuteActionArgument {
 }
 
 export default function declareExecuteActionTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames } = ctx;
+  const { logger, collectionNames } = ctx;
   const argumentShape = {
     ...createActionArgumentShape(collectionNames),
     reasoning: z
@@ -53,54 +59,49 @@ To fill a file field, never inline base64 file content. Call requestActionFileUp
       inputSchema: argumentShape,
     },
     async (options: ExecuteActionArgument, extra) => {
-      const { rpcClient } = await buildClientWithActions(
-        extra,
-        forestServerClient,
-        ctx.agentDispatcher,
-      );
+      const { rpcClient } = await buildClientWithActions(extra, ctx);
 
       // Cast to satisfy the type system - the API accepts both string[] and number[]
       const recordIds = (options.recordIds ?? []) as string[] | number[];
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'action',
-        context: {
-          collectionName: options.collectionName,
-          recordIds,
-          label: `triggered the action "${options.actionName}"`,
-        },
-        logger,
-        operation: async () => {
-          const values = options.values
-            ? await resolveUploadedFileValues(options.values, extra.authInfo, ctx.fileUploads)
-            : undefined;
+      try {
+        const result = await rpcClient
+          .collection(options.collectionName)
+          .executeAction(options.actionName, {
+            recordIds,
+            approvalRequestMessage: options.reasoning,
+            fill: async action => {
+              if (!options.values) return;
 
-          const action = await rpcClient
-            .collection(options.collectionName)
-            .action(options.actionName, { recordIds });
+              await action.setFields(
+                await resolveUploadedFileValues(options.values, extra.authInfo, ctx.fileUploads),
+              );
+            },
+          });
 
-          if (values) {
-            await action.setFields(values);
-          }
+        if (isApprovalRequested(result)) {
+          const requestId = result.approvalRequest?.id;
 
-          const result = await action.execute({ approvalRequestMessage: options.reasoning });
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Approval requested: this action requires approval by another user before it runs. A request has been created and is pending review.${
+                  requestId ? ` Approval request id: ${requestId}.` : ''
+                }`,
+              },
+            ],
+          };
+        }
 
-          if ('approvalRequested' in result) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'Approval requested: this action requires approval by another user before it runs. A request has been created and is pending review.',
-                },
-              ],
-            };
-          }
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (error) {
+        if (error instanceof ActionRequiresApprovalError) {
+          throw new Error(APPROVAL_NOT_FILED_MESSAGE);
+        }
 
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-        },
-      });
+        throw await toToolError(error, { logger });
+      }
     },
     logger,
   );

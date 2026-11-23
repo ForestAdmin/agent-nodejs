@@ -47,7 +47,7 @@ function splitFileReferences(values: Record<string, unknown>): {
 }
 
 export default function declareGetActionFormTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames } = ctx;
+  const { logger, collectionNames } = ctx;
   const argumentShape = createActionArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -74,11 +74,7 @@ The response includes:
       inputSchema: argumentShape,
     },
     async (options: GetActionFormArgument, extra) => {
-      const { rpcClient } = await buildClientWithActions(
-        extra,
-        forestServerClient,
-        ctx.agentDispatcher,
-      );
+      const { rpcClient } = await buildClientWithActions(extra, ctx);
 
       // TODO: Enhance when more methods are available in the agent client helper
       // https://github.com/ForestAdmin/forestadmin-experimental/pull/140

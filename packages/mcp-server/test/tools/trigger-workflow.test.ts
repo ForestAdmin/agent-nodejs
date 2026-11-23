@@ -171,7 +171,7 @@ describe('declareTriggerWorkflowTool', () => {
           action: 'triggerWorkflow',
           type: 'write',
           collectionName: 'orders',
-          recordId: '42',
+          recordIds: ['42'],
           label: 'requested the workflow "Refund order" via MCP',
         }),
       );
@@ -394,7 +394,7 @@ describe('declareTriggerWorkflowTool', () => {
       expect((result as { content: [{ text: string }] }).content[0].text).toContain('retry later');
     });
 
-    // The lookup's guard is one call early: the start itself goes through withActivityLog, which
+    // The lookup's guard is one call early: the start itself goes through the activity log, which
     // rethrows the parsed message as-is.
     it('should keep transport detail out of the model when the trigger call itself fails', async () => {
       mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
@@ -483,7 +483,7 @@ describe('declareTriggerWorkflowTool', () => {
         expect.objectContaining({
           action: 'triggerWorkflow',
           collectionName: 'orders',
-          recordId: '42',
+          recordIds: ['42'],
           label: 'requested the workflow "Refund order" via MCP',
         }),
       );
@@ -512,7 +512,7 @@ describe('declareTriggerWorkflowTool', () => {
         expect.objectContaining({
           action: 'triggerWorkflow',
           collectionName: 'orders',
-          recordId: '42',
+          recordIds: ['42'],
           label: 'requested the workflow "Refund order" via MCP',
         }),
       );

@@ -4,8 +4,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import buildClient from '../utils/agent-caller';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 // Preprocess to handle LLM sending attributes as JSON string instead of object
 const attributesWithPreprocess = z.preprocess(val => {
@@ -34,7 +34,7 @@ function createArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareCreateTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames } = ctx;
+  const { logger, collectionNames } = ctx;
   const argumentShape = createArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -46,22 +46,17 @@ export default function declareCreateTool(mcpServer: McpServer, ctx: ToolContext
       inputSchema: argumentShape,
     },
     async (options: CreateArgument, extra) => {
-      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
+      const { rpcClient } = buildClient(extra, ctx);
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'create',
-        context: { collectionName: options.collectionName, label: 'created' },
-        logger,
-        operation: async () => {
-          const record = await rpcClient
-            .collection(options.collectionName)
-            .create(options.attributes);
+      try {
+        const record = await rpcClient
+          .collection(options.collectionName)
+          .create(options.attributes);
 
-          return { content: [{ type: 'text', text: JSON.stringify({ record }) }] };
-        },
-      });
+        return { content: [{ type: 'text', text: JSON.stringify({ record }) }] };
+      } catch (error) {
+        throw await toToolError(error, { logger });
+      }
     },
     logger,
   );

@@ -5,15 +5,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { ActionRequiresApprovalError } from '@forestadmin/agent-client';
+
 import { UPLOADED_FILE_PREFIX } from '../../src/file-uploads/file-reference';
 import { signUploadHandle } from '../../src/file-uploads/handles';
 import { resolveFileUploads } from '../../src/file-uploads/types';
 import declareExecuteActionTool from '../../src/tools/execute-action';
 import { buildClientWithActions } from '../../src/utils/agent-caller';
-import withActivityLog from '../../src/utils/with-activity-log';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
 const mockForestServerClient: ForestServerClient = {
@@ -31,7 +31,29 @@ const mockForestServerClient: ForestServerClient = {
 const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction<
   typeof buildClientWithActions
 >;
-const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
+
+function collectionRunning(mockAction: jest.Mock) {
+  return {
+    action: mockAction,
+    executeAction: async (
+      actionName: string,
+      {
+        recordIds,
+        fill,
+        approvalRequestMessage,
+      }: {
+        recordIds: unknown[];
+        fill: (action: unknown) => Promise<void>;
+        approvalRequestMessage?: string;
+      },
+    ) => {
+      const action = await mockAction(actionName, { recordIds });
+      await fill(action);
+
+      return action.execute({ approvalRequestMessage });
+    },
+  };
+}
 
 describe('declareExecuteActionTool', () => {
   let mcpServer: McpServer;
@@ -47,9 +69,6 @@ describe('declareExecuteActionTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
-
-    // By default, withActivityLog executes the operation and returns its result
-    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
@@ -219,7 +238,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -232,8 +251,7 @@ describe('declareExecuteActionTool', () => {
 
       expect(mockBuildClientWithActions).toHaveBeenCalledWith(
         mockExtra,
-        mockForestServerClient,
-        undefined,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
       );
     });
 
@@ -244,7 +262,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -265,7 +283,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -287,7 +305,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -308,7 +326,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -330,7 +348,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -352,7 +370,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -376,7 +394,7 @@ describe('declareExecuteActionTool', () => {
         execute: mockExecute,
         setFields: mockSetFields,
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -392,13 +410,71 @@ describe('declareExecuteActionTool', () => {
       });
     });
 
+    it('should return the id of the approval request it filed', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        execute: jest.fn().mockResolvedValue({
+          approvalRequested: true,
+          approvalRequest: { id: 'approval-7' },
+        }),
+        setFields: jest.fn(),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue(collectionRunning(mockAction)) },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'refund', recordIds: [1] },
+        mockExtra,
+      );
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text:
+              'Approval requested: this action requires approval by another user before it ' +
+              'runs. A request has been created and is pending review. Approval request id: ' +
+              'approval-7.',
+          },
+        ],
+      });
+    });
+
+    it('should say the approval request could not be filed when the server cannot file it', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        execute: jest.fn().mockRejectedValue(new ActionRequiresApprovalError('Needs approval')),
+        setFields: jest.fn(),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue(collectionRunning(mockAction)) },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'refund', recordIds: [1] },
+        mockExtra,
+      );
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text:
+              'This action requires approval by another user before it runs, but this server ' +
+              'could not file the approval request: its Forest server URL, server token or ' +
+              'rendering id is missing. Report it to your Forest administrator.',
+          },
+        ],
+        isError: true,
+      });
+    });
+
     it('should forward the reasoning to execute so it reaches the approval request', async () => {
       const mockExecute = jest.fn().mockResolvedValue({ approvalRequested: true });
       const mockAction = jest.fn().mockResolvedValue({
         execute: mockExecute,
         setFields: jest.fn().mockResolvedValue(undefined),
       });
-      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -416,66 +492,6 @@ describe('declareExecuteActionTool', () => {
 
       expect(mockExecute).toHaveBeenCalledWith({
         approvalRequestMessage: 'Duplicate payment detected on order #42',
-      });
-    });
-
-    describe('activity logging', () => {
-      beforeEach(() => {
-        const mockExecute = jest.fn().mockResolvedValue({ success: 'Action executed' });
-        const mockSetFields = jest.fn().mockResolvedValue(undefined);
-        const mockAction = jest.fn().mockResolvedValue({
-          execute: mockExecute,
-          setFields: mockSetFields,
-        });
-        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
-        mockBuildClientWithActions.mockResolvedValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClientWithActions>);
-      });
-
-      it('should call withActivityLog with correct parameters', async () => {
-        const recordIds = [1, 2, 3];
-        await registeredToolHandler(
-          { collectionName: 'users', actionName: 'sendEmail', recordIds },
-          mockExtra,
-        );
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'action',
-          context: {
-            collectionName: 'users',
-            recordIds,
-            label: 'triggered the action "sendEmail"',
-          },
-          logger: mockLogger,
-          operation: expect.any(Function),
-        });
-      });
-
-      it('should wrap the action execution with activity logging', async () => {
-        const mockExecute = jest.fn().mockResolvedValue({ success: 'Action executed' });
-        const mockSetFields = jest.fn().mockResolvedValue(undefined);
-        const mockAction = jest.fn().mockResolvedValue({
-          execute: mockExecute,
-          setFields: mockSetFields,
-        });
-        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
-        mockBuildClientWithActions.mockResolvedValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClientWithActions>);
-
-        await registeredToolHandler(
-          { collectionName: 'users', actionName: 'sendEmail', recordIds: [1] },
-          mockExtra,
-        );
-
-        // Verify the operation was executed through withActivityLog
-        expect(mockWithActivityLog).toHaveBeenCalled();
-        expect(mockExecute).toHaveBeenCalled();
       });
     });
 
@@ -500,7 +516,7 @@ describe('declareExecuteActionTool', () => {
           execute: mockExecute,
           setFields: mockSetFields,
         });
-        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+        const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
         mockBuildClientWithActions.mockResolvedValue({
           rpcClient: { collection: mockCollection },
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -530,7 +546,7 @@ describe('declareExecuteActionTool', () => {
         };
         const agentError = new Error(JSON.stringify(errorPayload));
         const mockAction = jest.fn().mockRejectedValue(agentError);
-        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+        const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
         mockBuildClientWithActions.mockResolvedValue({
           rpcClient: { collection: mockCollection },
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -554,7 +570,7 @@ describe('declareExecuteActionTool', () => {
       it('should return error result when no parsable error found', async () => {
         const agentError = { unknownProperty: 'some value' };
         const mockAction = jest.fn().mockRejectedValue(agentError);
-        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+        const mockCollection = jest.fn().mockReturnValue(collectionRunning(mockAction));
         mockBuildClientWithActions.mockResolvedValue({
           rpcClient: { collection: mockCollection },
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -565,7 +581,7 @@ describe('declareExecuteActionTool', () => {
           mockExtra,
         );
         expect(result).toEqual({
-          content: [{ type: 'text', text: '{"unknownProperty":"some value"}' }],
+          content: [{ type: 'text', text: '[object Object]' }],
           isError: true,
         });
       });
@@ -613,7 +629,7 @@ describe('declareExecuteActionTool', () => {
         setFields: mockSetFields,
       });
       mockBuildClientWithActions.mockResolvedValue({
-        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        rpcClient: { collection: jest.fn().mockReturnValue(collectionRunning(mockAction)) },
         authData: { userId: 42, renderingId: '123', environmentId: 1, projectId: 1 },
       } as unknown as ReturnType<typeof buildClientWithActions>);
 

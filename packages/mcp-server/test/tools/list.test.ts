@@ -8,17 +8,14 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import declareListTool from '../../src/tools/list';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
-import withActivityLog from '../../src/utils/with-activity-log';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/with-activity-log');
 jest.mock('../../src/utils/schema-fetcher');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -44,37 +41,6 @@ describe('declareListTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
-
-    // By default, withActivityLog executes the operation and handles errors with enhancement
-    mockWithActivityLog.mockImplementation(async options => {
-      try {
-        return await options.operation();
-      } catch (error) {
-        let errorMessage = error instanceof Error ? error.message : String(error);
-
-        // Try to parse JSON:API error format
-        try {
-          const parsed = JSON.parse(errorMessage);
-
-          if (parsed.error?.text) {
-            const textParsed = JSON.parse(parsed.error.text);
-
-            if (textParsed.errors?.[0]?.detail) {
-              errorMessage = textParsed.errors[0].detail;
-            }
-          }
-        } catch {
-          // Not a JSON error, use as-is
-        }
-
-        // Apply error enhancer if provided
-        if (options.errorEnhancer) {
-          errorMessage = await options.errorEnhancer(errorMessage, error);
-        }
-
-        throw new Error(errorMessage);
-      }
-    });
   });
 
   describe('tool registration', () => {
@@ -248,7 +214,10 @@ describe('declareListTool', () => {
 
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
+      expect(mockBuildClient).toHaveBeenCalledWith(
+        mockExtra,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
+      );
     });
 
     it('should call rpcClient.collection with the collection name', async () => {
@@ -280,101 +249,6 @@ describe('declareListTool', () => {
 
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ records: mockData }) }],
-      });
-    });
-
-    describe('activity logging', () => {
-      beforeEach(() => {
-        const mockList = jest.fn().mockResolvedValue([]);
-        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-      });
-
-      it('should call withActivityLog with "index" action type for basic list', async () => {
-        await registeredToolHandler({ collectionName: 'users' }, mockExtra);
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'index',
-          context: { collectionName: 'users' },
-          logger: mockLogger,
-          operation: expect.any(Function),
-          errorEnhancer: expect.any(Function),
-        });
-      });
-
-      it('should call withActivityLog with "search" action type when search is provided', async () => {
-        await registeredToolHandler({ collectionName: 'users', search: 'john' }, mockExtra);
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'search',
-          context: { collectionName: 'users' },
-          logger: mockLogger,
-          operation: expect.any(Function),
-          errorEnhancer: expect.any(Function),
-        });
-      });
-
-      it('should call withActivityLog with "filter" action type when filters are provided', async () => {
-        await registeredToolHandler(
-          {
-            collectionName: 'users',
-            filters: { field: 'status', operator: 'Equal', value: 'active' },
-          },
-          mockExtra,
-        );
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'filter',
-          context: { collectionName: 'users' },
-          logger: mockLogger,
-          operation: expect.any(Function),
-          errorEnhancer: expect.any(Function),
-        });
-      });
-
-      it('should prioritize "search" over "filter" when both are provided', async () => {
-        await registeredToolHandler(
-          {
-            collectionName: 'users',
-            search: 'john',
-            filters: { field: 'status', operator: 'Equal', value: 'active' },
-          },
-          mockExtra,
-        );
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'search',
-          context: { collectionName: 'users' },
-          logger: mockLogger,
-          operation: expect.any(Function),
-          errorEnhancer: expect.any(Function),
-        });
-      });
-
-      it('should wrap the list operation with activity logging', async () => {
-        const mockList = jest.fn().mockResolvedValue([{ id: 1 }]);
-        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-
-        await registeredToolHandler({ collectionName: 'users' }, mockExtra);
-
-        // Verify the operation was executed through withActivityLog
-        expect(mockWithActivityLog).toHaveBeenCalled();
-        expect(mockList).toHaveBeenCalled();
       });
     });
 
