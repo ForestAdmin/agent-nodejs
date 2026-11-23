@@ -1,6 +1,7 @@
 import type EphemeralStorage from '../src/file-uploads/ephemeral-storage';
 import type * as net from 'net';
 
+import { drainActivityLogs } from '@forestadmin/agent-client';
 import * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
@@ -1175,6 +1176,7 @@ describe('ForestMCPServer Instance', () => {
     });
 
     afterAll(async () => {
+      await drainActivityLogs();
       listMockServer.restoreSuperagent();
       await new Promise<void>(resolve => {
         if (listServer?.httpServer) {
@@ -1387,6 +1389,7 @@ describe('ForestMCPServer Instance', () => {
       listMockServer.clear();
       listMockServer
         .post('/api/activity-logs-requests/mcp', createActivityLog)
+        .patch('/api/activity-logs-requests/', {})
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       const response = await request(listHttpServer)
@@ -1559,6 +1562,7 @@ describe('ForestMCPServer Instance', () => {
           .post('/api/activity-logs-requests', {
             data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
           })
+          .patch('/api/activity-logs-requests/', {})
           // Capture GET requests to /forest/* collections (via superagent mock)
           // The superagent mock passes query params as the body
           .get(/\/forest\/\w+/, (_url, options) => {
@@ -2056,6 +2060,7 @@ describe('ForestMCPServer Instance', () => {
             .post('/api/activity-logs-requests', {
               data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
             })
+            .patch('/api/activity-logs-requests/', {})
             .get(/\/forest\/users\/count/, () => ({
               count: 42,
             }))
@@ -2139,6 +2144,7 @@ describe('ForestMCPServer Instance', () => {
             .post('/api/activity-logs-requests', {
               data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
             })
+            .patch('/api/activity-logs-requests/', {})
             .get(/\/forest\/users\/count/, (_url, options) => {
               countCalls.push(JSON.stringify(options?.body));
 
