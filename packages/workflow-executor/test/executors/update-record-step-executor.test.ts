@@ -1021,6 +1021,33 @@ describe('UpdateRecordStepExecutor', () => {
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
+
+    it('returns error when the tool call drops the input wrapper', async () => {
+      const invoke = jest.fn().mockResolvedValue({
+        tool_calls: [
+          {
+            name: 'update-record-field',
+            args: { fieldName: 'Status', value: 'active', reasoning: 'flat args' },
+            id: 'call_1',
+          },
+        ],
+      });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: { bindTools } as unknown as ExecutionContext['model'],
+        runStore,
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
   });
 
   describe('agentPort.updateRecord WorkflowExecutorError (Branch B)', () => {

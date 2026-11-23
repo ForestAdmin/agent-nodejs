@@ -12,6 +12,7 @@ import {
   FieldTypeMissingError,
   InvalidPreRecordedArgsError,
   InvalidPreRecordedValueError,
+  MalformedToolCallError,
   NoWritableFieldsError,
   PendingFieldNotFoundError,
   PinnedArgNotFoundError,
@@ -446,6 +447,11 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const { input } = await this.invokeWithTool<{
       input: { fieldName: string; value: unknown; reasoning: string };
     }>(messages, tool);
+
+    // Tool-call args are never parsed against the schema: a model can drop the `input` wrapper.
+    if (typeof input?.fieldName !== 'string') {
+      throw new MalformedToolCallError(tool.name, 'input.fieldName is missing');
+    }
 
     const fieldName = this.resolveAiFieldName(schema, input.fieldName);
     const field = this.findFieldByTechnicalName(schema, fieldName);
