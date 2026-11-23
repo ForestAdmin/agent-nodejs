@@ -1,7 +1,7 @@
 import type { Action, AgentActionClient } from '../../src/action/agent-action-client';
-import type { AgentDataClient } from '../../src/data/agent-data-client';
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
+import type { AgentReads } from '../helpers/data-routes';
 import type { Server } from 'http';
 
 import { bodyParser } from '@koa/bodyparser';
@@ -18,6 +18,7 @@ import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import ReadModel from '../../src/read-model/read-model';
 import createTimezoneMiddleware, { TIMEZONE_HEADER } from '../../src/timezone/timezone-middleware';
+import { transportOf } from '../helpers/data-routes';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
 const MARK_AS_PAID = 'Mark as paid';
@@ -119,7 +120,7 @@ const OPERATIONS = [
   'executeActionUsersFacture5050',
 ] as const;
 
-const dataClient: AgentDataClient = {
+const dataClient: AgentReads = {
   list: async () => [{ id: 1, email: 'someone@example.com' }],
   countRaw: async () => ({ count: 1 }),
   listRelation: async () => [{ id: 7 }],
@@ -196,9 +197,8 @@ function buildApp(): Koa {
   app.use(
     createDataRoutesMiddleware({
       store,
-      transport: createHttpTransport({ agentUrl: ENV.AGENT_URL }),
+      transport: transportOf(dataClient),
       logger: noopLogger,
-      createClient: () => dataClient,
     }),
   );
   app.use(

@@ -1,6 +1,6 @@
-import type { AgentDataClient } from '../../src/data/agent-data-client';
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
+import type { AgentReads } from '../helpers/data-routes';
 import type { Middleware } from 'koa';
 
 import { drainActivityLogs } from '@forestadmin/agent-client';
@@ -9,7 +9,6 @@ import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
 
-import { createHttpTransport } from '../../src/agent/agent-transport';
 import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import ReadModel from '../../src/read-model/read-model';
@@ -24,6 +23,7 @@ import {
   oauthCredentials,
   sessionAccessToken,
 } from '../helpers/activity-log';
+import { transportOf } from '../helpers/data-routes';
 import { collection, column, relation } from '../read-model/fixtures';
 
 const FOREST_SERVER_URL = 'https://api.forestadmin.com';
@@ -33,7 +33,6 @@ jest.mock('@forestadmin/forestadmin-client', () => ({
   ActivityLogsService: jest.fn(),
 }));
 
-const AGENT_URL = 'https://agent.example.com';
 const TIMEZONE = 'Europe/Paris';
 const OPERATORS = ['present', 'blank', 'equal', 'not_equal', 'in', 'like'];
 const EMAIL_FILTER = { field: 'email', operator: 'Equal', value: 'joe@example.com' };
@@ -70,7 +69,7 @@ function buildApp({
   logger = noopLogger,
 }: {
   service: ReturnType<typeof fakeActivityLogsService>;
-  client: Partial<AgentDataClient>;
+  client: Partial<AgentReads>;
   credentials?: Middleware;
   saasAccessToken?: string;
   logger?: Logger;
@@ -90,15 +89,19 @@ function buildApp({
   app.use(
     createDataRoutesMiddleware({
       store: storeOf(),
-      transport: createHttpTransport({ agentUrl: AGENT_URL }),
+      transport: transportOf(client),
       logger,
       forestServerUrl: FOREST_SERVER_URL,
-      createClient: () => client as AgentDataClient,
     }),
   );
 
   return { app, activityLogs: { drain: drainActivityLogs } };
 }
+
+const withoutRendering: Middleware = async (ctx, next) => {
+  ctx.state.authMode = 'api-key';
+  await next();
+};
 
 describe('data routes activity log', () => {
   describe('when listing records', () => {
@@ -280,6 +283,28 @@ describe('data routes activity log', () => {
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
+    it('should serve the records with a warning when the request carries no usable rendering', async () => {
+      const service = fakeActivityLogsService();
+      const logger = jest.fn();
+      const list = jest.fn(async () => []);
+      const { app } = buildApp({
+        service,
+        client: { list },
+        credentials: withoutRendering,
+        logger,
+      });
+
+      const response = await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(response.status).toBe(200);
+      expect(list).toHaveBeenCalledTimes(1);
+      expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'This request carries no usable rendering: the read runs without an activity log',
+      );
+    });
+
     it('should use the session token when the caller carries an oauth session', async () => {
       const service = fakeActivityLogsService();
       const saasAccessToken = sessionAccessToken();
@@ -317,6 +342,25 @@ describe('data routes activity log', () => {
           label: 'list relation "posts" with search and filter',
         }),
       );
+    });
+
+    it('should serve a relation list with a warning when the request carries no usable rendering', async () => {
+      const service = fakeActivityLogsService();
+      const logger = jest.fn();
+      const { app } = buildApp({
+        service,
+        client: { listRelation: async () => [] },
+        credentials: withoutRendering,
+        logger,
+      });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: 'users-1' });
+
+      expect(response.status).toBe(200);
+      expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('no usable rendering'));
     });
 
     it('should label a relation list carrying only a search', async () => {
@@ -383,6 +427,20 @@ describe('data routes activity log', () => {
 
       expect(response.status).toBe(200);
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('should count when the request carries no usable rendering', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({
+        service,
+        client: { countRaw: async () => ({ count: 3 }) },
+        credentials: withoutRendering,
+      });
+
+      const response = await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ count: 3, countStatus: 'available' });
     });
 
     it('should write no log for a relation count', async () => {

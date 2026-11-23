@@ -1,6 +1,6 @@
 import type { Context } from 'koa';
 
-import activityLogConfigOf from '../../src/auth/activity-log-context';
+import activityLogConfigOf, { readActivityLogConfigOf } from '../../src/auth/activity-log-context';
 
 const FOREST_SERVER_URL = 'https://api.forestadmin.com';
 const RENDERING_ID = 42;
@@ -69,5 +69,37 @@ describe('activity log config', () => {
     activityLog.onExpiredCredential?.();
 
     expect(invalidateApiKeyIdentity).toHaveBeenCalledTimes(1);
+  });
+
+  describe('for a read', () => {
+    it('should log under the same config as a write when the request carries a rendering', () => {
+      const logger = jest.fn();
+
+      expect(readActivityLogConfigOf(apiKeyCtx(), FOREST_SERVER_URL, logger)).toEqual({
+        forestServer: {
+          serverUrl: FOREST_SERVER_URL,
+          serverToken: expect.any(Function),
+          renderingId: RENDERING_ID,
+        },
+        activityLog: { source: 'BFF', logger, onExpiredCredential: expect.any(Function) },
+      });
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('should turn logging off with a warning when the request carries no rendering', () => {
+      const logger = jest.fn();
+
+      const config = readActivityLogConfigOf(
+        apiKeyCtx({ apiKeyIdentity: undefined }),
+        FOREST_SERVER_URL,
+        logger,
+      );
+
+      expect(config).toBeUndefined();
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'This request carries no usable rendering: the read runs without an activity log',
+      );
+    });
   });
 });

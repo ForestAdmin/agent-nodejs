@@ -32,3 +32,17 @@ export default function activityLogConfigOf(
     },
   };
 }
+
+export function readActivityLogConfigOf(
+  ctx: Context,
+  forestServerUrl: string,
+  logger: Logger,
+): ActivityLogConfig | undefined {
+  if (resolveRenderingId(ctx) === undefined) {
+    logger('Warn', `${NO_RENDERING_MESSAGE}: the read runs without an activity log`);
+
+    return undefined;
+  }
+
+  return activityLogConfigOf(ctx, forestServerUrl, logger);
+}

@@ -18,8 +18,6 @@ export interface CountResponse {
   countStatus: 'available' | 'deactivated';
 }
 
-const DEACTIVATED = 'deactivated';
-
 export function mapListResponse(
   collection: string,
   records: Record<string, unknown>[],
@@ -42,21 +40,11 @@ export function mapListResponse(
   return { data, meta: { countStatus: 'not_requested' } };
 }
 
-// meta.count is the only deactivation signal the agent exposes.
-export function mapCountResponse(raw: unknown): CountResponse {
-  const body = (typeof raw === 'object' && raw !== null ? raw : {}) as {
-    count?: unknown;
-    meta?: { count?: unknown };
-  };
+export function mapCountResponse(count: number | null): CountResponse {
+  if (count === null) return { count: null, countStatus: 'deactivated' };
 
-  if (body.meta?.count === DEACTIVATED) {
-    return { count: null, countStatus: 'deactivated' };
-  }
+  if (Number.isFinite(count)) return { count, countStatus: 'available' };
 
-  if (typeof body.count === 'number' && Number.isFinite(body.count)) {
-    return { count: body.count, countStatus: 'available' };
-  }
-
-  // Neither schema metadata nor a usable raw payload: never silently report 0.
+  // Neither a deactivated marker nor a usable count: never silently report 0.
   throw mappingError('Agent count payload has no numeric count and no deactivated marker');
 }

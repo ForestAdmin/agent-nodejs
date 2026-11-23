@@ -1,4 +1,3 @@
-import type { AgentDataClient, AgentDataClientOptions } from './agent-data-client';
 import type {
   CountRequestBody,
   ListRequestBody,
@@ -11,26 +10,22 @@ import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type { PrimaryKeyField } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
-import type { ActivityLogConfig } from '@forestadmin/agent-client';
+import type { RemoteAgentClient } from '@forestadmin/agent-client';
 import type { Context, Middleware } from 'koa';
 
-import { withActivityLog } from '@forestadmin/agent-client';
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
-import defaultCreateAgentDataClient from './agent-data-client';
 import {
-  buildCountAgentQuery,
-  buildListAgentQuery,
   collectCountFieldPaths,
   collectListFieldPaths,
-  hasFilter,
-  hasSearch,
   parseCountRequest,
   parseListRequest,
   parseRelationCountRequest,
   parseRelationListRequest,
+  toSelectOptions,
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
-import activityLogConfigOf from '../auth/activity-log-context';
+import { readActivityLogConfigOf } from '../auth/activity-log-context';
 import {
   callAgent,
   callAgentRecheckingExposure,
@@ -54,18 +49,16 @@ export interface DataRoutesMiddlewareOptions {
   transport: AgentTransport;
   logger: Logger;
   forestServerUrl?: string;
-  createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
 
 interface RequestHandlerDeps {
   collection: string;
-  client: AgentDataClient;
+  client: RemoteAgentClient;
   store: ReadModelStore;
   transport: AgentTransport;
   token: string;
   timezone: string;
   logger: Logger;
-  activityLog?: ActivityLogConfig;
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
@@ -123,14 +116,7 @@ async function resolveOwnCapabilities(
   return result;
 }
 
-function selectListAction(body: ListRequestBody): 'index' | 'search' | 'filter' {
-  if (hasSearch(body)) return 'search';
-  if (hasFilter(body)) return 'filter';
-
-  return 'index';
-}
-
-async function listRecords(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
+async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
   const validationInput = toValidationInput(body);
@@ -146,19 +132,16 @@ async function listRecords(ctx: Context, body: ListRequestBody, deps: ListHandle
     primaryKeys = readModel.getPrimaryKeys(deps.collection);
   }
 
-  const query = buildListAgentQuery(deps.collection, deps.timezone, body);
-  const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
+  const records = await callAgent(
+    () =>
+      deps.client
+        .collection(deps.collection)
+        .list<Record<string, unknown>>(toSelectOptions(deps.timezone, body)),
+    deps.logger,
+  );
 
   ctx.status = 200;
   ctx.body = mapListResponse(deps.collection, records, primaryKeys);
-}
-
-async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
-  await withActivityLog(
-    deps.activityLog,
-    { action: selectListAction(body), collectionName: deps.collection },
-    () => listRecords(ctx, body, deps),
-  );
 }
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
@@ -170,15 +153,17 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
-  const query = buildCountAgentQuery(deps.timezone, body);
-  const raw = await callAgent(() => deps.client.countRaw(deps.collection, query), deps.logger);
+  const count = await callAgent(
+    () => deps.client.collection(deps.collection).count(toSelectOptions(deps.timezone, body)),
+    deps.logger,
+  );
 
   ctx.status = 200;
-  ctx.body = mapCountResponse(raw);
+  ctx.body = mapCountResponse(count);
 }
 
 // The parent drives ONLY route resolution (path + parentId); projection/filter/sort/count run on the
-// foreign collection, so the agent query is built and the response mapped against the foreign side.
+// foreign collection, so the response is mapped against the foreign side.
 interface RelationHandlerDeps extends RequestHandlerDeps {
   relation: string;
   foreignCollection: string;
@@ -216,18 +201,13 @@ async function resolveExposedRelationCapabilities(
   return result;
 }
 
-function relationListLabel(relation: string, body: RelationListRequestBody): string {
-  const refinements: string[] = [];
-
-  if (hasSearch(body)) refinements.push('search');
-  if (hasFilter(body)) refinements.push('filter');
-
-  const suffix = refinements.length > 0 ? ` with ${refinements.join(' and ')}` : '';
-
-  return `list relation "${relation}"${suffix}`;
+function relationOf(deps: RelationHandlerDeps, parentId: string) {
+  return deps.client
+    .collection(deps.collection)
+    .relation(deps.relation, parentId, deps.foreignCollection);
 }
 
-async function listRelatedRecords(
+async function handleRelationList(
   ctx: Context,
   body: RelationListRequestBody,
   deps: RelationListHandlerDeps,
@@ -244,31 +224,16 @@ async function listRelatedRecords(
     primaryKeys = readModel.getPrimaryKeys(deps.foreignCollection);
   }
 
-  const query = buildListAgentQuery(deps.foreignCollection, deps.timezone, body);
   const records = await callAgent(
-    () => deps.client.listRelation(deps.collection, body.parentId, deps.relation, query),
+    () =>
+      relationOf(deps, body.parentId).list<Record<string, unknown>>(
+        toSelectOptions(deps.timezone, body),
+      ),
     deps.logger,
   );
 
   ctx.status = 200;
   ctx.body = mapListResponse(deps.foreignCollection, records, primaryKeys);
-}
-
-async function handleRelationList(
-  ctx: Context,
-  body: RelationListRequestBody,
-  deps: RelationListHandlerDeps,
-) {
-  await withActivityLog(
-    deps.activityLog,
-    {
-      action: 'listRelatedData',
-      collectionName: deps.collection,
-      recordIds: [body.parentId],
-      label: relationListLabel(deps.relation, body),
-    },
-    () => listRelatedRecords(ctx, body, deps),
-  );
 }
 
 async function handleRelationCount(
@@ -283,14 +248,13 @@ async function handleRelationCount(
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
-  const query = buildCountAgentQuery(deps.timezone, body);
-  const raw = await callAgent(
-    () => deps.client.countRelationRaw(deps.collection, body.parentId, deps.relation, query),
+  const count = await callAgent(
+    () => relationOf(deps, body.parentId).count(toSelectOptions(deps.timezone, body)),
     deps.logger,
   );
 
   ctx.status = 200;
-  ctx.body = mapCountResponse(raw);
+  ctx.body = mapCountResponse(count);
 }
 
 async function handleRelation(
@@ -336,7 +300,6 @@ export default function createDataRoutesMiddleware({
   transport,
   logger,
   forestServerUrl,
-  createClient = defaultCreateAgentDataClient,
 }: DataRoutesMiddlewareOptions): Middleware {
   return async function dataRoutesMiddleware(ctx, next) {
     const dataMatch = DATA_ROUTE.exec(ctx.path);
@@ -361,15 +324,23 @@ export default function createDataRoutesMiddleware({
       throw unknownCollection(`Unknown collection: ${collection}`);
     }
 
+    const operation = (dataMatch?.[2] ?? relationMatch?.[3]) as 'list' | 'count';
+
     const deps: RequestHandlerDeps = {
       collection,
-      client: createClient({ transport, token }),
+      client: createRemoteAgentClient({
+        url: transport.url,
+        token,
+        httpRequester: transport.createRequester(token),
+        ...(operation === 'list' &&
+          forestServerUrl &&
+          readActivityLogConfigOf(ctx, forestServerUrl, logger)),
+      }),
       store,
       transport,
       token,
       timezone: ctx.state.timezone as string,
       logger,
-      activityLog: forestServerUrl ? activityLogConfigOf(ctx, forestServerUrl, logger) : undefined,
     };
     const rawBody = ctx.request.body ?? {};
 
@@ -378,8 +349,6 @@ export default function createDataRoutesMiddleware({
 
       return;
     }
-
-    const operation = match[2] as 'list' | 'count';
 
     if (operation === 'list') {
       const body = parseListRequest(rawBody, logger);

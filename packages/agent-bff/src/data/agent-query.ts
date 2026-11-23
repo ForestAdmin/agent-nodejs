@@ -1,8 +1,7 @@
 import type { PageInput, SortClauseInput } from './request-schemas';
 import type { Logger } from '../ports/logger-port';
+import type { SelectOptions } from '@forestadmin/agent-client';
 import type { ZodType, z } from 'zod';
-
-import { toWireFilter } from '@forestadmin/agent-client';
 
 import {
   CountFlatInputs,
@@ -30,8 +29,6 @@ export type RelationListRequestBody = z.infer<typeof RelationListFlatInputs> & {
 export type RelationCountRequestBody = z.infer<typeof RelationCountFlatInputs> & {
   parentId: string;
 };
-
-export type AgentQuery = Record<string, unknown> & { timezone: string };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -160,86 +157,23 @@ function collectFilterFields(filter: unknown, acc: string[]): void {
   }
 }
 
-function serializeSort(sort: BffSortClause[]): string {
-  return sort.map(({ field, direction }) => (direction === 'desc' ? `-${field}` : field)).join(',');
-}
-
-function serializePage(page: BffPage): Record<string, number> {
-  const { limit, offset } = page;
-
-  if (offset % limit !== 0) {
-    throw invalidRequest(`page.offset (${offset}) must be a multiple of page.limit (${limit})`);
-  }
-
-  return { 'page[size]': limit, 'page[number]': offset / limit + 1 };
-}
-
-/**
- * `search` and `searchExtended` are the wire names the agent reads; no other spelling is parsed.
- *
- * A blank search is dropped rather than forwarded. The agent's search decorator already treats it
- * as absent, but `parseSearch` guards on a truthy value, so a whitespace-only search would raise
- * "Collection is not searchable" on a non-searchable collection while an empty one would not — a
- * cleared search box must not depend on how many spaces it holds.
- *
- * `searchExtended` only ships alongside a real search: on its own it changes nothing agent-side,
- * and emitting it would alter the outgoing query of every search-less request.
- *
- * The value is trimmed on the way out, not in the parser: parsing stays pure validation here, and
- * `parseListRequest` returns the caller's body untouched, which its own callers rely on.
- */
-function applySearch(
-  query: AgentQuery,
-  body: Pick<CountRequestBody, 'search' | 'searchExtended'>,
-): void {
-  const search = body.search?.trim();
-  if (!search) return;
-
-  query.search = search;
-  if (body.searchExtended !== undefined) query.searchExtended = body.searchExtended;
-}
-
-/**
- * Whether the request actually searches, by the same rule `applySearch` forwards on. The audit trail
- * names the operation it audits, so it has to answer this question the way the outgoing query does:
- * a whitespace-only search must not be recorded as a search the agent never performed.
- */
-export function hasSearch(body: Pick<CountRequestBody, 'search'>): boolean {
-  return (body.search?.trim() ?? '') !== '';
-}
-
-/**
- * Whether the request actually filters. An empty object is how an absent filter is spelled — see
- * `assertFilterNode`, which accepts a node carrying no key — so the audit trail must not record a
- * plain page load as a filtered read.
- */
-export function hasFilter(body: Pick<CountRequestBody, 'filter'>): boolean {
-  return isPlainObject(body.filter) && Object.keys(body.filter).length > 0;
-}
-
-export function buildListAgentQuery(
-  collection: string,
+export function toSelectOptions(
   timezone: string,
-  body: ListRequestBody,
-): AgentQuery {
-  const query: AgentQuery = { timezone };
+  body: ListRequestBody | CountRequestBody,
+): SelectOptions {
+  const { filter, projection, sort, page, search, searchExtended }: ListRequestBody = body;
 
-  if (body.filter !== undefined) query.filters = JSON.stringify(toWireFilter(body.filter));
-  if (body.projection?.length) query[`fields[${collection}]`] = body.projection.join(',');
-  if (body.sort?.length) query.sort = serializeSort(body.sort);
-  if (body.page) Object.assign(query, serializePage(body.page));
-  applySearch(query, body);
-
-  return query;
-}
-
-export function buildCountAgentQuery(timezone: string, body: CountRequestBody): AgentQuery {
-  const query: AgentQuery = { timezone };
-
-  if (body.filter !== undefined) query.filters = JSON.stringify(toWireFilter(body.filter));
-  applySearch(query, body);
-
-  return query;
+  return {
+    timezone,
+    search,
+    shouldSearchInRelation: searchExtended,
+    ...(filter !== undefined && { filters: filter as SelectOptions['filters'] }),
+    ...(projection?.length && { fields: projection }),
+    ...(sort?.length && {
+      sort: sort.map(({ field, direction }) => ({ field, ascending: direction !== 'desc' })),
+    }),
+    ...(page && { pagination: { size: page.limit, number: page.offset / page.limit + 1 } }),
+  };
 }
 
 export function collectListFieldPaths(body: ListRequestBody): string[] {

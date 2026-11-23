@@ -109,7 +109,7 @@ const CASES: Case[] = [
     '/agent/v1/users/list',
     { search: 'ada', searchExtended: false },
     USERS,
-    { search: 'ada', searchExtended: false },
+    { search: 'ada' },
   ],
   ['a search alone', '/agent/v1/users/list', { search: 'ada' }, USERS, { search: 'ada' }],
   ['a padded search', '/agent/v1/users/list', { search: ' ada ' }, USERS, { search: 'ada' }],
