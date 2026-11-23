@@ -8,21 +8,13 @@ import type { RequestListener } from 'http';
 
 import inject, { type InjectOptions, type InjectPayload } from 'light-my-request';
 
+import InProcessDispatchTimeoutError from './in-process-dispatch-timeout-error';
+
 export type InProcessRequest = InProcessDispatchRequest;
 export type InProcessResponse = InProcessDispatchResponse;
 
 // Matches the HTTP path's 10s bound (HttpRequester.query).
 const DEFAULT_TIMEOUT_MS = 10_000;
-
-// Tags a timeout apart from a failed dispatch; the BFF reads it as `AGENT_DISPATCH_TIMEOUT_CODE`
-// from the structural `AgentDispatcher` contract, so it is spelled out here, not imported.
-const DISPATCH_TIMEOUT_CODE = 'AGENT_DISPATCH_TIMEOUT';
-
-function dispatchTimeoutError(timeoutMs: number): Error {
-  return Object.assign(new Error(`In-process dispatch timed out after ${timeoutMs}ms`), {
-    code: DISPATCH_TIMEOUT_CODE,
-  });
-}
 
 function toStringQuery(query: Record<string, unknown>): Record<string, string> {
   const result: Record<string, string> = {};
@@ -81,7 +73,7 @@ export default class InProcessDispatcher implements InProcessAgentDispatcher {
   private async injectWithTimeout(options: InjectOptions, timeoutMs: number) {
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(dispatchTimeoutError(timeoutMs)), timeoutMs);
+      timer = setTimeout(() => reject(new InProcessDispatchTimeoutError(timeoutMs)), timeoutMs);
     });
 
     const injection = inject(this.handler as RequestListener, options);

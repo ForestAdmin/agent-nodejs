@@ -186,7 +186,9 @@ export type BffEmbedOptions = {
    * Defaults to 10s.
    *
    * It bounds how long the BFF waits, and cancels nothing: a call cut off at the deadline keeps
-   * running inside the agent.
+   * running inside the agent. A create, update or delete cut off this way still commits, and its
+   * plain `504 agent_timeout` does not say so, so a client retrying on it can apply the write
+   * twice. Raise it rather than relying on a retry for writes that are not idempotent.
    */
   agentTimeoutMs?: number;
   /**
