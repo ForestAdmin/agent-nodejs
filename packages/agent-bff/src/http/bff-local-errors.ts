@@ -32,8 +32,10 @@ const OUTCOME_UNKNOWN = 'unknown';
  * otherwise apply it twice. Same status and type as any agent timeout, so a client reading those
  * keeps working; `details.outcome` is what tells this one apart.
  */
+class ActionOutcomeUnknownError extends BffHttpError {}
+
 export function actionOutcomeUnknown(): BffHttpError {
-  return new BffHttpError(
+  return new ActionOutcomeUnknownError(
     504,
     'agent_timeout',
     'The agent did not respond in time. The action may still have run: check its outcome before retrying.',
@@ -41,11 +43,12 @@ export function actionOutcomeUnknown(): BffHttpError {
   );
 }
 
+/**
+ * Keyed on the class, not on `details.outcome`: an agent error's data lands in `details` too, and a
+ * hook that fails with `outcome: 'unknown'` must still mark its attempt failed.
+ */
 export function isActionOutcomeUnknown(error: unknown): boolean {
-  return (
-    error instanceof BffHttpError &&
-    (error.details as { outcome?: unknown } | undefined)?.outcome === OUTCOME_UNKNOWN
-  );
+  return error instanceof ActionOutcomeUnknownError;
 }
 
 export function invalidRequest(message = 'Invalid request', details?: unknown): BffHttpError {

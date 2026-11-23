@@ -1,9 +1,12 @@
+import { BffHttpError } from '../../src/http/bff-http-error';
 import {
   actionNotAllowed,
+  actionOutcomeUnknown,
   auditNotAuthorized,
   auditUnavailable,
   collectionNotAllowed,
   invalidRequest,
+  isActionOutcomeUnknown,
   mappingError,
   openapiDisabled,
   relationNotAllowed,
@@ -40,6 +43,18 @@ describe('bff local errors', () => {
       status: 503,
       retryAfter: 5,
     });
+  });
+
+  it('recognizes the execute timeout it built as an unknown outcome', () => {
+    expect(isActionOutcomeUnknown(actionOutcomeUnknown())).toBe(true);
+  });
+
+  it('does not take an agent error carrying outcome unknown in its details for one', () => {
+    const agentError = new BffHttpError(403, 'forbidden', 'Denied', {
+      details: { outcome: 'unknown' },
+    });
+
+    expect(isActionOutcomeUnknown(agentError)).toBe(false);
   });
 
   it('carries details on invalidRequest', () => {
