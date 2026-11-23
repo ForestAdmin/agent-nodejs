@@ -101,6 +101,15 @@ describe('Collection', () => {
       await expect(collection.count()).resolves.toBeNaN();
     });
 
+    it.each([[''], [false], [[]], [null], ['5']])(
+      'should return NaN rather than a number the agent did not answer, for a count of %j',
+      async count => {
+        httpRequester.query.mockResolvedValue({ count });
+
+        await expect(collection.count()).resolves.toBeNaN();
+      },
+    );
+
     it('should send the time zone of the call', async () => {
       httpRequester.query.mockResolvedValue({ count: 1 });
 

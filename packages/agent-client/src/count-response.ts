@@ -5,5 +5,5 @@ type CountResponse = { count?: unknown; meta?: { count?: unknown } } | null | un
 export default function toCount(response: CountResponse): number | null {
   if (response?.meta?.count === DEACTIVATED) return null;
 
-  return Number(response?.count ?? NaN);
+  return typeof response?.count === 'number' ? response.count : NaN;
 }
