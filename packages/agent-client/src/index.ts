@@ -1,3 +1,4 @@
+import type { ActivityLogContext } from './activity-log/with-activity-log';
 import type { ActionEndpointsByCollection } from './domains/action';
 import type {
   CollectionPermissionsOverride,
@@ -12,6 +13,7 @@ import RemoteAgentClient from './domains/remote-agent-client';
 import AgentHttpError, {
   ActionFormValidationError,
   ActionRequiresApprovalError,
+  ActivityLogBlockedError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -27,6 +29,7 @@ export {
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,
+  ActivityLogBlockedError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -53,6 +56,7 @@ export function createRemoteAgentClient(params: {
   /** Default timezone sent on every agent request. Defaults to `Europe/Paris`. */
   timezone?: string;
   httpRequester?: HttpRequester;
+  activityLog?: ActivityLogContext;
 }) {
   const httpRequester =
     params.httpRequester ??
@@ -62,6 +66,7 @@ export function createRemoteAgentClient(params: {
     actionEndpoints: params.actionEndpoints,
     httpRequester,
     overridePermissions: params.overridePermissions,
+    activityLog: params.activityLog,
     createApprovalRequest: params.forestServer
       ? makeCreateApprovalRequest({
           forestServerUrl: params.forestServer.serverUrl,
@@ -79,4 +84,18 @@ export { default as toWireFilter, toWireOperator } from './filter-wire-format';
 export { default as recordKey, groupByRecordKey, publishedRecordKeys } from './record-key';
 export type { PublishedRecordKey } from './record-key';
 export type { RecordId, SelectOptions } from './types';
+export type { ActionExecuteResult } from './domains/action';
+export type { default as Action } from './domains/action';
+export type { ExecuteActionOptions } from './domains/collection';
+export type { ActivityLogBlockedReason } from './errors';
+export { isApprovalRequested } from './approval-requested';
+export type { ApprovalRequestedResult } from './approval-requested';
+export { default as withActivityLog, drainActivityLogs } from './activity-log/with-activity-log';
+export type {
+  ActivityLogCallOptions,
+  ActivityLogContext,
+  ActivityLogCredentials,
+  ActivityLogEntry,
+  ActivityLogLogger,
+} from './activity-log/with-activity-log';
 export type { File } from '@forestadmin/datasource-toolkit';

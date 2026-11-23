@@ -1,5 +1,11 @@
 import type { ExportOptions, LiveQueryOptions, RecordId, SelectOptions } from '../types';
-import type { ActionEndpointsByCollection, BaseActionContext } from './action';
+import type {
+  ActionEndpointsByCollection,
+  ActionExecuteOptions,
+  ActionExecuteResult,
+  BaseActionContext,
+} from './action';
+import type { ActivityLogCallOptions, ActivityLogContext } from '../activity-log/with-activity-log';
 import type { CreateApprovalRequest } from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
@@ -10,32 +16,53 @@ import CollectionChart from './collection-chart';
 import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
+import withActivityLog, { runCall } from '../activity-log/with-activity-log';
 import QuerySerializer from '../query-serializer';
 import serializeRecordId from '../record-id';
+
+export type ExecuteActionOptions = BaseActionContext &
+  ActionExecuteOptions & {
+    fill?: (action: Action) => Promise<void>;
+    activityLog?: Pick<ActivityLogCallOptions, 'label' | 'beforeCall'>;
+  };
+
+function serializeActionIds(context?: BaseActionContext): string[] {
+  return (context?.recordIds ?? [context?.recordId])
+    .filter((id): id is RecordId => Boolean(id))
+    .map(serializeRecordId);
+}
+
+function listActionOf(options?: SelectOptions): 'index' | 'search' | 'filter' {
+  if (options?.search?.trim()) return 'search';
+  if (options?.filters && Object.keys(options.filters).length > 0) return 'filter';
+
+  return 'index';
+}
 
 export default class Collection extends CollectionChart {
   protected readonly name: string;
   protected readonly actionEndpoints?: ActionEndpointsByCollection;
   protected readonly createApprovalRequest?: CreateApprovalRequest;
+  protected readonly activityLog?: ActivityLogContext;
 
   constructor(
     name: string,
     httpRequester: HttpRequester,
     actionEndpoints: ActionEndpointsByCollection,
     createApprovalRequest?: CreateApprovalRequest,
+    activityLog?: ActivityLogContext,
   ) {
     super(name, httpRequester);
 
     this.name = name;
     this.actionEndpoints = actionEndpoints;
     this.createApprovalRequest = createApprovalRequest;
+    this.activityLog = activityLog;
   }
 
   async action(actionName: string, actionContext?: BaseActionContext): Promise<Action> {
     const actionInfo = this.getActionInfo(this.actionEndpoints, this.name, actionName);
-    const ids = (actionContext?.recordIds ?? [actionContext?.recordId])
-      .filter((id): id is RecordId => Boolean(id))
-      .map(serializeRecordId);
+    const ids = serializeActionIds(actionContext);
 
     const fieldsFormStates = new FieldFormStates({
       actionName,
@@ -66,6 +93,31 @@ export default class Collection extends CollectionChart {
     return action;
   }
 
+  async executeAction(
+    actionName: string,
+    options: ExecuteActionOptions = {},
+  ): Promise<ActionExecuteResult> {
+    const { fill, activityLog, signedApprovalRequest, approvalRequestMessage, ...context } =
+      options;
+
+    return withActivityLog(
+      this.activityLog,
+      {
+        action: 'action',
+        collectionName: this.name,
+        recordIds: serializeActionIds(context),
+        label: activityLog?.label ?? `triggered the action "${actionName}"`,
+      },
+      async () => {
+        const action = await this.action(actionName, context);
+        if (fill) await fill(action);
+
+        return action.execute({ signedApprovalRequest, approvalRequestMessage });
+      },
+      activityLog?.beforeCall,
+    );
+  }
+
   segment(name: string): Segment {
     return new Segment(name, this.name, this.httpRequester);
   }
@@ -76,19 +128,28 @@ export default class Collection extends CollectionChart {
   }
 
   relation(name: string, parentId: RecordId): Relation {
-    return new Relation(name, this.name, parentId, this.httpRequester);
+    return new Relation(name, this.name, parentId, this.httpRequester, this.activityLog);
   }
 
   async search<Data = unknown>(content: string): Promise<Data[]> {
     return this.list({ search: content });
   }
 
-  async list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
-    return this.httpRequester.query<Data[]>({
-      method: 'get',
-      path: `/forest/${this.name}`,
-      query: QuerySerializer.serialize(options, this.name),
-    });
+  async list<Data = unknown>(
+    options?: SelectOptions,
+    activityLog?: ActivityLogCallOptions,
+  ): Promise<Data[]> {
+    return runCall(
+      this.activityLog,
+      { action: listActionOf(options), collectionName: this.name },
+      activityLog,
+      () =>
+        this.httpRequester.query<Data[]>({
+          method: 'get',
+          path: `/forest/${this.name}`,
+          query: QuerySerializer.serialize(options, this.name),
+        }),
+    );
   }
 
   async exportCsv(stream: WriteStream, options?: ExportOptions): Promise<void> {
@@ -117,7 +178,15 @@ export default class Collection extends CollectionChart {
     );
   }
 
-  async capabilities(): Promise<{
+  async capabilities(activityLog?: ActivityLogCallOptions): Promise<{
+    fields: { name: string; type: string; operators: string[] }[];
+  }> {
+    return runCall(this.activityLog, { collectionName: this.name }, activityLog, () =>
+      this.fetchCapabilities(),
+    );
+  }
+
+  private async fetchCapabilities(): Promise<{
     fields: { name: string; type: string; operators: string[] }[];
   }> {
     const result = await this.httpRequester.query<{
@@ -143,7 +212,10 @@ export default class Collection extends CollectionChart {
     return { fields: collection.fields };
   }
 
-  async delete<Data = unknown>(ids: RecordId[]): Promise<Data> {
+  async delete<Data = unknown>(
+    ids: RecordId[],
+    activityLog?: ActivityLogCallOptions,
+  ): Promise<Data> {
     const serializedIds = ids.map(serializeRecordId);
     const requestBody = {
       data: {
@@ -152,45 +224,81 @@ export default class Collection extends CollectionChart {
       },
     };
 
-    return this.httpRequester.query<Data>({
-      method: 'delete',
-      path: `/forest/${this.name}`,
-      body: requestBody,
-    });
+    return runCall(
+      this.activityLog,
+      { action: 'delete', collectionName: this.name, recordIds: serializedIds, label: 'deleted' },
+      activityLog,
+      () =>
+        this.httpRequester.query<Data>({
+          method: 'delete',
+          path: `/forest/${this.name}`,
+          body: requestBody,
+        }),
+    );
   }
 
-  async create<Data = unknown>(attributes: Record<string, unknown>): Promise<Data> {
+  async create<Data = unknown>(
+    attributes: Record<string, unknown>,
+    activityLog?: ActivityLogCallOptions,
+  ): Promise<Data> {
     const requestBody = { data: { attributes, type: this.name } };
 
-    return this.httpRequester.query<Data>({
-      method: 'post',
-      path: `/forest/${this.name}`,
-      body: requestBody,
-    });
+    return runCall(
+      this.activityLog,
+      { action: 'create', collectionName: this.name, label: 'created' },
+      activityLog,
+      () =>
+        this.httpRequester.query<Data>({
+          method: 'post',
+          path: `/forest/${this.name}`,
+          body: requestBody,
+        }),
+    );
   }
 
-  async update<Data = unknown>(id: RecordId, attributes: Record<string, unknown>): Promise<Data> {
+  async update<Data = unknown>(
+    id: RecordId,
+    attributes: Record<string, unknown>,
+    activityLog?: ActivityLogCallOptions,
+  ): Promise<Data> {
     const serializedId = serializeRecordId(id);
     const requestBody = { data: { attributes, type: this.name, id: serializedId } };
 
-    return this.httpRequester.query<Data>({
-      method: 'put',
-      path: `/forest/${this.name}/${serializedId}`,
-      body: requestBody,
-    });
+    return runCall(
+      this.activityLog,
+      { action: 'update', collectionName: this.name, recordIds: [serializedId], label: 'updated' },
+      activityLog,
+      () =>
+        this.httpRequester.query<Data>({
+          method: 'put',
+          path: `/forest/${this.name}/${serializedId}`,
+          body: requestBody,
+        }),
+    );
   }
 
   async getOne<Data = unknown>(
     id: RecordId,
     options?: SelectOptions,
-    { skipDeserialization = false }: { skipDeserialization?: boolean } = {},
+    {
+      skipDeserialization = false,
+      activityLog,
+    }: { skipDeserialization?: boolean; activityLog?: ActivityLogCallOptions } = {},
   ): Promise<Data> {
-    return this.httpRequester.query<Data>({
-      method: 'get',
-      path: `/forest/${this.name}/${serializeRecordId(id)}`,
-      query: QuerySerializer.serialize(options, this.name),
-      skipDeserialization,
-    });
+    const serializedId = serializeRecordId(id);
+
+    return runCall(
+      this.activityLog,
+      { action: 'index', collectionName: this.name, recordIds: [serializedId] },
+      activityLog,
+      () =>
+        this.httpRequester.query<Data>({
+          method: 'get',
+          path: `/forest/${this.name}/${serializedId}`,
+          query: QuerySerializer.serialize(options, this.name),
+          skipDeserialization,
+        }),
+    );
   }
 
   private getActionInfo(
