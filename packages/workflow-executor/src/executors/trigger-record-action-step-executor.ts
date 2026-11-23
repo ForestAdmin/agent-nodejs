@@ -195,7 +195,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const selectedRecordRef =
       preRecordedArgs?.selectedRecordStepId !== undefined
         ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-        : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
+        : await this.resolveRecordRef(step.prompt, { writes: true });
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;
     const selection =

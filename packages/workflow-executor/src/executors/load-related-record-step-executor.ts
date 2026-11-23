@@ -209,8 +209,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    // No-AI path picks eligible[0] — the base record's first relation (getAvailableRecordRefs lists
-    // it first). The user switches relation at runtime; a non-base source needs selectedRecordStepId pinning.
+    // No-AI path picks eligible[0]: the first listed record's first relation, the call's record
+    // inside a call pinned to one, else the base record. The user switches relation at runtime.
     const chosen =
       eligible.length > 1 && useAi ? await this.selectRelationToFollow(eligible) : eligible[0];
 

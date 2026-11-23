@@ -22,6 +22,7 @@ import {
   SourceRunsOncePerRecordError,
 } from '../errors';
 import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
+import { isSameRecord } from './iteration-run-store';
 import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
@@ -91,12 +92,13 @@ export default abstract class RecordStepExecutor<
     };
   }
 
+  // A step that writes lets the AI pick only among the records it may write to.
   protected async resolveRecordRef(
-    records: RecordRef[],
     prompt: string | undefined,
-    preRecordedStepIndex?: number,
+    { preRecordedStepIndex, writes = false }: { preRecordedStepIndex?: number; writes?: boolean } = {},
   ): Promise<RecordRef> {
     if (preRecordedStepIndex !== undefined) {
+      const records = await this.listRecordRefs();
       const match = records.find(r => r.stepIndex === preRecordedStepIndex);
 
       if (!match) {
@@ -108,7 +110,9 @@ export default abstract class RecordStepExecutor<
       return match;
     }
 
-    return this.selectRecordRef(records, prompt);
+    const callRecord = await this.getCallRecordRef();
+
+    return this.selectRecordRef(await this.listRecordRefs(callRecord, writes), prompt, callRecord);
   }
 
   // Revise-safe source resolution shared by deterministic steps (load-related "Related to",
@@ -224,16 +228,43 @@ export default abstract class RecordStepExecutor<
 
   // Candidate sources for the AI: the base record plus the record each live prior
   // load-related step resolved — own stepIndex first, falling back to a clone's
-  // originalStepIndex.
+  // originalStepIndex. Inside a call pinned to a record, that record comes first.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
+    return this.listRecordRefs(await this.getCallRecordRef());
+  }
+
+  // Undefined outside a call pinned to a record: a call pinning nothing has no record of its own,
+  // so its steps keep choosing among everything the run loaded.
+  private async getCallRecordRef(): Promise<RecordRef | undefined> {
+    const { callScope } = this.context;
+    if (!callScope?.selectedRecordStepId && !callScope?.isPinned) return undefined;
+
+    return this.resolveSourceRecordRef(WORKFLOW_START_STEP_ID);
+  }
+
+  // A write inside a pinned call targets the call's record or a record loaded since the call
+  // opened: a wrong pick among the calling workflow's records would write to it once per call.
+  private async listRecordRefs(callRecord?: RecordRef, writes = false): Promise<RecordRef[]> {
+    const { baseRecordRef, callScope } = this.context;
+    if (!callRecord) return [baseRecordRef, ...(await this.getLoadedRecordRefs())];
+
+    const others = writes
+      ? await this.getLoadedRecordRefs(callScope?.startStepIndex ?? Number.POSITIVE_INFINITY)
+      : [baseRecordRef, ...(await this.getLoadedRecordRefs())];
+
+    return [callRecord, ...others.filter(record => !isSameRecord(record, callRecord))];
+  }
+
+  // Judged by the loading step's own index: a clone's record carries the index of its original.
+  private async getLoadedRecordRefs(afterStepIndex = -1): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = this.context.previousSteps.flatMap(step =>
-      step.stepDefinition.type === StepType.LoadRelatedRecord
+
+    return this.context.previousSteps.flatMap(step =>
+      step.stepDefinition.type === StepType.LoadRelatedRecord &&
+      step.stepOutcome.stepIndex > afterStepIndex
         ? loadedRecordsOf(this.resolveStepExecution(step, stepExecutions))
         : [],
     );
-
-    return [this.context.baseRecordRef, ...relatedRecords];
   }
 
   protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
@@ -277,6 +308,7 @@ export default abstract class RecordStepExecutor<
   private async selectRecordRef(
     records: RecordRef[],
     prompt: string | undefined,
+    callRecord?: RecordRef,
   ): Promise<RecordRef> {
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
@@ -299,7 +331,11 @@ export default abstract class RecordStepExecutor<
       new SystemMessage(
         'You are an AI agent selecting the most relevant record for a workflow step.\n' +
           'Choose the record whose collection best matches the user request.\n' +
-          'Pay attention to the collection name of each record.',
+          'Pay attention to the collection name of each record.' +
+          (callRecord
+            ? `\nThis step runs inside a Sub-workflow call on "${identifiers[0]}", listed first: ` +
+              'prefer it unless the request names another record.'
+            : ''),
       ),
       new HumanMessage(prompt ?? 'Select the most relevant record.'),
     ];

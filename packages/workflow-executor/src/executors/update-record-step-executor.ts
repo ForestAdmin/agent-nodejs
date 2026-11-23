@@ -318,11 +318,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const selectedRecordRef =
       preRecordedArgs?.selectedRecordStepId !== undefined
         ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-        : await this.resolveRecordRef(
-            await this.getAvailableRecordRefs(),
-            step.prompt,
-            preRecordedArgs?.selectedRecordStepIndex,
-          );
+        : await this.resolveRecordRef(step.prompt, {
+            preRecordedStepIndex: preRecordedArgs?.selectedRecordStepIndex,
+            writes: true,
+          });
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
     // A value without a field is meaningless (nothing to write it to).
