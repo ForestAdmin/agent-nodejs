@@ -2,7 +2,7 @@ import type { StepUser } from '../types/execution-context';
 import type { CollectionSchema, RecordData } from '../types/validated/collection';
 import type {
   ActivityLogCallOptions,
-  ActivityLogContext,
+  ActivityLogConfig,
   ApprovalRequestedResult,
 } from '@forestadmin/agent-client';
 
@@ -95,7 +95,7 @@ export type ResolvePolymorphicTypeQuery = { collection: string; id: Id[]; relati
 
 export type ExecuteActionResult = ApprovalRequestedResult | { result: unknown };
 
-export type AgentAudit = { context: ActivityLogContext; call?: ActivityLogCallOptions };
+export type AgentAudit = { context: ActivityLogConfig; call?: ActivityLogCallOptions };
 
 // Kept off StepUser: mintToken splats StepUser into the agent JWT, a token there would leak.
 export type ActionCaller = { user: StepUser; forestServerToken?: string };

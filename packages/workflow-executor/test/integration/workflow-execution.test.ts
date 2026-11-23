@@ -4,8 +4,8 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { AvailableStepExecution, StepUser } from '../../src/types/execution-context';
 import type { CollectionSchema } from '../../src/types/validated/collection';
 import type { BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
-import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
+import { ServerUtils } from '@forestadmin/forestadmin-client';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 import { z } from 'zod';
@@ -217,11 +217,7 @@ function createIntegrationSetup(overrides?: {
     runStore,
     schemaCache,
     aiModelPort: aiClient,
-    activityLogsService: {
-      createActivityLog: jest.fn().mockResolvedValue({ id: 'log-1', attributes: { index: '0' } }),
-      createMcpActivityLog: jest.fn(),
-      updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
-    } as unknown as ActivityLogsServiceInterface,
+    forestServerUrl: 'https://api.forestadmin.com',
     pollingIntervalS: overrides?.pollingIntervalS ?? 60,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
@@ -271,6 +267,15 @@ function buildPendingStep(
 // ---------------------------------------------------------------------------
 
 describe('workflow execution (integration)', () => {
+  const forestServerCall = jest.spyOn(ServerUtils, 'queryWithBearerToken');
+
+  beforeEach(() => {
+    forestServerCall.mockReset();
+    forestServerCall.mockResolvedValue({ data: { id: 'log-1', attributes: { index: '0' } } });
+  });
+
+  afterAll(() => forestServerCall.mockRestore());
+
   it('read-record happy path: trigger → AI selects field → read record → success', async () => {
     const workflowPort = createMockWorkflowPort({
       getAvailableRun: jest.fn().mockResolvedValue({
@@ -843,6 +848,14 @@ describe('workflow execution (integration)', () => {
 
     expect(res2.status).toBe(200);
     expect(mcpToolInvoke).toHaveBeenCalledWith({ message: 'Hello' });
+    expect(forestServerCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'post',
+        path: '/api/activity-logs-requests',
+        bearerToken: 'test-forest-token',
+        headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
+      }),
+    );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({ type: 'mcp', status: 'success' }),

@@ -5,7 +5,7 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { CallScope, Step } from '../../src/types/validated/execution';
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 import activityLogContext from './activity-log-context';
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
@@ -122,7 +122,7 @@ function makeMockModel(
 function makeContext(
   overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<ReadRecordStepDefinition> {

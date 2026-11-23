@@ -238,7 +238,13 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
     try {
       result = await withActivityLog(
-        { ...this.context.activityLog, collectionIdOf: async () => this.context.collectionId },
+        {
+          ...this.context.activityLog,
+          activityLog: {
+            ...this.context.activityLog.activityLog,
+            collectionIdOf: async () => this.context.collectionId,
+          },
+        },
         {
           action: 'action',
           collectionName,

@@ -1604,8 +1604,8 @@ describe('AgentClientAgentPort', () => {
 
   describe('activity log', () => {
     const context = {
-      service: {},
-      credentials: () => ({ forestServerToken: 't', renderingId: 1 }),
+      forestServer: { serverUrl: 'https://api.forestadmin.com', serverToken: 't', renderingId: 1 },
+      activityLog: { source: 'WorkflowExecutor' },
     };
 
     it('builds the client with the step context and names the entry of the call', async () => {
@@ -1617,9 +1617,7 @@ describe('AgentClientAgentPort', () => {
         call,
       });
 
-      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
-        expect.objectContaining({ activityLog: context }),
-      );
+      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(expect.objectContaining(context));
       expect(mockCollection.getOne).toHaveBeenCalledWith([42], {}, { activityLog: call });
     });
 
@@ -1667,7 +1665,7 @@ describe('AgentClientAgentPort', () => {
 
       expect(
         mockedCreateRemoteAgentClient.mock.calls.map(([options]) => options.activityLog),
-      ).toEqual([context, undefined]);
+      ).toEqual([context.activityLog, undefined]);
     });
 
     it('turns an operation blocked by its activity log into ActivityLogCreationError', async () => {

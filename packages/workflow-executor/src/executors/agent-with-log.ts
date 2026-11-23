@@ -14,7 +14,7 @@ import type {
 import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 type WriteOptions = { beforeCall: () => Promise<void> };
 
@@ -22,7 +22,7 @@ export interface AgentWithLogDeps {
   agentPort: AgentPort;
   schemaResolver: SchemaResolver;
   user: StepUser;
-  activityLog: ActivityLogContext;
+  activityLog: ActivityLogConfig;
   forestServerToken?: string;
 }
 
@@ -35,7 +35,7 @@ export default class AgentWithLog {
 
   private readonly user: StepUser;
 
-  private readonly activityLog: ActivityLogContext;
+  private readonly activityLog: ActivityLogConfig;
 
   private readonly forestServerToken?: string;
 

@@ -6,7 +6,7 @@ import type { FieldReadResult, StepExecutionData } from '../../src/types/step-ex
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { ConditionStepDefinition } from '../../src/types/validated/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { z } from 'zod';
 
 import activityLogContext from './activity-log-context';
@@ -96,7 +96,7 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>) {
 function makeContext(
   overrides: Partial<ExecutionContext<ConditionStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<ConditionStepDefinition> {

@@ -13,7 +13,7 @@ import type {
   ErrorKind,
   StepOutcome,
 } from '../../src/types/validated/step-outcome';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -126,7 +126,7 @@ function makeMockLogger(): Logger {
 function makeContext(
   overrides: Partial<ExecutionContext> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext {

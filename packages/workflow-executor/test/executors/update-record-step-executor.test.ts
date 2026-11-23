@@ -6,7 +6,7 @@ import type { UpdateRecordStepExecutionData } from '../../src/types/step-executi
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 import activityLogContext from './activity-log-context';
 import {
@@ -123,7 +123,7 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'updat
 function makeContext(
   overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<UpdateRecordStepDefinition> {

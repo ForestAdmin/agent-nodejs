@@ -6,7 +6,6 @@ import type { StepExecutionData, StepIteration } from '../../src/types/step-exec
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { StepDefinition } from '../../src/types/validated/step-definition';
-import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
 import StepExecutorFactory from '../../src/executors/step-executor-factory';
 import SchemaCache from '../../src/schema-cache';
@@ -248,7 +247,7 @@ async function setup({
     runStore,
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
-    activityLogsService: {} as ActivityLogsServiceInterface,
+    forestServerUrl: 'https://api.forestadmin.com',
     stepTimeoutS,
     runControl,
   };

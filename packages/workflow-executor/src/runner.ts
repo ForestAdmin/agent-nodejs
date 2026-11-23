@@ -9,7 +9,6 @@ import type SchemaCache from './schema-cache';
 import type { RunControl, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
-import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
 import { drainActivityLogs } from '@forestadmin/agent-client';
 
@@ -38,7 +37,7 @@ export interface RunnerConfig {
   schemaCache: SchemaCache;
   pollingIntervalS: number;
   aiModelPort: AiModelPort;
-  activityLogsService: ActivityLogsServiceInterface;
+  forestServerUrl: string;
   envSecret: string;
   authSecret: string;
   logger?: Logger;
@@ -575,7 +574,7 @@ export default class Runner {
       runStore: this.config.runStore,
       schemaCache: this.config.schemaCache,
       logger: this.logger,
-      activityLogsService: this.config.activityLogsService,
+      forestServerUrl: this.config.forestServerUrl,
       stepTimeoutS: this.config.stepTimeoutS,
       aiInvokeTimeoutS: this.config.aiInvokeTimeoutS,
     };

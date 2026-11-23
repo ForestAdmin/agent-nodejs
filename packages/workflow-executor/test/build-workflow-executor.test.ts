@@ -156,6 +156,14 @@ describe('buildInMemoryExecutor', () => {
     );
   });
 
+  it('hands the runner the Forest server its steps write their activity logs to', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, forestServerUrl: 'https://custom.example.com' });
+
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ forestServerUrl: 'https://custom.example.com' }),
+    );
+  });
+
   it('creates AgentClientAgentPort with agentUrl and authSecret as agentPort singleton', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const AgentClientAgentPort = require('../src/adapters/agent-client-agent-port').default;

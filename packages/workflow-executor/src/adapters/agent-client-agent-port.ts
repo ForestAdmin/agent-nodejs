@@ -20,7 +20,7 @@ import type { RecordData } from '../types/validated/collection';
 import type {
   Action,
   ActionEndpointsByCollection,
-  ActivityLogContext,
+  ActivityLogConfig,
   SelectOptions,
 } from '@forestadmin/agent-client';
 
@@ -469,13 +469,12 @@ export default class AgentClientAgentPort implements AgentPort {
   private createClient(
     user: StepUser,
     forestServerToken?: string,
-    activityLog?: ActivityLogContext,
+    activityLog?: ActivityLogConfig,
   ) {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token: this.mintToken(user),
       actionEndpoints: this.buildActionEndpoints(user.renderingId),
-      activityLog,
       ...(this.forestServerUrl && forestServerToken
         ? {
             forestServer: {
@@ -485,6 +484,7 @@ export default class AgentClientAgentPort implements AgentPort {
             },
           }
         : {}),
+      ...activityLog,
     });
   }
 

@@ -4,11 +4,12 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 import type { McpStepDefinition } from '../../src/types/validated/step-definition';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 import { drainActivityLogs } from '@forestadmin/agent-client';
 import { AIToolCredentialsRefusedError } from '@forestadmin/ai-proxy/src/errors';
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
+import { ActivityLogsService } from '@forestadmin/forestadmin-client';
 
 import activityLogContext from './activity-log-context';
 import { OAuthReauthRequiredError, RunStorePortError, StepStateError } from '../../src/errors';
@@ -18,6 +19,26 @@ import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
 import InMemoryStore from '../../src/stores/in-memory-store';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.requireActual('@forestadmin/forestadmin-client'),
+  ActivityLogsService: jest.fn(),
+}));
+
+const auditService = {
+  createActivityLog: jest.fn(),
+  createMcpActivityLog: jest.fn(),
+  updateActivityLogStatus: jest.fn(),
+};
+
+beforeEach(() => {
+  auditService.createActivityLog
+    .mockReset()
+    .mockResolvedValue({ id: 'log-1', attributes: { index: '0' } });
+  auditService.createMcpActivityLog.mockReset();
+  auditService.updateActivityLogStatus.mockReset().mockResolvedValue(undefined);
+  (ActivityLogsService as jest.Mock).mockImplementation(() => auditService);
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -142,14 +163,10 @@ function conversationSentOnDecision(modelInvoke: jest.Mock, decision: number) {
   });
 }
 
-function serviceOf(context: ExecutionContext): Record<string, jest.Mock> {
-  return context.activityLog.service as unknown as Record<string, jest.Mock>;
-}
-
-async function statusesOf(context: ExecutionContext): Promise<string[]> {
+async function statusesOf(): Promise<string[]> {
   await drainActivityLogs();
 
-  return serviceOf(context).updateActivityLogStatus.mock.calls.map(([params]) => params.status);
+  return auditService.updateActivityLogStatus.mock.calls.map(([params]) => params.status);
 }
 
 function executedCall(name: string, input: Record<string, unknown>, result: unknown) {
@@ -159,7 +176,7 @@ function executedCall(name: string, input: Record<string, unknown>, result: unkn
 function makeContext(
   overrides: Partial<ExecutionContext<McpStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<McpStepDefinition> {
@@ -468,7 +485,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(invokeFn).not.toHaveBeenCalled();
-      expect(serviceOf(context).createActivityLog).not.toHaveBeenCalled();
+      expect(auditService.createActivityLog).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'mcp',
@@ -1713,7 +1730,7 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(toolInvoke).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      expect(serviceOf(context).createActivityLog).not.toHaveBeenCalled();
+      expect(auditService.createActivityLog).not.toHaveBeenCalled();
     });
 
     it('returns error without activity log when idempotencyPhase is executing', async () => {
@@ -1737,7 +1754,7 @@ describe('McpStepExecutor', () => {
         'An unexpected error occurred while processing this step.',
       );
       expect(toolInvoke).not.toHaveBeenCalled();
-      expect(serviceOf(context).createActivityLog).not.toHaveBeenCalled();
+      expect(auditService.createActivityLog).not.toHaveBeenCalled();
     });
 
     it('keeps the step marked executing from the first call until the final answer, marking it done only with that answer', async () => {
@@ -1899,11 +1916,11 @@ describe('McpStepExecutor', () => {
 
       await new McpStepExecutor(context, tools).execute();
 
-      expect(serviceOf(context).createActivityLog.mock.calls).toEqual([
+      expect(auditService.createActivityLog.mock.calls).toEqual([
         [expect.objectContaining({ label: 'my-mcp-server', type: 'write' })],
         [expect.objectContaining({ label: 'my-mcp-server', type: 'write' })],
       ]);
-      expect(await statusesOf(context)).toEqual(['completed', 'completed']);
+      expect(await statusesOf()).toEqual(['completed', 'completed']);
     });
 
     it('logs against the run base record with collectionId, renderingId, action, type and mcpServerId as label', async () => {
@@ -1921,7 +1938,7 @@ describe('McpStepExecutor', () => {
 
       await executor.execute();
 
-      expect(serviceOf(context).createActivityLog).toHaveBeenCalledWith({
+      expect(auditService.createActivityLog).toHaveBeenCalledWith({
         forestServerToken: 'forest-token',
         renderingId: '1',
         action: 'action',
@@ -1943,7 +1960,7 @@ describe('McpStepExecutor', () => {
       });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const activityLog = activityLogContext();
-      (activityLog.service.createActivityLog as jest.Mock).mockRejectedValue(new Error('down'));
+      auditService.createActivityLog.mockRejectedValue(new Error('down'));
       const context = makeContext({
         model,
         activityLog,
@@ -2432,8 +2449,8 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
 
       // THEN the failed tool call is audited as failed, while the step itself pauses (not errors).
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(serviceOf(context).createActivityLog).toHaveBeenCalledTimes(1);
-      expect(await statusesOf(context)).toEqual(['failed']);
+      expect(auditService.createActivityLog).toHaveBeenCalledTimes(1);
+      expect(await statusesOf()).toEqual(['failed']);
     });
   });
 });

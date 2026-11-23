@@ -8,7 +8,6 @@ import type { AvailableRunDispatch, WorkflowPort } from '../src/ports/workflow-p
 import type { AvailableStepExecution } from '../src/types/execution-context';
 import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
-import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
 import { drainActivityLogs } from '@forestadmin/agent-client';
 
@@ -123,11 +122,7 @@ function createRunnerConfig(
     } as unknown as RunStore,
     pollingIntervalS: POLLING_INTERVAL_S,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,
-    activityLogsService: {
-      createActivityLog: jest.fn(),
-      createMcpActivityLog: jest.fn(),
-      updateActivityLogStatus: jest.fn(),
-    } as unknown as ActivityLogsServiceInterface,
+    forestServerUrl: 'https://api.forestadmin.com',
     logger: createMockLogger(),
     schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
@@ -2803,7 +2798,7 @@ describe('StepExecutorFactory.create — factory', () => {
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
-    activityLogsService: {} as ActivityLogsServiceInterface,
+    forestServerUrl: 'https://api.forestadmin.com',
   });
 
   it('dispatches Condition steps to ConditionStepExecutor', async () => {

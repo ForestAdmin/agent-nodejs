@@ -5,7 +5,7 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { GuidanceStepDefinition } from '../../src/types/validated/step-definition';
 import type { GuidanceStepOutcome } from '../../src/types/validated/step-outcome';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 import activityLogContext from './activity-log-context';
 import AgentWithLog from '../../src/executors/agent-with-log';
@@ -45,7 +45,7 @@ function makeStep(overrides: Partial<GuidanceStepDefinition> = {}): GuidanceStep
 function makeContext(
   overrides: Partial<ExecutionContext<GuidanceStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<GuidanceStepDefinition> {

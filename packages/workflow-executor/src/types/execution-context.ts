@@ -13,7 +13,7 @@ import type {
 } from './validated/execution';
 import type { StepDefinition } from './validated/step-definition';
 import type { StepOutcome } from './validated/step-outcome';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 // Re-export the runtime result types alongside the context they flow with.
@@ -45,7 +45,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly stepDefinition: TStep;
   readonly model: BaseChatModel;
   readonly agent: AgentWithLog;
-  readonly activityLog: ActivityLogContext;
+  readonly activityLog: ActivityLogConfig;
   readonly runStore: RunStore;
   readonly user: StepUser;
   readonly timezone: string;

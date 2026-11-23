@@ -25,11 +25,10 @@ import type {
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
 } from '../types/validated/step-definition';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
-import type {
-  ActivityLogWorkflow,
-  ActivityLogsServiceInterface,
-} from '@forestadmin/forestadmin-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
+import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
+
+import { ActivityLogSource } from '@forestadmin/agent-client';
 
 import {
   ApprovalOutcomesPerRecordError,
@@ -178,7 +177,7 @@ export interface StepContextConfig {
   runStore: RunStore;
   schemaCache: SchemaCache;
   logger: Logger;
-  activityLogsService: ActivityLogsServiceInterface;
+  forestServerUrl: string;
   stepTimeoutS?: number;
   aiInvokeTimeoutS?: number;
   runControl?: RunControl;
@@ -323,18 +322,24 @@ export default class StepExecutorFactory {
       step.runId,
       step.user.renderingId,
     );
-    const activityLog: ActivityLogContext = {
-      service: cfg.activityLogsService,
-      credentials: () => {
-        if (!forestServerToken) throw new Error('The run carries no Forest server token');
+    const activityLog: ActivityLogConfig = {
+      forestServer: {
+        serverUrl: cfg.forestServerUrl,
+        serverToken: () => {
+          if (!forestServerToken) throw new Error('The run carries no Forest server token');
 
-        return { forestServerToken, renderingId: step.user.renderingId };
+          return forestServerToken;
+        },
+        renderingId: step.user.renderingId,
       },
-      logger: cfg.logger,
-      workflow: StepExecutorFactory.toActivityLogWorkflow(step),
-      collectionIdOf: async collectionName =>
-        (await schemaResolver.resolve(collectionName)).collectionId,
-      retryCreation: true,
+      activityLog: {
+        source: ActivityLogSource.WorkflowExecutor,
+        logger: cfg.logger,
+        workflow: StepExecutorFactory.toActivityLogWorkflow(step),
+        collectionIdOf: async collectionName =>
+          (await schemaResolver.resolve(collectionName)).collectionId,
+        retryCreation: true,
+      },
     };
 
     return {

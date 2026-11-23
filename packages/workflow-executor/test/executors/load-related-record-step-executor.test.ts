@@ -6,7 +6,7 @@ import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-ex
 import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/step-definition';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 import activityLogContext from './activity-log-context';
 import { AgentPortError, RunStorePortError } from '../../src/errors';
@@ -182,7 +182,7 @@ function makeMockModel(
 function makeContext(
   overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLog?: ActivityLogContext;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<LoadRelatedRecordStepDefinition> {

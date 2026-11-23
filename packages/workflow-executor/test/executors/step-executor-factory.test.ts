@@ -1,9 +1,10 @@
 import type { StepContextConfig } from '../../src/executors/step-executor-factory';
 import type { RunStore } from '../../src/ports/run-store';
 import type { AvailableStepExecution } from '../../src/types/execution-context';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 import { drainActivityLogs, withActivityLog } from '@forestadmin/agent-client';
+import { ActivityLogsService } from '@forestadmin/forestadmin-client';
 
 import { OAuthReauthRequiredError } from '../../src/errors';
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
@@ -17,12 +18,22 @@ import {
   WORKFLOW_START_STEP_ID,
 } from '../../src/types/validated/step-definition';
 
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.requireActual('@forestadmin/forestadmin-client'),
+  ActivityLogsService: jest.fn(),
+}));
+
+const FOREST_SERVER_URL = 'https://api.forestadmin.com';
+
 function fakeActivityLogsService() {
-  return {
+  const service = {
     createActivityLog: jest.fn().mockResolvedValue({ id: 'log-1', attributes: { index: '0' } }),
     createMcpActivityLog: jest.fn(),
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
   };
+  (ActivityLogsService as jest.Mock).mockImplementation(() => service);
+
+  return service;
 }
 
 function makeStep(overrides: Partial<AvailableStepExecution> = {}): AvailableStepExecution {
@@ -62,7 +73,7 @@ function makeContextConfig(): StepContextConfig {
     runStore: {},
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
-    activityLogsService: fakeActivityLogsService(),
+    forestServerUrl: FOREST_SERVER_URL,
   } as unknown as StepContextConfig;
 }
 
@@ -604,6 +615,7 @@ describe('StepExecutorFactory.create', () => {
 
     async function trackThroughBuiltContext(step: AvailableStepExecution) {
       const config = makeContextConfig();
+      const service = fakeActivityLogsService();
       const executor = await StepExecutorFactory.create(
         step,
         config,
@@ -612,12 +624,12 @@ describe('StepExecutorFactory.create', () => {
         'forest-token',
       );
       const { activityLog } = (
-        executor as unknown as { context: { activityLog: ActivityLogContext } }
+        executor as unknown as { context: { activityLog: ActivityLogConfig } }
       ).context;
       await withActivityLog(activityLog, { action: 'index' }, async () => undefined);
 
       const { forestServerToken, renderingId, collectionName, recordIds, label, ...rest } = (
-        config.activityLogsService.createActivityLog as jest.Mock
+        service.createActivityLog as jest.Mock
       ).mock.calls[0][0];
 
       expect({ forestServerToken, renderingId, collectionName, recordIds, label }).toEqual({
@@ -644,28 +656,38 @@ describe('StepExecutorFactory.create', () => {
         'forest-token',
       );
       const { activityLog } = (
-        executor as unknown as { context: { activityLog: ActivityLogContext } }
+        executor as unknown as { context: { activityLog: ActivityLogConfig } }
       ).context;
 
-      await expect(activityLog.collectionIdOf?.('customers')).resolves.toBe('col-42');
-      expect(activityLog.retryCreation).toBe(true);
+      await expect(activityLog.activityLog.collectionIdOf?.('customers')).resolves.toBe('col-42');
+      expect(activityLog.activityLog.retryCreation).toBe(true);
+    });
+
+    it('writes the entry to the Forest server under the WorkflowExecutor source', async () => {
+      await trackThroughBuiltContext(makeStep());
+
+      expect(ActivityLogsService).toHaveBeenCalledWith(expect.anything(), {
+        forestServerUrl: FOREST_SERVER_URL,
+        headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
+      });
     });
 
     it('blocks a write when the run carries no Forest server token', async () => {
       const config = makeContextConfig();
+      const service = fakeActivityLogsService();
       const executor = await StepExecutorFactory.create(
         makeStep(),
         config,
         jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' }),
       );
       const { activityLog } = (
-        executor as unknown as { context: { activityLog: ActivityLogContext } }
+        executor as unknown as { context: { activityLog: ActivityLogConfig } }
       ).context;
 
       await expect(
         withActivityLog(activityLog, { action: 'update' }, async () => undefined),
       ).rejects.toMatchObject({ reason: 'unavailable' });
-      expect(config.activityLogsService.createActivityLog).not.toHaveBeenCalled();
+      expect(service.createActivityLog).not.toHaveBeenCalled();
     });
 
     it('carries the run id, the workflow name and the step title', async () => {
