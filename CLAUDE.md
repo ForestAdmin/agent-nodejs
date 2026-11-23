@@ -42,6 +42,16 @@ yarn test:coverage      # Run tests with coverage
 - `forest-cloud` - Cloud deployment utilities
 - `plugin-*` - Various plugins (aws-s3, export-advanced, flattener)
 
+### Talking to an agent
+
+- Every server-side package that talks to an agent (`agent-bff` Gateway, `mcp-server`, `workflow-executor`, any new one) does it through `@forestadmin/agent-client` only. Never a raw `HttpRequester`, never a hand-built agent URL or query.
+- The business rules of an agent call live in agent-client, not in the surface:
+  - Activity logs: one entry per action, write, delete and read. An action sent for approval leaves its entry `canceled` plus one `createApproval` entry. A write whose log cannot be created does not run; a read runs with a warning.
+  - Approval requests: agent-client files them.
+- A surface only turns logging on with its `ActivityLogSource`, passes its context (Forest server connection, logger, workflow run), and maps agent-client's errors to its own answer.
+- agent-client's API stays business-level: filters, sort, pagination, fields, search, time zone. Never wire parameters such as `page[size]`, `fields[x]` or `searchExtended`.
+- The Forest UI does not use agent-client and keeps writing its own logs.
+
 ### Key Technologies
 
 Node.js | TypeScript | Jest | Lerna | ESM
