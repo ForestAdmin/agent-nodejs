@@ -1,11 +1,6 @@
 import type { ForestServerClient } from './types';
 
-import {
-  ActivityLogsService,
-  ForestHttpApi,
-  SchemaService,
-  WorkflowsService,
-} from '@forestadmin/forestadmin-client';
+import { ForestHttpApi, SchemaService, WorkflowsService } from '@forestadmin/forestadmin-client';
 
 import ForestServerClientImpl from './mcp-http-client';
 
@@ -28,30 +23,16 @@ export function createForestServerClient(
   };
 
   const schemaService = new SchemaService(forestHttpApi, serviceOptions);
-  const activityLogsService = new ActivityLogsService(forestHttpApi, {
-    ...serviceOptions,
-    headers: { 'Forest-Application-Source': 'MCP' },
-  });
   const workflowsService = new WorkflowsService(forestHttpApi, {
     forestServerUrl: options.forestServerUrl,
     headers: { 'Forest-Application-Source': 'MCP' },
   });
 
-  return new ForestServerClientImpl(
-    schemaService,
-    activityLogsService,
-    workflowsService,
-    options.forestServerUrl,
-  );
+  return new ForestServerClientImpl(schemaService, workflowsService, options.forestServerUrl);
 }
 
 export { ForestServerClientImpl };
 export type {
-  ActivityLogAction,
-  ActivityLogResponse,
-  ActivityLogsServiceInterface,
-  ActivityLogType,
-  CreateActivityLogParams,
   ForestServerClient,
   GetMcpWorkflowByIdParams,
   GetMcpWorkflowRunParams,
@@ -61,7 +42,6 @@ export type {
   TriggerMcpWorkflowParams,
   HydratedWorkflowRun,
   WorkflowRunTriggerResult,
-  UpdateActivityLogStatusParams,
   ForestSchemaCollection,
   ForestSchemaField,
   ForestSchemaAction,

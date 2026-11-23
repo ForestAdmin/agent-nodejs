@@ -15,9 +15,6 @@ const mockLogger: Logger = jest.fn();
 const mockForestServerClient = {
   forestServerUrl: 'https://api.forestadmin.com',
   fetchSchema: jest.fn(),
-  createActivityLog: jest.fn(),
-  createMcpActivityLog: jest.fn(),
-  updateActivityLogStatus: jest.fn(),
 } as unknown as ForestServerClient;
 
 const authenticatedExtra = {

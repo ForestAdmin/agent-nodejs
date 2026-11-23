@@ -2,7 +2,7 @@ import type { ForestServerClient } from '../../src/http-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import InProcessHttpRequester from '../../src/in-process-http-requester';
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
@@ -28,8 +28,10 @@ function toolContext(forestServerClient: ForestServerClient = createMockForestSe
 }
 
 describe('activity logging', () => {
-  it('should hand agent-client the forest server client and the caller credentials', () => {
-    const forestServerClient = createMockForestServerClient();
+  it('should write the activity log to the Forest server with the caller identity, as MCP', () => {
+    const forestServerClient = createMockForestServerClient({
+      forestServerUrl: 'https://api.forestadmin.com',
+    });
     const request = {
       authInfo: {
         token: 'test-token',
@@ -43,14 +45,16 @@ describe('activity logging', () => {
 
     buildClient(request, toolContext(forestServerClient));
 
-    const { activityLog } = mockCreateRemoteAgentClient.mock.calls.at(-1)[0];
-
-    expect(activityLog.service).toBe(forestServerClient);
-    expect(activityLog.logger).toBe(logger);
-    expect(activityLog.credentials()).toEqual({
-      forestServerToken: 'forest-token',
-      renderingId: '456',
-    });
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        forestServer: {
+          serverUrl: 'https://api.forestadmin.com',
+          serverToken: 'forest-token',
+          renderingId: '456',
+        },
+        activityLog: { source: ActivityLogSource.MCP, logger },
+      }),
+    );
   });
 });
 

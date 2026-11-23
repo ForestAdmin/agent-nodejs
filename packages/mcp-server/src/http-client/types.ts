@@ -1,9 +1,4 @@
 import type {
-  ActivityLogAction,
-  ActivityLogResponse,
-  ActivityLogType,
-  ActivityLogsServiceInterface,
-  CreateActivityLogParams,
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
@@ -15,18 +10,12 @@ import type {
   McpWorkflowLookup,
   SchemaServiceInterface,
   TriggerMcpWorkflowParams,
-  UpdateActivityLogStatusParams,
   WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 } from '@forestadmin/forestadmin-client';
 
 // Re-export types from forestadmin-client for convenience
 export type {
-  ActivityLogAction,
-  ActivityLogResponse,
-  ActivityLogsServiceInterface,
-  ActivityLogType,
-  CreateActivityLogParams,
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
@@ -38,7 +27,6 @@ export type {
   McpWorkflowLookup,
   SchemaServiceInterface,
   TriggerMcpWorkflowParams,
-  UpdateActivityLogStatusParams,
   WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 };
@@ -57,21 +45,6 @@ export interface ForestServerClient {
    * Fetches the Forest Admin schema from the server.
    */
   fetchSchema(): Promise<ForestSchemaCollection[]>;
-
-  /**
-   * Creates a pending activity log.
-   */
-  createActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse>;
-
-  /**
-   * Creates a pending activity log using the MCP-dedicated route.
-   */
-  createMcpActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse>;
-
-  /**
-   * Updates an activity log status.
-   */
-  updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void>;
 
   /**
    * Lists the MCP-enabled workflows the caller can access in a rendering.

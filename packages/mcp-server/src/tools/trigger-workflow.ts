@@ -6,7 +6,7 @@ import { withActivityLog } from '@forestadmin/agent-client';
 import { NotFoundError } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
-import { activityLogContextOf } from '../utils/agent-caller';
+import { activityLogConfigOf } from '../utils/agent-caller';
 import getAuthContext from '../utils/auth-context';
 import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
@@ -199,7 +199,7 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
 
       try {
         result = await withActivityLog(
-          activityLogContextOf(extra, ctx),
+          activityLogConfigOf(extra, ctx),
           {
             action: 'triggerWorkflow',
             collectionName: workflow.collectionName,

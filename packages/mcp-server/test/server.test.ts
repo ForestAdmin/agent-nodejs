@@ -1152,6 +1152,7 @@ describe('ForestMCPServer Instance', () => {
 
       // Inject mock httpClient to return expected collections
       listMockForestServerClient = createMockForestServerClient({
+        forestServerUrl: 'https://test.forestadmin.com',
         fetchSchema: jest.fn().mockResolvedValue([
           { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
           { name: 'products', fields: [{ field: 'name', type: 'String' }] },
@@ -1380,11 +1381,12 @@ describe('ForestMCPServer Instance', () => {
       );
 
       // Setup mock to capture the activity log API call and mock agent response
+      const createActivityLog = jest.fn(() => ({
+        data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+      }));
       listMockServer.clear();
       listMockServer
-        .post('/api/activity-logs-requests', {
-          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
-        })
+        .post('/api/activity-logs-requests/mcp', createActivityLog)
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       const response = await request(listHttpServer)
@@ -1405,12 +1407,16 @@ describe('ForestMCPServer Instance', () => {
       // The tool call should succeed (or fail on agent call, but activity log should be created first)
       expect(response.status).toBe(200);
 
-      expect(listMockForestServerClient.createMcpActivityLog).toHaveBeenCalled();
-
-      const activityLogCall = listMockForestServerClient.createMcpActivityLog.mock.calls[0][0];
-      expect(activityLogCall.forestServerToken).toBe(forestServerToken);
-      expect(activityLogCall.action).toBe('index');
-      expect(activityLogCall.collectionName).toBe('users');
+      expect(createActivityLog).toHaveBeenCalledWith(
+        'https://test.forestadmin.com/api/activity-logs-requests/mcp',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: `Bearer ${forestServerToken}`,
+            'Forest-Application-Source': 'MCP',
+          }),
+          body: expect.objectContaining({ action: 'index', collectionModelName: 'users' }),
+        }),
+      );
     });
 
     it('should include shouldSearchInRelation and fields in list tool schema', async () => {
