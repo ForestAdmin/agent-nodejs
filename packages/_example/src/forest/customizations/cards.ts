@@ -50,6 +50,7 @@ export default (collection: CardsCustomizer) =>
           'blocked_reason',
           'last_four_digits',
           'account:status',
+          'customer:status',
         ]);
 
         if (card.status !== 'BLOCKED') {
@@ -72,6 +73,10 @@ export default (collection: CardsCustomizer) =>
 
         if (card.account?.status !== 'ACTIVE') {
           return resultBuilder.error(`The card's account is ${card.account?.status}`);
+        }
+
+        if (card.customer?.status === 'SUSPENDED') {
+          return resultBuilder.error("The card's customer is SUSPENDED");
         }
 
         await context.collection.update(context.filter, {
