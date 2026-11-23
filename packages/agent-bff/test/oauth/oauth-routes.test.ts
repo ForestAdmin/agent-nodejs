@@ -10,6 +10,7 @@ import Koa from 'koa';
 import request from 'supertest';
 
 import createAuthorizationCodeClaims from '../../src/oauth/authorization-code-claims';
+import deriveBffAccessKey from '../../src/oauth/bff-access-key';
 import { OAuthExchangeError } from '../../src/oauth/forest-server-client';
 import createOAuthRoutes from '../../src/oauth/oauth-routes';
 import createSessionTokenCodec from '../../src/oauth/session-token';
@@ -22,6 +23,7 @@ const REDIRECT_URI = 'http://localhost:4567/callback';
 const SENTINEL_ACCESS = 'SAAS-ACCESS-SENTINEL';
 const SENTINEL_REFRESH = 'SAAS-REFRESH-SENTINEL';
 const KEY = Buffer.alloc(32, 5).toString('base64');
+const ACCESS_TOKEN_KEY = deriveBffAccessKey(KEY);
 const SESSION_TTL_SECONDS = 3600;
 
 function routeOptions(key: string = KEY) {
@@ -126,7 +128,7 @@ function buildApp(
       serverClient,
       ...options,
       forestAppUrl,
-      authSecret: AUTH_SECRET,
+      accessTokenKey: ACCESS_TOKEN_KEY,
       resolveEnvironmentId,
       logger,
       allowedOAuthClients,
@@ -353,6 +355,19 @@ describe('oauth-routes GET /oauth/authorize', () => {
 
 describe('oauth-routes POST /oauth/token', () => {
   describe('when the authorization_code exchange succeeds', () => {
+    it('should sign the access token with the key derived from the encryption key, never the auth secret', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(() => jsonwebtoken.verify(response.body.access_token, AUTH_SECRET)).toThrow(
+        jsonwebtoken.JsonWebTokenError,
+      );
+      expect(jsonwebtoken.verify(response.body.access_token, ACCESS_TOKEN_KEY)).toEqual(
+        expect.objectContaining({ type: 'bff_access' }),
+      );
+    });
+
     it('should return a complete pair (access JWT + opaque refresh) with no SaaS token leaked', async () => {
       const { app } = buildApp(stubServerClient());
 
@@ -363,7 +378,7 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(typeof response.body.refresh_token).toBe('string');
       expect(response.body.refresh_token.length).toBeGreaterThanOrEqual(32);
 
-      const decoded = jsonwebtoken.verify(response.body.access_token, AUTH_SECRET) as Record<
+      const decoded = jsonwebtoken.verify(response.body.access_token, ACCESS_TOKEN_KEY) as Record<
         string,
         unknown
       >;
@@ -739,7 +754,7 @@ describe('oauth-routes POST /oauth/token', () => {
           serverClient: stubServerClient(),
           ...routeOptions(),
           forestAppUrl: APP_URL,
-          authSecret: AUTH_SECRET,
+          accessTokenKey: ACCESS_TOKEN_KEY,
           resolveEnvironmentId: async () => 99,
           logger: () => undefined,
         }),
@@ -907,6 +922,22 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       ).toBe(rotated.saasAccessToken);
     });
 
+    it('should sign the refreshed access token with the derived key, never the auth secret', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(() => jsonwebtoken.verify(response.body.access_token, AUTH_SECRET)).toThrow(
+        jsonwebtoken.JsonWebTokenError,
+      );
+      expect(jsonwebtoken.verify(response.body.access_token, ACCESS_TOKEN_KEY)).toEqual(
+        expect.objectContaining({ type: 'bff_access' }),
+      );
+    });
+
     it('should not leak any SaaS access or refresh token in the response body or the new JWT', async () => {
       const { app } = buildApp(
         stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
@@ -915,7 +946,7 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
       const response = await refresh(app, refreshToken);
 
-      const decoded = jsonwebtoken.verify(response.body.access_token, AUTH_SECRET) as Record<
+      const decoded = jsonwebtoken.verify(response.body.access_token, ACCESS_TOKEN_KEY) as Record<
         string,
         unknown
       >;

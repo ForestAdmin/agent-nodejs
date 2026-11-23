@@ -4,7 +4,7 @@ import jsonwebtoken from 'jsonwebtoken';
 
 import { BFF_ACCESS_TOKEN_TYPE, issueBffAccessToken } from '../../src/oauth/bff-token';
 
-const AUTH_SECRET = 'auth-secret';
+const SIGNING_KEY = Buffer.alloc(32, 7);
 
 const USER: UserInfo = {
   id: 42,
@@ -19,7 +19,7 @@ const USER: UserInfo = {
 };
 
 function decode(token: string) {
-  return jsonwebtoken.verify(token, AUTH_SECRET) as jsonwebtoken.JwtPayload &
+  return jsonwebtoken.verify(token, SIGNING_KEY) as jsonwebtoken.JwtPayload &
     Record<string, unknown>;
 }
 
@@ -31,7 +31,7 @@ describe('bff-token', () => {
         serverAccess: 'SEALED-SERVER-ACCESS',
         user: USER,
         renderingId: 17,
-        authSecret: AUTH_SECRET,
+        signingKey: SIGNING_KEY,
         expiresInSeconds: 900,
       });
 
@@ -56,7 +56,7 @@ describe('bff-token', () => {
         serverAccess: 'SEALED-SERVER-ACCESS',
         user: { ...USER, tags: undefined as unknown as UserInfo['tags'] },
         renderingId: 17,
-        authSecret: AUTH_SECRET,
+        signingKey: SIGNING_KEY,
         expiresInSeconds: 900,
       });
 
@@ -71,7 +71,7 @@ describe('bff-token', () => {
         serverAccess: 'SEALED-SERVER-ACCESS',
         user: USER,
         renderingId: 17,
-        authSecret: AUTH_SECRET,
+        signingKey: SIGNING_KEY,
         expiresInSeconds: 120,
       });
 
@@ -87,7 +87,7 @@ describe('bff-token', () => {
         serverAccess: 'SEALED-SERVER-ACCESS',
         user: { ...USER, secret: 'SHOULD-NOT-LEAK' } as UserInfo,
         renderingId: 17,
-        authSecret: AUTH_SECRET,
+        signingKey: SIGNING_KEY,
         expiresInSeconds: 900,
       });
 
@@ -102,7 +102,7 @@ describe('bff-token', () => {
         serverAccess: 'SEALED-SERVER-ACCESS',
         user: USER,
         renderingId: 17,
-        authSecret: AUTH_SECRET,
+        signingKey: SIGNING_KEY,
         expiresInSeconds: 3600,
       });
 

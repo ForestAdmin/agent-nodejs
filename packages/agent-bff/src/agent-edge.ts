@@ -248,7 +248,10 @@ export function buildAgentMiddlewares(
   const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache);
 
   const chain: Middleware[] = [
-    createAuthModeMiddleware({ authSecret: forestAuthSecret }),
+    createAuthModeMiddleware({
+      authSecret: forestAuthSecret,
+      accessTokenKey: oauth.session?.accessTokenKey,
+    }),
     apiKeyStep,
     // After both auth middlewares: the resolver it lands reads what they put on the context.
     createForestServerTokenMiddleware({ session: oauth.session, logger }),

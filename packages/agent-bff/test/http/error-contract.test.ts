@@ -1,7 +1,6 @@
 import type { ApiKeyAuthenticator } from '../../src/api-key/api-key-authenticator';
 
 import { bodyParser } from '@koa/bodyparser';
-import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
@@ -13,6 +12,7 @@ import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import { invalidGrant, toErrorBody } from '../../src/oauth/oauth-error';
 import createTimezoneMiddleware from '../../src/timezone/timezone-middleware';
+import { ACCESS_TOKEN_KEY, signBffAccess } from '../helpers/bff-access';
 
 const AUTH_SECRET = 'contract-secret';
 const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
@@ -34,10 +34,7 @@ function identity(allowedOrigins: string[] = []) {
 }
 
 function bffAccess(expiresIn: string | number) {
-  return jsonwebtoken.sign({ type: 'bff_access', sid: 's1' }, AUTH_SECRET, {
-    algorithm: 'HS256',
-    expiresIn,
-  } as jsonwebtoken.SignOptions);
+  return signBffAccess({ sid: 's1' }, expiresIn);
 }
 
 function buildEdge(authenticate: ApiKeyAuthenticator['authenticate']) {
@@ -46,7 +43,7 @@ function buildEdge(authenticate: ApiKeyAuthenticator['authenticate']) {
   app.silent = true;
   app.use(bodyParser({ jsonLimit: '16kb' }));
   app.use(createErrorMiddleware({ logger }));
-  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
+  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET, accessTokenKey: ACCESS_TOKEN_KEY }));
   app.use(
     createApiKeyMiddleware({
       authenticator: { authenticate, invalidate: () => undefined },

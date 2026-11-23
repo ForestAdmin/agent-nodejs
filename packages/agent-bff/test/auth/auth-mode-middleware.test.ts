@@ -5,8 +5,10 @@ import request from 'supertest';
 import { BFF_KEY_HEADER, GATEWAY_KEY_HEADER } from '../../src/api-key/api-key-middleware';
 import createAuthModeMiddleware from '../../src/auth/auth-mode-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
+import deriveBffAccessKey from '../../src/oauth/bff-access-key';
 
 const AUTH_SECRET = 'test-secret';
+const ACCESS_TOKEN_KEY = deriveBffAccessKey(Buffer.alloc(32, 1).toString('base64'));
 const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 const PRINCIPAL = {
@@ -22,18 +24,28 @@ const PRINCIPAL = {
   tags: { seat: 'a1' },
 };
 
-function bffAccess(expiresIn: string | number, type = 'bff_access') {
-  return jsonwebtoken.sign({ ...PRINCIPAL, type }, AUTH_SECRET, {
+function signed(
+  key: string | Buffer,
+  expiresIn: string | number,
+  claims: Record<string, unknown> = { type: 'bff_access' },
+) {
+  return jsonwebtoken.sign({ ...PRINCIPAL, ...claims }, key, {
     algorithm: 'HS256',
     expiresIn,
   } as jsonwebtoken.SignOptions);
 }
 
-function buildApp() {
+function bffAccess(expiresIn: string | number, type = 'bff_access') {
+  return signed(ACCESS_TOKEN_KEY, expiresIn, { type });
+}
+
+function buildApp(
+  { accessTokenKey }: { accessTokenKey?: Buffer } = { accessTokenKey: ACCESS_TOKEN_KEY },
+) {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: () => undefined }));
-  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
+  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET, accessTokenKey }));
   app.use(async ctx => {
     ctx.status = 200;
     ctx.body = {
@@ -236,7 +248,7 @@ describe('auth mode middleware', () => {
   });
 
   it('returns 401 unauthorized for a bff_access token with no exp claim', async () => {
-    const noExp = jsonwebtoken.sign({ type: 'bff_access', sid: 's1' }, AUTH_SECRET, {
+    const noExp = jsonwebtoken.sign({ type: 'bff_access', sid: 's1' }, ACCESS_TOKEN_KEY, {
       algorithm: 'HS256',
     });
 
@@ -246,5 +258,83 @@ describe('auth mode middleware', () => {
 
     expect(response.status).toBe(401);
     expect(response.body.error.type).toBe('unauthorized');
+  });
+
+  it('returns 401 unauthorized for a bff_access signed with the key of another encryption key', async () => {
+    const otherKey = deriveBffAccessKey(Buffer.alloc(32, 2).toString('base64'));
+
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `Bearer ${signed(otherKey, '15m')}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.type).toBe('unauthorized');
+  });
+
+  describe('with a bff_access signed with the auth secret by an earlier version', () => {
+    it('returns 401 session_expired so the client refreshes', async () => {
+      const response = await request(buildApp())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${signed(AUTH_SECRET, '15m')}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('session_expired');
+    });
+
+    it('returns 401 session_expired once it is expired too', async () => {
+      const response = await request(buildApp())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${signed(AUTH_SECRET, -10)}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('session_expired');
+    });
+
+    it('returns 401 unauthorized for a token of another type signed with the auth secret', async () => {
+      const response = await request(buildApp())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${signed(AUTH_SECRET, '15m', { type: 'agent_token' })}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+
+    it('returns 401 unauthorized for a token with no type signed with the auth secret', async () => {
+      const response = await request(buildApp())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${signed(AUTH_SECRET, '15m', {})}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+  });
+
+  describe('without an access token key (OAuth off)', () => {
+    const app = () => buildApp({});
+
+    it('returns 401 unauthorized for a bff_access signed with the access token key', async () => {
+      const response = await request(app())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${bffAccess('15m')}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+
+    it('returns 401 unauthorized for a bff_access signed with the auth secret', async () => {
+      const response = await request(app())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${signed(AUTH_SECRET, '15m')}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('unauthorized');
+    });
+
+    it('still resolves api-key', async () => {
+      const response = await request(app()).get('/agent/x').set(GATEWAY_KEY_HEADER, RAW_KEY);
+
+      expect(response.status).toBe(200);
+      expect(response.body.authMode).toBe('api-key');
+    });
   });
 });

@@ -40,7 +40,8 @@ export interface OAuthRoutesOptions {
   sessionTokens: SessionTokenCodec;
   authorizationCodes: AuthorizationCodeClaims;
   forestAppUrl: string;
-  authSecret: string;
+  /** Signs the `bff_access` tokens: `deriveBffAccessKey(tokenEncryptionKey)`. */
+  accessTokenKey: Buffer;
   resolveEnvironmentId: EnvironmentIdResolver;
   logger: Logger;
   allowedOAuthClients?: string[];
@@ -396,7 +397,7 @@ function issueSessionAccessToken(
     ),
     user,
     renderingId,
-    authSecret: options.authSecret,
+    signingKey: options.accessTokenKey,
     expiresInSeconds,
   });
 }
