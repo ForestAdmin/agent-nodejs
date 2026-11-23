@@ -1,10 +1,15 @@
 import type { CardsCustomizer } from '../typings';
 
+import { randomInt, randomUUID } from 'crypto';
+
 import { demoFields } from '../../connections/data-model';
 
 const BLOCKED_REASONS = demoFields('cards').find(field => field.name === 'blocked_reason').enum;
 const REASONS_THAT_NEED_A_NEW_CARD = ['LOST', 'STOLEN'];
 const SYSTEMATIC_CHECK_THRESHOLD = 1000;
+const CARD_TYPES = demoFields('cards').find(field => field.name === 'card_type').enum;
+const CARD_VALIDITY_IN_YEARS = 3;
+const LAST_FOUR_DIGITS_UPPER_BOUND = 10000;
 
 export default (collection: CardsCustomizer) =>
   collection
@@ -64,14 +69,95 @@ export default (collection: CardsCustomizer) =>
     })
     .addAction('Create new card', {
       scope: 'Global',
-      execute: (context, resultBuilder) => {
-        return resultBuilder.success('ok');
+      execute: async (context, resultBuilder) => {
+        const [accountId] = context.formValues.Account as string[];
+        const accounts = context.dataSource.getCollection('accounts');
+        const [account] = await accounts.list(
+          { conditionTree: { field: 'id', operator: 'Equal', value: accountId } },
+          ['id', 'iban', 'status', 'customer_id'],
+        );
+
+        if (account.status !== 'ACTIVE') {
+          return resultBuilder.error(
+            `A card can only be issued on an active account, ${account.iban} is ${account.status}`,
+          );
+        }
+
+        const [holder] = await context.dataSource.getCollection('customer_members').list(
+          {
+            conditionTree: {
+              aggregator: 'And',
+              conditions: [
+                { field: 'customer_id', operator: 'Equal', value: account.customer_id },
+                { field: 'role', operator: 'Equal', value: 'HOLDER' },
+              ],
+            },
+          },
+          ['individual_id'],
+        );
+        const [individual] = holder
+          ? await context.dataSource
+              .getCollection('individuals')
+              .list(
+                { conditionTree: { field: 'id', operator: 'Equal', value: holder.individual_id } },
+                ['first_name', 'last_name'],
+              )
+          : [];
+
+        const now = new Date();
+        const expiresAt = new Date(now);
+        expiresAt.setFullYear(now.getFullYear() + CARD_VALIDITY_IN_YEARS);
+        const lastFourDigits = String(randomInt(LAST_FOUR_DIGITS_UPPER_BOUND)).padStart(4, '0');
+
+        await context.collection.create([
+          {
+            id: randomUUID(),
+            account_id: account.id,
+            customer_id: account.customer_id,
+            holder_id: holder?.individual_id ?? null,
+            card_type: context.formValues['Card type'],
+            network: 'VISA',
+            status: 'PENDING',
+            issued_at: now.toISOString(),
+            expires_at: expiresAt.toISOString().slice(0, 10),
+            last_four_digits: lastFourDigits,
+            embossed_name: individual
+              ? `${individual.first_name} ${individual.last_name}`.toUpperCase()
+              : null,
+          },
+        ]);
+        await accounts.update(
+          { conditionTree: { field: 'id', operator: 'Equal', value: account.id } },
+          {
+            plan: (context.formValues.Plan as string).toUpperCase() as
+              | 'STANDARD'
+              | 'PREMIUM'
+              | 'METAL',
+          },
+        );
+
+        return resultBuilder.success(
+          `${context.formValues.Plan} card ending ${lastFourDigits} issued on ${account.iban}`,
+        );
       },
       form: [
         {
           type: 'Layout',
           component: 'Page',
           elements: [
+            {
+              type: 'Collection',
+              label: 'Account',
+              collectionName: 'accounts',
+              isRequired: true,
+            },
+            {
+              type: 'Enum',
+              label: 'Card type',
+              enumValues: CARD_TYPES,
+              defaultValue: 'PHYSICAL',
+              isRequired: true,
+            },
             {
               type: 'String',
               label: 'Card plan',

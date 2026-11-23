@@ -1,16 +1,10 @@
 import type { CardTransactionsCustomizer } from '../typings';
 
-import { randomUUID } from 'crypto';
-
-import newReference from '../references';
+import { REASON_CODES, openChargebackCase } from './chargebacks';
 
 const DISPUTABLE_STATUSES = ['CLEARED', 'SETTLED'];
-const REASONS = {
-  '10.4': 'Fraud: card absent environment',
-  '12.6': 'Duplicate processing',
-  '13.1': 'Merchandise or services not received',
-  '13.3': 'Not as described or defective merchandise',
-};
+const VISA_LABEL = 1;
+const MASTERCARD_LABEL = 3;
 
 export default (collection: CardTransactionsCustomizer) =>
   collection
@@ -23,11 +17,17 @@ export default (collection: CardTransactionsCustomizer) =>
       scope: 'Single',
       form: [
         {
-          label: 'Reason code',
+          label: 'Reason',
           type: 'Enum',
-          enumValues: Object.keys(REASONS),
+          enumValues: Object.keys(REASON_CODES),
           isRequired: true,
-          description: ctx => REASONS[ctx.formValues['Reason code']] ?? '',
+          description: async ctx => {
+            const codes = REASON_CODES[ctx.formValues.Reason];
+            if (!codes) return '';
+            const { card } = await ctx.getRecord(['card:network']);
+
+            return codes[card?.network === 'MASTERCARD' ? MASTERCARD_LABEL : VISA_LABEL];
+          },
         },
       ],
       execute: async (context, resultBuilder) => {
@@ -38,6 +38,10 @@ export default (collection: CardTransactionsCustomizer) =>
           'original_amount',
           'original_currency',
           'status',
+          'card:customer_id',
+          'card:network',
+          'transaction:account_id',
+          'transaction:created_at',
         ]);
 
         if (!DISPUTABLE_STATUSES.includes(cardTransaction.status)) {
@@ -46,8 +50,7 @@ export default (collection: CardTransactionsCustomizer) =>
           );
         }
 
-        const chargebacks = context.dataSource.getCollection('chargebacks');
-        const existing = await chargebacks.list(
+        const existing = await context.dataSource.getCollection('chargebacks').list(
           {
             conditionTree: {
               field: 'card_transaction_id',
@@ -64,38 +67,17 @@ export default (collection: CardTransactionsCustomizer) =>
           );
         }
 
-        const [card] = await context.dataSource
-          .getCollection('cards')
-          .list(
-            { conditionTree: { field: 'id', operator: 'Equal', value: cardTransaction.card_id } },
-            ['customer_id', 'network'],
-          );
-
-        const reasonCode = context.formValues['Reason code'];
-        const now = new Date().toISOString();
-        const reference = newReference('CBK');
-
-        await chargebacks.create([
-          {
-            id: randomUUID(),
-            reference,
-            customer_id: card?.customer_id ?? null,
-            card_transaction_id: cardTransactionId,
-            transaction_id: cardTransaction.transaction_id,
-            amount: cardTransaction.original_amount,
-            currency: cardTransaction.original_currency,
-            network: card?.network ?? null,
-            reason_code: reasonCode,
-            reason_description: REASONS[reasonCode],
-            status: 'INITIATED',
-            source: 'CUSTOMER_REQUEST',
-            is_overdue: false,
-            provisional_credit_issued: false,
-            filed_at: now,
-            created_at: now,
-            updated_at: now,
-          },
-        ]);
+        const { reference } = await openChargebackCase(context, {
+          reason: context.formValues.Reason,
+          network: cardTransaction.card?.network ?? null,
+          customerId: cardTransaction.card?.customer_id ?? null,
+          transactionId: cardTransaction.transaction_id,
+          cardTransactionId,
+          amount: cardTransaction.original_amount,
+          currency: cardTransaction.original_currency,
+          paidAt: cardTransaction.transaction?.created_at,
+          accountId: cardTransaction.transaction?.account_id,
+        });
 
         return resultBuilder.success(`Chargeback ${reference} opened`);
       },

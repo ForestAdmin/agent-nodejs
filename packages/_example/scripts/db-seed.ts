@@ -28,7 +28,16 @@ const SQL_TABLES: Array<[Sequelize, string[]]> = [
   [sequelizeMySql, ['transactions', 'counterparties']],
   [sequelizeMsSql, ['chargebacks', 'dispute_requests', 'dispute_transactions']],
   [sequelizeMariaDb, ['cards']],
-  [sequelizeSqlite, ['alerts', 'investigations', 'sar_reports']],
+  [sequelizeSqlite, ['alerts', 'investigations', 'sar_reports', 'status_changes']],
+];
+const HISTORY_OF_EXPOSED_TABLES = [
+  'CUSTOMERS',
+  'KYC_CASES',
+  'ALERTS',
+  'INVESTIGATIONS',
+  'SAR_REPORTS',
+  'DISPUTE_REQUESTS',
+  'CHARGEBACKS',
 ];
 
 function groupBy(rows: Row[], key: string): Map<unknown, Row[]> {
@@ -154,7 +163,7 @@ function cardTransactionDocuments(rows: Rows) {
     } = withDates(row, fields);
 
     return {
-      _id: id,
+      _id: id as string,
       ...cardTransaction,
       authorization: {
         code,
@@ -178,7 +187,7 @@ async function seedMongo(rows: Rows) {
   console.log(`kyc_cases: ${kycCases.length} documents (mongoose)`);
 
   const cardTransactions = cardTransactionDocuments(rows);
-  const collection = mongoose.db.collection('card_transactions');
+  const collection = mongoose.db.collection<{ _id: string }>('card_transactions');
 
   for (let i = 0; i < cardTransactions.length; i += MONGO_DOCUMENTS_PER_INSERT) {
     await collection.insertMany(cardTransactions.slice(i, i + MONGO_DOCUMENTS_PER_INSERT));
@@ -205,6 +214,9 @@ async function closeConnections() {
 
 async function seedData() {
   const { rows } = build() as { rows: Rows };
+  rows.status_changes = rows.status_changes.filter(change =>
+    HISTORY_OF_EXPOSED_TABLES.includes(change.record_type as string),
+  );
 
   try {
     await mkdir(dirname(SQLITE_STORAGE), { recursive: true });

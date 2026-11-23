@@ -29,6 +29,13 @@ export type SarReportsFilter = TPaginatedFilter<Schema, 'sar_reports'>;
 export type SarReportsSortClause = TSortClause<Schema, 'sar_reports'>;
 export type SarReportsAggregation = TAggregation<Schema, 'sar_reports'>;
 
+export type StatusChangesCustomizer = CollectionCustomizer<Schema, 'status_changes'>;
+export type StatusChangesRecord = TPartialRow<Schema, 'status_changes'>;
+export type StatusChangesConditionTree = TConditionTree<Schema, 'status_changes'>;
+export type StatusChangesFilter = TPaginatedFilter<Schema, 'status_changes'>;
+export type StatusChangesSortClause = TSortClause<Schema, 'status_changes'>;
+export type StatusChangesAggregation = TAggregation<Schema, 'status_changes'>;
+
 export type CardsCustomizer = CollectionCustomizer<Schema, 'cards'>;
 export type CardsRecord = TPartialRow<Schema, 'cards'>;
 export type CardsConditionTree = TConditionTree<Schema, 'cards'>;
@@ -1427,6 +1434,21 @@ export type Schema = {
       'investigation:summary': string | null;
       'investigation:type': string | null;
     };
+  };
+  'status_changes': {
+    plain: {
+      'changed_at': string | null;
+      'changed_by': string | null;
+      'field': string | null;
+      'id': string;
+      'new_value': string | null;
+      'old_value': string | null;
+      'reason': string | null;
+      'record_id': string | null;
+      'record_type': string | null;
+    };
+    nested: {};
+    flat: {};
   };
   'transactions': {
     plain: {

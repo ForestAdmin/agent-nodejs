@@ -7,6 +7,8 @@ import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
+import addDeskCharts from './charts/desk-charts';
+import addHubChart from './charts/hub';
 import customizeAccounts from './customizations/accounts';
 import customizeAlerts, { PENDING_STATUSES } from './customizations/alerts';
 import customizeCardMerchants from './customizations/card-merchants';
@@ -105,6 +107,8 @@ export default function makeAgent() {
 
         return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
       })
+      .use(addHubChart)
+      .use(addDeskCharts)
 
       // One allowlist for both services on purpose: separate lists need the two deprecated aliases.
       .addGateway({

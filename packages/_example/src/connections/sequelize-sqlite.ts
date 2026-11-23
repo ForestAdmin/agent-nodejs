@@ -27,4 +27,9 @@ sequelizeSqlite.define('sar_reports', sequelizeAttributes('sar_reports'), {
   ...MODEL_OPTIONS,
 });
 
+sequelizeSqlite.define('status_changes', sequelizeAttributes('status_changes'), {
+  tableName: 'status_changes',
+  ...MODEL_OPTIONS,
+});
+
 export default sequelizeSqlite;

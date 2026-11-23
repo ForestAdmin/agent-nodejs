@@ -1,12 +1,14 @@
 import type { IndividualsCustomizer } from '../typings';
 
 const NAME_MAX_LENGTH = 50;
+const FIRST_NAME_MAX_LENGTH = 30;
 
 export default (collection: IndividualsCustomizer) =>
   collection
     .addFieldValidation('first_name', 'Present')
     .addFieldValidation('first_name', 'LongerThan', 1)
     .addFieldValidation('first_name', 'ShorterThan', NAME_MAX_LENGTH)
+    .addFieldValidation('first_name', 'ShorterThan', FIRST_NAME_MAX_LENGTH)
     .addFieldValidation('last_name', 'ShorterThan', NAME_MAX_LENGTH)
     .addFieldValidation('email', 'Contains', '@')
 
