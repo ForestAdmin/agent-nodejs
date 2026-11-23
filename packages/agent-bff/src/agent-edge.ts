@@ -20,7 +20,6 @@ import {
   createApiKeyUnavailableGuard,
   resolveApiKeyConfig,
 } from './api-key/api-key-edge';
-import { createBffActivityLogsService } from './auth/activity-log-context';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import createForestServerTokenMiddleware from './auth/forest-server-token-middleware';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
@@ -168,13 +167,13 @@ function buildAgentRouteMiddlewares(
     return { middlewares: [permissionsMiddleware, createAgentStubMiddleware()] };
   }
 
-  const activityLogsService = createBffActivityLogsService(apiKeyConfig.forestServerUrl);
+  const { forestServerUrl } = apiKeyConfig;
 
   return {
     middlewares: [
       permissionsMiddleware,
-      createDataRoutesMiddleware({ store, transport, logger, activityLogsService }),
-      createActionRoutesMiddleware({ store, transport, logger, activityLogsService }),
+      createDataRoutesMiddleware({ store, transport, logger, forestServerUrl }),
+      createActionRoutesMiddleware({ store, transport, logger, forestServerUrl }),
     ],
     writesActivityLogs: true,
   };

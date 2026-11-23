@@ -4,7 +4,7 @@ import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import { drainActivityLogs } from '@forestadmin/agent-client';
-import { HttpError } from '@forestadmin/forestadmin-client';
+import { ActivityLogsService, HttpError } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
@@ -25,6 +25,13 @@ import {
   sessionAccessToken,
 } from '../helpers/activity-log';
 import { collection, column, relation } from '../read-model/fixtures';
+
+const FOREST_SERVER_URL = 'https://api.forestadmin.com';
+
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.requireActual('@forestadmin/forestadmin-client'),
+  ActivityLogsService: jest.fn(),
+}));
 
 const AGENT_URL = 'https://agent.example.com';
 const TIMEZONE = 'Europe/Paris';
@@ -68,6 +75,7 @@ function buildApp({
   saasAccessToken?: string;
   logger?: Logger;
 }): { app: Koa; activityLogs: { drain: typeof drainActivityLogs } } {
+  (ActivityLogsService as jest.Mock).mockImplementation(() => service);
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: noopLogger }));
@@ -84,7 +92,7 @@ function buildApp({
       store: storeOf(),
       transport: createHttpTransport({ agentUrl: AGENT_URL }),
       logger,
-      activityLogsService: service,
+      forestServerUrl: FOREST_SERVER_URL,
       createClient: () => client as AgentDataClient,
     }),
   );

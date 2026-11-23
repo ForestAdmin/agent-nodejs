@@ -1,5 +1,5 @@
 import type { AgentTransport } from '../agent/agent-transport';
-import type { ActionEndpointsByCollection, ActivityLogContext } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, ActivityLogConfig } from '@forestadmin/agent-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
@@ -37,6 +37,7 @@ export interface LoadActionParams {
 }
 
 export interface ExecuteActionParams extends LoadActionParams {
+  approvalRequestMessage?: string;
   beforeCall: () => Promise<void>;
   fill: (action: Action) => Promise<void>;
 }
@@ -50,7 +51,7 @@ export interface AgentActionClientOptions {
   transport: AgentTransport;
   token: string;
   actionEndpoints: ActionEndpointsByCollection;
-  activityLog?: ActivityLogContext;
+  activityLog?: ActivityLogConfig;
 }
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
@@ -80,15 +81,27 @@ export default function createAgentActionClient({
     token,
     actionEndpoints,
     httpRequester: transport.createRequester(token),
-    activityLog,
+    ...activityLog,
   });
 
   return {
     loadAction: ({ collection, actionName, recordIds, timezone }) =>
       client.collection(collection).action(actionName, { recordIds, timezone }),
-    executeAction: ({ collection, actionName, recordIds, timezone, beforeCall, fill }) =>
-      client
-        .collection(collection)
-        .executeAction(actionName, { recordIds, timezone, fill, activityLog: { beforeCall } }),
+    executeAction: ({
+      collection,
+      actionName,
+      recordIds,
+      timezone,
+      approvalRequestMessage,
+      beforeCall,
+      fill,
+    }) =>
+      client.collection(collection).executeAction(actionName, {
+        recordIds,
+        timezone,
+        approvalRequestMessage,
+        fill,
+        activityLog: { beforeCall },
+      }),
   };
 }

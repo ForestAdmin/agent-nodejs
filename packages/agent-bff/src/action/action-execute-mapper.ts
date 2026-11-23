@@ -1,5 +1,7 @@
 import type { Logger } from '../ports/logger-port';
 
+import { isApprovalRequested } from '@forestadmin/agent-client';
+
 import sanitizeActionHtml from './sanitize-action-html';
 
 export interface ActionExecuteSuccessBody {
@@ -22,6 +24,11 @@ export interface ActionExecuteRedirectBody {
   path: string;
 }
 
+export interface ActionExecuteApprovalRequestedBody {
+  type: 'approval_requested';
+  approvalRequest: { id: string };
+}
+
 export interface ActionExecuteUnsupportedBody {
   error: { type: 'unsupported_action_result'; status: 501 };
 }
@@ -30,6 +37,7 @@ export type ActionExecuteMappedBody =
   | ActionExecuteSuccessBody
   | ActionExecuteWebhookBody
   | ActionExecuteRedirectBody
+  | ActionExecuteApprovalRequestedBody
   | ActionExecuteUnsupportedBody;
 
 export interface ActionExecuteMapped {
@@ -68,6 +76,13 @@ function isRefresh(value: unknown): value is { relationships: unknown[] } {
 // agent HTTP payload shape. A File result streams a binary with no JSON marker, so any unrecognized
 // 200 body falls through to a structured 501 rather than being mislabelled.
 export function mapActionExecuteResult(raw: unknown, logger: Logger): ActionExecuteMapped {
+  if (isApprovalRequested(raw) && raw.approvalRequest) {
+    return {
+      status: 202,
+      body: { type: 'approval_requested', approvalRequest: { id: raw.approvalRequest.id } },
+    };
+  }
+
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
 
   // Each branch validates the value shape, not just key presence: a malformed payload

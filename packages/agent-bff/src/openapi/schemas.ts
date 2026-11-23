@@ -160,20 +160,26 @@ export const RelationCountRequestSchema = RelationCountFlatInputs.extend(
   relationCountOverrides,
 ).openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
 
+export const APPROVAL_REQUEST_MESSAGE_NOTE =
+  'When the action needs an approval, execute files an approval request instead of running the ' +
+  'action and answers 202; `approvalRequestMessage` becomes the comment of that request. The ' +
+  'form route ignores it.';
+
 export const ActionRequestSchema = z
   .strictObject({
     recordIds: z.array(z.union([z.string(), z.number()])),
     values: z.record(z.string(), z.unknown()).optional(),
     timezone: TimezoneSchema.optional(),
+    approvalRequestMessage: z.string().optional(),
   })
   .openapi('ActionRequest', {
     description:
-      '`recordIds` is required, even on a global action: send an empty array when the action ' +
-      'targets no record. Every id is coerced to a string before reaching the agent. On execute ' +
-      'the submitted values are validated against the live form: a required field left empty ' +
-      'answers 400, an out-of-enum or wrongly typed value 422. Only the JSON type and an Enum ' +
-      "field's options are checked there: a declared string format (date-time, uuid) and a " +
-      "widget's own option list are not.",
+      `\`recordIds\` is required, even on a global action: send an empty array when the action ` +
+      `targets no record. Every id is coerced to a string before reaching the agent. On execute ` +
+      `the submitted values are validated against the live form: a required field left empty ` +
+      `answers 400, an out-of-enum or wrongly typed value 422. Only the JSON type and an Enum ` +
+      `field's options are checked there: a declared string format (date-time, uuid) and a ` +
+      `widget's own option list are not. ${APPROVAL_REQUEST_MESSAGE_NOTE}`,
   });
 
 const UNTRUSTED_HTML_NOTE = 'sanitize it before rendering (stored/reflected XSS risk)';
@@ -257,6 +263,17 @@ const ActionResultRedirectSchema = z
   })
   .openapi('ActionResultRedirect', {
     description: 'The action asks the caller to navigate to `path`, relayed verbatim.',
+  });
+
+export const ActionApprovalRequestedSchema = z
+  .object({
+    type: z.literal('approval_requested'),
+    approvalRequest: z.object({ id: z.string() }),
+  })
+  .openapi('ActionApprovalRequested', {
+    description:
+      'The action needs an approval: it did not run, and an approval request was filed in its ' +
+      'place. `approvalRequest.id` identifies that request on the Forest server.',
   });
 
 export const ActionResultSchema = z
@@ -541,8 +558,7 @@ export const ErrorResponseSchema = z
       'The error envelope. `details` is left untyped because its shape depends on `type`: ' +
       '`{ field }` on unknown_field and field_not_filterable, `{ field, validOperators }` on ' +
       'invalid_filter_operator, `{ maxDepth }` on filter_too_deep, `{ fields }` on ' +
-      'relation_field_not_supported, and, when the agent supplies them, ' +
-      '`{ roleIdsAllowedToApprove }` on action_requires_approval and `{ html }` on action_error. ' +
+      'relation_field_not_supported, and, when the agent supplies it, `{ html }` on action_error. ' +
       'An error forwarded from the agent carries the agent own payload instead, and any other ' +
       'type carries no `details` at all. The action_error html is untrusted agent output relayed ' +
       `verbatim: ${UNTRUSTED_HTML_NOTE}, exactly like the execute success html.`,

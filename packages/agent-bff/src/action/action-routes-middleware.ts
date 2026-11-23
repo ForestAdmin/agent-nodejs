@@ -7,15 +7,15 @@ import type {
 import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
-import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
 
 import {
   ActionFormValidationError,
-  ActionRequiresApprovalError,
   ActivityLogBlockedError,
+  ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
+  isApprovalRequested,
 } from '@forestadmin/agent-client';
 
 import { mapActionExecuteResult } from './action-execute-mapper';
@@ -23,7 +23,7 @@ import { mapActionForm } from './action-form-mapper';
 import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
-import { activityLogContextOf } from '../auth/activity-log-context';
+import activityLogConfigOf from '../auth/activity-log-context';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
@@ -34,7 +34,7 @@ import {
 import { BffHttpError } from '../http/bff-http-error';
 import {
   actionError,
-  actionRequiresApproval,
+  approvalRequestFailed,
   invalidRequest,
   unknownAction,
 } from '../http/bff-local-errors';
@@ -46,6 +46,7 @@ const EXECUTE_VERB = 'execute';
 interface ActionRequestBody {
   recordIds?: unknown;
   values?: unknown;
+  approvalRequestMessage?: unknown;
 }
 
 // recordIds are opaque BFF ids; only presence and array-ness are checked. An empty array is allowed
@@ -61,7 +62,7 @@ function parseRecordIds(raw: unknown): string[] {
   return raw.map(id => String(id));
 }
 
-const ACTION_BODY_KEYS = ['recordIds', 'values', 'timezone'];
+const ACTION_BODY_KEYS = ['recordIds', 'values', 'timezone', 'approvalRequestMessage'];
 
 // The body is closed like the data bodies are: a misspelled `values` used to execute the action
 // with no value at all, and answer 200 as if every field had been filled.
@@ -83,6 +84,13 @@ function parseValues(raw: unknown): Record<string, unknown> {
   return raw as Record<string, unknown>;
 }
 
+function parseApprovalRequestMessage(raw: unknown): string | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw === 'string') return raw;
+
+  throw invalidRequest('approvalRequestMessage must be a string');
+}
+
 // Only plain objects are enumerated: a File result arrives as a Buffer/stream whose every byte
 // index is an enumerable key, so `Object.keys` on it would build a multi-million entry log.
 function describePayloadShape(raw: unknown): string {
@@ -100,7 +108,7 @@ export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
-  activityLogsService?: ActivityLogsServiceInterface;
+  forestServerUrl?: string;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
 
@@ -145,13 +153,12 @@ async function fillValues(
 function toExecuteError(error: unknown, logger: Logger): unknown {
   if (error instanceof BffHttpError || error instanceof ActivityLogBlockedError) return error;
 
-  if (error instanceof ActionRequiresApprovalError) {
-    return actionRequiresApproval(
-      error.message,
-      error.roleIdsAllowedToApprove !== undefined
-        ? { roleIdsAllowedToApprove: error.roleIdsAllowedToApprove }
-        : undefined,
-    );
+  if (error instanceof ApprovalRequestCreationError) {
+    logger('Error', 'The approval request of an action could not be filed', {
+      cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
+    });
+
+    return approvalRequestFailed();
   }
 
   if (error instanceof ActionFormValidationError) {
@@ -175,7 +182,13 @@ function toExecuteError(error: unknown, logger: Logger): unknown {
 interface ExecuteHandlerArgs {
   ctx: Context;
   client: AgentActionClient;
-  params: { collection: string; actionName: string; recordIds: string[]; timezone: string };
+  params: {
+    collection: string;
+    actionName: string;
+    recordIds: string[];
+    timezone: string;
+    approvalRequestMessage?: string;
+  };
   refusal?: () => never;
   values: Record<string, unknown>;
   logger: Logger;
@@ -201,6 +214,12 @@ async function handleExecute({
     throw toExecuteError(error, logger);
   }
 
+  if (isApprovalRequested(raw) && !raw.approvalRequest) {
+    logger('Error', 'The Forest server filed an approval request but returned no id for it');
+
+    throw approvalRequestFailed();
+  }
+
   const { status, body } = mapActionExecuteResult(raw, logger);
 
   // An unrecognized payload (a File stream, or a new agent result type) maps to a generic 501 with
@@ -219,7 +238,7 @@ export default function createActionRoutesMiddleware({
   store,
   transport,
   logger,
-  activityLogsService,
+  forestServerUrl,
   createClient = defaultCreateAgentActionClient,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
@@ -254,12 +273,16 @@ export default function createActionRoutesMiddleware({
     assertKnownBodyKeys(body as Record<string, unknown>);
     const recordIds = parseRecordIds(body.recordIds);
     const values = parseValues(body.values);
+    const approvalRequestMessage = parseApprovalRequestMessage(body.approvalRequestMessage);
 
     const client = createClient({
       transport,
       token,
       actionEndpoints: readModel.getActionEndpoints(),
-      activityLog: activityLogsService && activityLogContextOf(ctx, activityLogsService, logger),
+      activityLog:
+        verb === EXECUTE_VERB && forestServerUrl
+          ? activityLogConfigOf(ctx, forestServerUrl, logger)
+          : undefined,
     });
 
     const params = { collection, actionName, recordIds, timezone: ctx.state.timezone as string };
@@ -282,7 +305,7 @@ export default function createActionRoutesMiddleware({
     await handleExecute({
       ctx,
       client,
-      params,
+      params: { ...params, approvalRequestMessage },
       refusal: allowed ? undefined : refuseUnknownAction,
       values,
       logger,

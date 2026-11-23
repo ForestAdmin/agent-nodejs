@@ -3,8 +3,8 @@ import type { Logger } from '../../src/ports/logger-port';
 
 import {
   ActionFormValidationError,
-  ActionRequiresApprovalError,
   AgentHttpError,
+  ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
@@ -772,54 +772,94 @@ describe('action execute', () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it('maps an approval-gated action to 403 action_requires_approval with the allowed roles', async () => {
-    const form = makeAction({
-      execute: jest.fn(async () => {
-        throw new ActionRequiresApprovalError('Needs approval', [7, 9]);
-      }),
-    });
+  function approvalClient(executeAction: jest.Mock): AgentActionClient {
+    return { loadAction: jest.fn(), executeAction };
+  }
 
-    const response = await request(execApp(clientOf(form)).callback())
+  it('answers 202 with the id of the approval request filed in place of the action', async () => {
+    const executeAction = jest.fn(async () => ({
+      approvalRequested: true,
+      approvalRequest: { id: 'req_42' },
+    }));
+
+    const response = await request(execApp(approvalClient(executeAction)).callback())
       .post('/agent/v1/users/actions/approve/execute')
       .send({ recordIds: ['42'] });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(202);
+    expect(response.body).toEqual({
+      type: 'approval_requested',
+      approvalRequest: { id: 'req_42' },
+    });
+  });
+
+  it('hands the approval request message to the action client', async () => {
+    const executeAction = jest.fn(async () => ({
+      approvalRequested: true,
+      approvalRequest: { id: 'req_42' },
+    }));
+
+    await request(execApp(approvalClient(executeAction)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], approvalRequestMessage: 'Refund a duplicate payment' });
+
+    expect(executeAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        actionName: 'approve',
+        approvalRequestMessage: 'Refund a duplicate payment',
+      }),
+    );
+  });
+
+  it('refuses an approval request message that is not a string', async () => {
+    const executeAction = jest.fn();
+
+    const response = await request(execApp(approvalClient(executeAction)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], approvalRequestMessage: { text: 'why' } });
+
+    expect(response.status).toBe(400);
     expect(response.body.error).toMatchObject({
-      type: 'action_requires_approval',
-      status: 403,
-      details: { roleIdsAllowedToApprove: [7, 9] },
+      type: 'invalid_request',
+      message: 'approvalRequestMessage must be a string',
     });
+    expect(executeAction).not.toHaveBeenCalled();
   });
 
-  it('keeps an empty roleIdsAllowedToApprove array in the 403 details', async () => {
-    const form = makeAction({
-      execute: jest.fn(async () => {
-        throw new ActionRequiresApprovalError('Needs approval', []);
-      }),
+  it('answers 503 approval_request_failed when the approval request could not be filed', async () => {
+    const logger = jest.fn();
+    const executeAction = jest.fn(async () => {
+      throw new ApprovalRequestCreationError(new Error('forest server down'));
     });
 
-    const response = await request(execApp(clientOf(form)).callback())
+    const response = await request(execApp(approvalClient(executeAction), logger).callback())
       .post('/agent/v1/users/actions/approve/execute')
       .send({ recordIds: ['42'] });
 
-    expect(response.status).toBe(403);
-    expect(response.body.error.details).toEqual({ roleIdsAllowedToApprove: [] });
+    expect(response.status).toBe(503);
+    expect(response.body.error).toEqual({
+      type: 'approval_request_failed',
+      status: 503,
+      message:
+        'The action requires an approval, and the approval request could not be filed, so the action was not run',
+    });
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
+      'The approval request of an action could not be filed',
+      { cause: 'forest server down' },
+    );
   });
 
-  it('omits details when the approval error carries no roleIdsAllowedToApprove', async () => {
-    const form = makeAction({
-      execute: jest.fn(async () => {
-        throw new ActionRequiresApprovalError('Needs approval');
-      }),
-    });
+  it('answers 503 approval_request_failed when the filed request came back without an id', async () => {
+    const executeAction = jest.fn(async () => ({ approvalRequested: true }));
 
-    const response = await request(execApp(clientOf(form)).callback())
+    const response = await request(execApp(approvalClient(executeAction)).callback())
       .post('/agent/v1/users/actions/approve/execute')
       .send({ recordIds: ['42'] });
 
-    expect(response.status).toBe(403);
-    expect(response.body.error).toMatchObject({ type: 'action_requires_approval', status: 403 });
-    expect(response.body.error.details).toBeUndefined();
+    expect(response.status).toBe(503);
+    expect(response.body.error.type).toBe('approval_request_failed');
   });
 
   it('bounds the execute call with the configured action timeout', async () => {

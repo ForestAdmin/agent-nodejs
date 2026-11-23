@@ -11,8 +11,7 @@ import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type { PrimaryKeyField } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
-import type { ActivityLogContext } from '@forestadmin/agent-client';
-import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { Context, Middleware } from 'koa';
 
 import { withActivityLog } from '@forestadmin/agent-client';
@@ -31,7 +30,7 @@ import {
   parseRelationListRequest,
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
-import { activityLogContextOf } from '../auth/activity-log-context';
+import activityLogConfigOf from '../auth/activity-log-context';
 import {
   callAgent,
   callAgentRecheckingExposure,
@@ -54,7 +53,7 @@ export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
-  activityLogsService?: ActivityLogsServiceInterface;
+  forestServerUrl?: string;
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
 
@@ -66,7 +65,7 @@ interface RequestHandlerDeps {
   token: string;
   timezone: string;
   logger: Logger;
-  activityLog?: ActivityLogContext;
+  activityLog?: ActivityLogConfig;
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
@@ -336,7 +335,7 @@ export default function createDataRoutesMiddleware({
   store,
   transport,
   logger,
-  activityLogsService,
+  forestServerUrl,
   createClient = defaultCreateAgentDataClient,
 }: DataRoutesMiddlewareOptions): Middleware {
   return async function dataRoutesMiddleware(ctx, next) {
@@ -370,7 +369,7 @@ export default function createDataRoutesMiddleware({
       token,
       timezone: ctx.state.timezone as string,
       logger,
-      activityLog: activityLogsService && activityLogContextOf(ctx, activityLogsService, logger),
+      activityLog: forestServerUrl ? activityLogConfigOf(ctx, forestServerUrl, logger) : undefined,
     };
     const rawBody = ctx.request.body ?? {};
 

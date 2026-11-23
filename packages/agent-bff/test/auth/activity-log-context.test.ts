@@ -1,18 +1,8 @@
 import type { Context } from 'koa';
 
-import { ActivityLogsService, ForestHttpApi } from '@forestadmin/forestadmin-client';
+import activityLogConfigOf from '../../src/auth/activity-log-context';
 
-import {
-  activityLogContextOf,
-  createBffActivityLogsService,
-} from '../../src/auth/activity-log-context';
-import { fakeActivityLogsService } from '../helpers/activity-log';
-
-jest.mock('@forestadmin/forestadmin-client', () => ({
-  ...jest.requireActual('@forestadmin/forestadmin-client'),
-  ActivityLogsService: jest.fn(),
-}));
-
+const FOREST_SERVER_URL = 'https://api.forestadmin.com';
 const RENDERING_ID = 42;
 const SERVER_TOKEN = 'api-key-server-token';
 
@@ -27,51 +17,56 @@ function apiKeyCtx(state: Record<string, unknown> = {}): Context {
   } as unknown as Context;
 }
 
-describe('activity log context', () => {
-  it('should build the service with the BFF application source header', () => {
-    createBffActivityLogsService('https://api.forestadmin.com');
+describe('activity log config', () => {
+  it('should write to the Forest server under the BFF source with the request logger', () => {
+    const logger = jest.fn();
 
-    expect(ActivityLogsService).toHaveBeenCalledWith(expect.any(ForestHttpApi), {
-      forestServerUrl: 'https://api.forestadmin.com',
-      headers: { 'Forest-Application-Source': 'BFF' },
-    });
-  });
-
-  it('should resolve the server token and the rendering of the request', async () => {
-    const context = activityLogContextOf(
+    const { forestServer, activityLog } = activityLogConfigOf(
       apiKeyCtx(),
-      fakeActivityLogsService() as never,
-      jest.fn(),
+      FOREST_SERVER_URL,
+      logger,
     );
 
-    await expect(context.credentials()).resolves.toEqual({
-      forestServerToken: SERVER_TOKEN,
+    expect(forestServer).toEqual({
+      serverUrl: FOREST_SERVER_URL,
+      serverToken: expect.any(Function),
       renderingId: RENDERING_ID,
     });
+    expect(activityLog).toEqual({
+      source: 'BFF',
+      logger,
+      onExpiredCredential: expect.any(Function),
+    });
   });
 
-  it('should refuse with session_expired when the request carries no rendering', async () => {
-    const context = activityLogContextOf(
-      apiKeyCtx({ apiKeyIdentity: undefined }),
-      fakeActivityLogsService() as never,
+  it('should resolve the server token of the request only when it is asked for', async () => {
+    const resolveForestServerToken = jest.fn(async () => SERVER_TOKEN);
+
+    const { forestServer } = activityLogConfigOf(
+      apiKeyCtx({ resolveForestServerToken }),
+      FOREST_SERVER_URL,
       jest.fn(),
     );
 
-    await expect(context.credentials()).rejects.toMatchObject({
-      status: 401,
-      type: 'session_expired',
-    });
+    expect(resolveForestServerToken).not.toHaveBeenCalled();
+    await expect((forestServer.serverToken as () => Promise<string>)()).resolves.toBe(SERVER_TOKEN);
+  });
+
+  it('should refuse with session_expired when the request carries no rendering', () => {
+    expect(() =>
+      activityLogConfigOf(apiKeyCtx({ apiKeyIdentity: undefined }), FOREST_SERVER_URL, jest.fn()),
+    ).toThrow(expect.objectContaining({ status: 401, type: 'session_expired' }));
   });
 
   it('should drop the cached api key identity when the credential expired', () => {
     const invalidateApiKeyIdentity = jest.fn();
-    const context = activityLogContextOf(
+    const { activityLog } = activityLogConfigOf(
       apiKeyCtx({ invalidateApiKeyIdentity }),
-      fakeActivityLogsService() as never,
+      FOREST_SERVER_URL,
       jest.fn(),
     );
 
-    context.onExpiredCredential?.();
+    activityLog.onExpiredCredential?.();
 
     expect(invalidateApiKeyIdentity).toHaveBeenCalledTimes(1);
   });

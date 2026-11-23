@@ -4,7 +4,7 @@ import type { HttpRequester } from '@forestadmin/agent-client';
 import type { Middleware } from 'koa';
 
 import { AgentHttpError, drainActivityLogs } from '@forestadmin/agent-client';
-import { HttpError } from '@forestadmin/forestadmin-client';
+import { ActivityLogsService, HttpError, ServerUtils } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
@@ -23,6 +23,13 @@ import {
   oauthCredentials,
   sessionAccessToken,
 } from '../helpers/activity-log';
+
+const FOREST_SERVER_URL = 'https://api.forestadmin.com';
+
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.requireActual('@forestadmin/forestadmin-client'),
+  ActivityLogsService: jest.fn(),
+}));
 
 const noopLogger: Logger = () => undefined;
 
@@ -48,6 +55,7 @@ function buildApp({
   credentials?: Middleware;
   saasAccessToken?: string;
 }): Koa {
+  (ActivityLogsService as jest.Mock).mockImplementation(() => service);
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: noopLogger }));
@@ -64,7 +72,7 @@ function buildApp({
       store: storeOf(readModel),
       transport: transportTo(agent),
       logger: noopLogger,
-      activityLogsService: service,
+      forestServerUrl: FOREST_SERVER_URL,
     }),
   );
 
@@ -185,26 +193,6 @@ describe('action routes activity log', () => {
       );
     });
 
-    it('should mark the log canceled when the action needs an approval', async () => {
-      const service = fakeActivityLogsService();
-      const agent = agentAnswering(async () => {
-        throw new AgentHttpError(403, {
-          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
-        });
-      });
-
-      const response = await request(buildApp({ service, agent }).callback())
-        .post('/agent/v1/users/actions/approve/execute')
-        .send({ recordIds: ['42'] });
-      await drainActivityLogs();
-
-      expect(response.status).toBe(403);
-      expect(response.body.error.type).toBe('action_requires_approval');
-      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'canceled' }),
-      );
-    });
-
     it('should refuse with audit_unavailable and never reach the agent when the log cannot be created', async () => {
       const service = fakeActivityLogsService({
         createMcpActivityLog: jest.fn(async () => {
@@ -314,6 +302,116 @@ describe('action routes activity log', () => {
 
       expect(response.status).toBe(200);
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the action needs an approval', () => {
+    const forestServer = jest.spyOn(ServerUtils, 'queryWithBearerToken');
+    const approvalGated = () =>
+      agentAnswering(async () => {
+        throw new AgentHttpError(403, {
+          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
+        });
+      });
+
+    beforeEach(() => {
+      forestServer.mockReset();
+      forestServer.mockResolvedValue({ data: { id: 'req_42' } });
+    });
+
+    afterAll(() => forestServer.mockRestore());
+
+    const approvalRequestOf = (bearerToken: string) =>
+      expect.objectContaining({
+        forestServerUrl: FOREST_SERVER_URL,
+        method: 'post',
+        path: '/api/action-approvals',
+        bearerToken,
+        headers: {
+          'forest-rendering-id': String(RENDERING_ID),
+          'Forest-Application-Source': 'BFF',
+        },
+      });
+
+    it('should file the approval request with the api key server token and answer 202 with its id', async () => {
+      const service = fakeActivityLogsService();
+
+      const response = await request(buildApp({ service, agent: approvalGated() }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(202);
+      expect(response.body).toEqual({
+        type: 'approval_requested',
+        approvalRequest: { id: 'req_42' },
+      });
+      expect(forestServer).toHaveBeenCalledWith(approvalRequestOf(API_KEY_SERVER_TOKEN));
+    });
+
+    it('should file the approval request with the session server token under OAuth', async () => {
+      const service = fakeActivityLogsService();
+      const saasAccessToken = sessionAccessToken();
+
+      const response = await request(
+        buildApp({
+          service,
+          agent: approvalGated(),
+          credentials: oauthCredentials(),
+          saasAccessToken,
+        }).callback(),
+      )
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(202);
+      expect(response.body.approvalRequest).toEqual({ id: 'req_42' });
+      expect(forestServer).toHaveBeenCalledWith(approvalRequestOf(saasAccessToken));
+    });
+
+    it('should post the approval request message as the comment of the request', async () => {
+      const service = fakeActivityLogsService();
+
+      await request(buildApp({ service, agent: approvalGated() }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], approvalRequestMessage: 'Refund a duplicate payment' });
+
+      expect(forestServer).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          path: '/api/action-approvals/req_42/comments',
+          body: { data: { attributes: { comment: 'Refund a duplicate payment' } } },
+        }),
+      );
+    });
+
+    it('should mark the log canceled', async () => {
+      const service = fakeActivityLogsService();
+
+      await request(buildApp({ service, agent: approvalGated() }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+      await drainActivityLogs();
+
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'canceled' }),
+      );
+    });
+
+    it('should answer 503 approval_request_failed when the request cannot be filed, and not run the action', async () => {
+      forestServer.mockRejectedValue(new HttpError('refused', 500));
+      const service = fakeActivityLogsService();
+      const agent = approvalGated();
+
+      const response = await request(buildApp({ service, agent }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+      await drainActivityLogs();
+
+      expect(response.status).toBe(503);
+      expect(response.body.error.type).toBe('approval_request_failed');
+      expect(agent).toHaveBeenCalledTimes(1);
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'canceled' }),
+      );
     });
   });
 });

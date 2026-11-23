@@ -575,6 +575,22 @@ describe('the unfolded document', () => {
     );
   });
 
+  it('should answer 202 on an unfolded execute, and not on its form', () => {
+    const form = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form');
+    const execute = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute');
+
+    expect(execute.responses['202']).toEqual({ $ref: '#/components/responses/ApprovalRequested' });
+    expect(Object.keys(form.responses)).not.toContain('202');
+  });
+
+  it('should accept the approval request message in an unfolded action body', () => {
+    const request = document.components?.schemas?.ActionRequest_My_Coll_Mark_as_paid_done as {
+      properties: Record<string, { type: string }>;
+    };
+
+    expect(request.properties.approvalRequestMessage.type).toBe('string');
+  });
+
   it('should share one response schema per verb across every unfolded action', () => {
     const refsOf = (prefix: string) =>
       Object.values(paths)
@@ -601,7 +617,7 @@ describe('the unfolded document', () => {
   it('should share one response component per error status across every unfolded path', () => {
     const errors = Object.values(paths).flatMap(path =>
       Object.entries(path.post.responses as Record<string, unknown>).filter(
-        ([status]) => status !== '200',
+        ([status]) => !status.startsWith('2'),
       ),
     );
 
@@ -1266,10 +1282,11 @@ describe('an unfolded document with no action', () => {
       ],
     });
 
-    expect(Object.keys(withoutActions.components?.responses ?? {})).not.toContain(
-      'UnsupportedActionResult',
+    ['UnsupportedActionResult', 'ApprovalRequested'].forEach(name =>
+      expect(Object.keys(withoutActions.components?.responses ?? {})).not.toContain(name),
     );
     [
+      'ActionApprovalRequested',
       'MessagelessErrorResponse',
       'ActionFormResponse',
       'ActionFormResponseField',

@@ -136,13 +136,10 @@ export function tooManyRequests(
   });
 }
 
-export const ACTION_REQUIRES_APPROVAL_TYPE = 'action_requires_approval';
-
-export function actionRequiresApproval(
-  message = 'This action requires an approval before it can run',
-  details?: unknown,
+export function approvalRequestFailed(
+  message = 'The action requires an approval, and the approval request could not be filed, so the action was not run',
 ): BffHttpError {
-  return new BffHttpError(403, ACTION_REQUIRES_APPROVAL_TYPE, message, { details });
+  return new BffHttpError(503, 'approval_request_failed', message);
 }
 
 export const AUDIT_RETRY_AFTER_SECONDS = 5;
