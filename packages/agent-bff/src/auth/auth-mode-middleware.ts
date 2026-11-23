@@ -42,7 +42,7 @@ function verifyBffAccess(
   const decoded = decodeWithKey(token, accessTokenKey);
 
   if (!isBffAccess(decoded)) {
-    // A `bff_access` issued by an earlier version: the client refreshes to get one under the current key.
+    // A `bff_access` signed with the previous key: the client refreshes to get one under the current key.
     if (isBffAccess(decodeWithKey(token, authSecret))) throw sessionExpired();
 
     throw unauthorized();

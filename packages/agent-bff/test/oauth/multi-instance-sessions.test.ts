@@ -173,7 +173,7 @@ function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock, ke
   return app;
 }
 
-/** The same claims, signed the way an earlier version signed its access tokens. */
+/** The same claims, signed with the previous access-token key. */
 function signedWithAuthSecret(accessToken: string): string {
   const { iat, exp, ...claims } = jsonwebtoken.decode(accessToken) as Record<string, unknown>;
 
@@ -301,7 +301,7 @@ describe('OAuth sessions across BFF instances sharing the configuration', () => 
     expect(legitimate.body.error).toBe('invalid_grant');
   });
 
-  it('should ask a client holding an access token from an earlier version to refresh, then serve the new one on another instance', async () => {
+  it('should ask a client holding an access token signed with the previous key to refresh, then serve the new one on another instance', async () => {
     const server = createIdempotentForestServer(() => Date.now());
     const a = createInstance(server.client, aiQueryOk());
     const b = createInstance(server.client, aiQueryOk());
@@ -310,11 +310,16 @@ describe('OAuth sessions across BFF instances sharing the configuration', () => 
     const earlier = await askAi(b, signedWithAuthSecret(session.access_token));
     const refreshed = await refresh(a, session.refresh_token);
     const ai = await askAi(b, refreshed.body.access_token);
+    const before = jsonwebtoken.decode(session.access_token) as Record<string, unknown>;
+    const after = jsonwebtoken.decode(refreshed.body.access_token) as Record<string, unknown>;
 
     expect(earlier.status).toBe(401);
     expect(earlier.body.error.type).toBe('session_expired');
     expect(refreshed.status).toBe(200);
     expect(ai.status).toBe(200);
+    expect(after).toEqual(
+      expect.objectContaining({ sid: before.sid, id: USER.id, email: USER.email }),
+    );
   });
 
   it('should sign the user out when the encryption key changes, since both tokens hang off it', async () => {

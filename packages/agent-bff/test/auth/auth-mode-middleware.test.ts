@@ -271,7 +271,7 @@ describe('auth mode middleware', () => {
     expect(response.body.error.type).toBe('unauthorized');
   });
 
-  describe('with a bff_access signed with the auth secret by an earlier version', () => {
+  describe('with a bff_access signed with the previous key, the auth secret', () => {
     it('returns 401 session_expired so the client refreshes', async () => {
       const response = await request(buildApp())
         .get('/agent/x')
