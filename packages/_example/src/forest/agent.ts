@@ -8,7 +8,7 @@ import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
 import customizeAccounts from './customizations/accounts';
-import customizeAlerts from './customizations/alerts';
+import customizeAlerts, { PENDING_STATUSES } from './customizations/alerts';
 import customizeCardMerchants from './customizations/card-merchants';
 import customizeCardTransactions from './customizations/card-transactions';
 import customizeCards from './customizations/cards';
@@ -29,8 +29,6 @@ import { SQLITE_STORAGE } from '../connections/sequelize-sqlite';
 import { sqlOptions, sqlUri } from '../connections/sql-options';
 import { merchantsApiUrl } from '../merchants-api';
 
-const PENDING_ALERT_STATUSES = ['OPEN', 'IN_REVIEW', 'SECOND_LOOK'];
-
 const ZENDESK_OAUTH_DOMAIN = 'forestadmin.com';
 
 export default function makeAgent() {
@@ -43,6 +41,7 @@ export default function makeAgent() {
     isProduction: false,
     loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
+    typingsMaxDepth: 1,
   };
 
   const rawAllowedOAuthClients = process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS;
@@ -100,7 +99,7 @@ export default function makeAgent() {
       .addChart('pendingAlerts', async (context, resultBuilder) => {
         const alerts = context.dataSource.getCollection('alerts');
         const rows = await alerts.aggregate(
-          { conditionTree: { field: 'status', operator: 'In', value: PENDING_ALERT_STATUSES } },
+          { conditionTree: { field: 'status', operator: 'In', value: PENDING_STATUSES } },
           { operation: 'Count' },
         );
 

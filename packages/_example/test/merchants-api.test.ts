@@ -1,4 +1,4 @@
-import { queryMerchants } from '../src/merchants-api';
+import { parseQuery, queryMerchants } from '../src/merchants-api';
 
 const merchants = [
   { id: 'a', name: 'Carrefour Market', city: 'Paris', category: 'GROCERIES' },
@@ -30,6 +30,10 @@ describe('queryMerchants', () => {
     expect(queryMerchants(merchants, { q: 'PRIX' }).page.map(m => m.id)).toEqual(['b', 'd']);
   });
 
+  it('searches fields other than the name', () => {
+    expect(queryMerchants(merchants, { q: 'stockholm' }).page.map(m => m.id)).toEqual(['c']);
+  });
+
   it('sorts on several fields with their own direction', () => {
     const { page } = queryMerchants(merchants, { _sort: 'category,name', _order: 'desc,asc' });
 
@@ -52,5 +56,21 @@ describe('queryMerchants', () => {
 
   it('returns nothing when no merchant matches', () => {
     expect(queryMerchants(merchants, { city: 'Berlin' })).toEqual({ total: 0, page: [] });
+  });
+});
+
+describe('parseQuery', () => {
+  it('keeps a parameter given once as a single value', () => {
+    expect(parseQuery('city=Paris&_limit=2')).toEqual({ city: 'Paris', _limit: '2' });
+  });
+
+  it('keeps every value of a parameter repeated more than twenty times', () => {
+    const ids = Array.from({ length: 25 }, (_, index) => `id-${index}`);
+
+    expect(parseQuery(ids.map(id => `id=${id}`).join('&'))).toEqual({ id: ids });
+  });
+
+  it('decodes encoded values', () => {
+    expect(parseQuery('q=Carrefour%20Market')).toEqual({ q: 'Carrefour Market' });
   });
 });

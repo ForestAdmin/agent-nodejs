@@ -12,22 +12,47 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { BaseCollection, BaseDataSource } from '@forestadmin/datasource-toolkit';
+import {
+  BaseCollection,
+  BaseDataSource,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  ForbiddenError,
+} from '@forestadmin/datasource-toolkit';
 import superagent from 'superagent';
 
 import { demoFields } from '../../connections/data-model';
 import { MERCHANTS_PATH } from '../../merchants-api';
 
 const EQUALITY_OPERATORS = new Set(['Equal', 'In'] as const);
+const READ_ONLY = 'The merchants API is read-only';
 
-function equalityQuery(conditionTree: ConditionTree): Record<string, unknown[]> {
-  const query: Record<string, unknown[]> = {};
+function apiLeaves(conditionTree: ConditionTree): ConditionTreeLeaf[] | null {
+  if (conditionTree instanceof ConditionTreeLeaf) return [conditionTree];
 
-  conditionTree.forEachLeaf(({ field, value }) => {
-    query[field] = [...(query[field] ?? []), ...[value].flat()];
-  });
+  if (!(conditionTree instanceof ConditionTreeBranch) || conditionTree.aggregator !== 'And') {
+    return null;
+  }
 
-  return query;
+  const leaves = conditionTree.conditions.filter(
+    (condition): condition is ConditionTreeLeaf => condition instanceof ConditionTreeLeaf,
+  );
+  const fields = new Set(leaves.map(leaf => leaf.field));
+
+  return leaves.length === conditionTree.conditions.length && fields.size === leaves.length
+    ? leaves
+    : null;
+}
+
+function equalityQuery(conditionTree: ConditionTree | undefined): Record<string, unknown[]> | null {
+  if (!conditionTree) return {};
+
+  const leaves = apiLeaves(conditionTree);
+  if (!leaves) return null;
+
+  const query = Object.fromEntries(leaves.map(({ field, value }) => [field, [value].flat()]));
+
+  return Object.values(query).some(values => !values.length) ? null : query;
 }
 
 class CardMerchants extends BaseCollection {
@@ -77,7 +102,17 @@ class CardMerchants extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    let request = this.buildRequest(filter);
+    const query = equalityQuery(filter.conditionTree);
+
+    if (!query) {
+      let records = await this.filterInProcess(caller, filter);
+      if (filter.sort) records = filter.sort.apply(records);
+      if (filter.page) records = filter.page.apply(records);
+
+      return projection.apply(records);
+    }
+
+    let request = this.buildRequest(filter, query);
 
     if (filter.page) {
       request = request.query({ _start: filter.page.skip, _limit: filter.page.limit });
@@ -102,8 +137,14 @@ class CardMerchants extends BaseCollection {
     aggregation: Aggregation,
     limit: number,
   ): Promise<AggregateResult[]> {
+    const query = equalityQuery(filter.conditionTree);
+
     if (aggregation.operation === 'Count' && !aggregation.groups?.length) {
-      const request = this.buildRequest(filter).query({ _limit: 0 });
+      if (!query) {
+        return [{ value: (await this.filterInProcess(caller, filter)).length, group: {} }];
+      }
+
+      const request = this.buildRequest(filter, query).query({ _limit: 0 });
       const response = await request;
       this.logger('Debug', `GET ${request.url}`);
 
@@ -118,21 +159,28 @@ class CardMerchants extends BaseCollection {
   }
 
   create(): Promise<RecordData[]> {
-    throw new Error('The merchants API is read-only');
+    throw new ForbiddenError(READ_ONLY);
   }
 
   update(): Promise<void> {
-    throw new Error('The merchants API is read-only');
+    throw new ForbiddenError(READ_ONLY);
   }
 
   delete(): Promise<void> {
-    throw new Error('The merchants API is read-only');
+    throw new ForbiddenError(READ_ONLY);
   }
 
-  private buildRequest(filter: Filter) {
-    let request = superagent.get(`${this.baseUrl}/${MERCHANTS_PATH}`);
+  private async filterInProcess(caller: Caller, filter: Filter): Promise<RecordData[]> {
+    const request = this.buildRequest(filter, {});
+    const response = await request;
+    this.logger('Debug', `GET ${request.url}`);
 
-    if (filter.conditionTree) request = request.query(equalityQuery(filter.conditionTree));
+    return filter.conditionTree.apply(response.body, this, caller.timezone);
+  }
+
+  private buildRequest(filter: Filter, query: Record<string, unknown[]>) {
+    let request = superagent.get(`${this.baseUrl}/${MERCHANTS_PATH}`).query(query);
+
     if (filter.search) request = request.query({ q: filter.search });
 
     return request;

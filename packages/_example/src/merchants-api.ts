@@ -24,6 +24,18 @@ export function merchantsApiUrl(): string {
   return `http://localhost:${merchantsApiPort()}`;
 }
 
+export function parseQuery(raw: string): Record<string, string | string[]> {
+  const params = new URLSearchParams(raw);
+
+  return Object.fromEntries(
+    [...new Set(params.keys())].map(key => {
+      const values = params.getAll(key);
+
+      return [key, values.length === 1 ? values[0] : values];
+    }),
+  );
+}
+
 function asList(value: unknown): string[] {
   return [value].flat().map(String);
 }
@@ -76,6 +88,7 @@ export default function startMerchantsApi(): Server {
 
   const merchants: Merchant[] = JSON.parse(readFileSync(MERCHANTS_FILE, 'utf8'));
   const app = express();
+  app.set('query parser', parseQuery);
 
   app.get(`/${MERCHANTS_PATH}`, (req, res) => {
     const { total, page } = queryMerchants(merchants, req.query);

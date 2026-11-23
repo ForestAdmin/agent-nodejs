@@ -7,7 +7,7 @@ import newReference from '../references';
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const INVESTIGATION_DEADLINE_IN_DAYS = 30;
 const STALE_AFTER_DAYS = 7;
-const PENDING_STATUSES = ['OPEN', 'IN_REVIEW', 'SECOND_LOOK'];
+export const PENDING_STATUSES = ['OPEN', 'IN_REVIEW', 'SECOND_LOOK'];
 const PRIORITY_BY_SEVERITY = { LOW: 'LOW', MEDIUM: 'MEDIUM', HIGH: 'HIGH', CRITICAL: 'URGENT' };
 
 export default (collection: AlertsCustomizer) =>
