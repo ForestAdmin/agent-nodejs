@@ -143,6 +143,30 @@ describe('InProcessDispatcher', () => {
     ).rejects.toThrow(/timed out after 50ms/);
   });
 
+  it('tags the timeout rejection so a caller can tell it from a failed dispatch', async () => {
+    const dispatcher = new InProcessDispatcher();
+    dispatcher.setHandler(handlerFor(r => r.get('/hang', () => new Promise(() => {}))));
+
+    const error = await dispatcher
+      .request({ method: 'get', path: '/hang', headers: {}, timeoutMs: 50 })
+      .catch(caught => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe('In-process dispatch timed out after 50ms');
+    expect(error.code).toBe('AGENT_DISPATCH_TIMEOUT');
+  });
+
+  it('does not tag a dispatch that fails for another reason as a timeout', async () => {
+    const dispatcher = new InProcessDispatcher();
+
+    const error = await dispatcher
+      .request({ method: 'get', path: '/x', headers: {} })
+      .catch(caught => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.code).toBeUndefined();
+  });
+
   it('returns an undefined body for an empty (204) response', async () => {
     const dispatcher = new InProcessDispatcher();
     dispatcher.setHandler(

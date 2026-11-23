@@ -11,6 +11,7 @@ import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
+import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import { TIMEZONE, clientOf, makeAction, readModel, storeOf } from '../helpers/action-routes';
 import {
@@ -171,6 +172,69 @@ describe('action routes activity log', () => {
       await activityLogs.drain();
 
       expect(response.status).toBe(502);
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    describe('when the execute times out', () => {
+      function timingOutAction() {
+        return makeAction({
+          execute: jest.fn(async () => {
+            throw new AgentTimeoutError('Timeout of 30000ms exceeded');
+          }),
+        });
+      }
+
+      it('should leave the log pending, since the action may still have run', async () => {
+        const service = fakeActivityLogsService();
+        const { app, activityLogs } = buildApp({ service, client: clientOf(timingOutAction()) });
+
+        const response = await request(app.callback())
+          .post('/agent/v1/users/actions/approve/execute')
+          .send({ recordIds: ['42'] });
+
+        expect(response.status).toBe(504);
+        expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
+        await expect(activityLogs.drain()).resolves.toEqual([]);
+        expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should mark the log failed when setFields times out, since nothing ran', async () => {
+      const service = fakeActivityLogsService();
+      const form = makeAction({
+        setFields: jest.fn(async () => {
+          throw new AgentTimeoutError('Timeout of 10000ms exceeded');
+        }),
+      });
+      const { app, activityLogs } = buildApp({ service, client: clientOf(form) });
+
+      await request(app.callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+      await activityLogs.drain();
+
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('should mark the log failed when loading the action times out', async () => {
+      const service = fakeActivityLogsService();
+      const loadAction = jest.fn(async () => {
+        throw new AgentTimeoutError('Timeout of 10000ms exceeded');
+      });
+      const { app, activityLogs } = buildApp({
+        service,
+        client: clientOf(executingAction(), loadAction as jest.Mock),
+      });
+
+      await request(app.callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+      await activityLogs.drain();
+
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );

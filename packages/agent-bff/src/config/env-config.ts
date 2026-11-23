@@ -27,6 +27,7 @@ export const CONFIG_KEYS = [
   'BFF_ALLOWED_ORIGINS',
   'BFF_DEFAULT_TIMEZONE',
   'BFF_AGENT_TIMEOUT_MS',
+  'BFF_ACTION_TIMEOUT_MS',
   'BFF_AI_TIMEOUT_MS',
   'BFF_OPENAPI_ENABLED',
   'BFF_RATE_LIMIT_MAX_REQUESTS',
@@ -63,6 +64,11 @@ export interface BFFConfig {
   allowedOrigins: string[];
   defaultTimezone?: string;
   agentTimeoutMs?: number;
+  /**
+   * Bounds the action execute call only; every other agent call keeps `agentTimeoutMs`. Unset, it
+   * never drops below the agent timeout, so a deployment that raised that one keeps its margin.
+   */
+  actionTimeoutMs: number;
   aiTimeoutMs: number;
   openapiEnabled: boolean;
   rateLimitMaxRequests: number;
@@ -74,6 +80,7 @@ export interface BFFConfig {
 
 const DECIMAL_INTEGER = /^\d+$/;
 export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
+export const DEFAULT_ACTION_TIMEOUT_MS = 30_000;
 export const DEFAULT_AI_TIMEOUT_MS = 120_000;
 export const MAX_TIMEOUT_MS = 2_147_483_647;
 export const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 300;
@@ -238,6 +245,11 @@ export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): 
     env.BFF_DEFAULT_TIMEZONE,
     label('BFF_DEFAULT_TIMEZONE'),
   );
+  const agentTimeoutMs = parseTimeoutMs(
+    env.BFF_AGENT_TIMEOUT_MS,
+    label('BFF_AGENT_TIMEOUT_MS'),
+    DEFAULT_AGENT_TIMEOUT_MS,
+  );
 
   return {
     forestAuthSecret: normalized.FOREST_AUTH_SECRET,
@@ -249,10 +261,11 @@ export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): 
     tokenEncryptionKey,
     allowedOrigins,
     defaultTimezone,
-    agentTimeoutMs: parseTimeoutMs(
-      env.BFF_AGENT_TIMEOUT_MS,
-      label('BFF_AGENT_TIMEOUT_MS'),
-      DEFAULT_AGENT_TIMEOUT_MS,
+    agentTimeoutMs,
+    actionTimeoutMs: parseTimeoutMs(
+      env.BFF_ACTION_TIMEOUT_MS,
+      label('BFF_ACTION_TIMEOUT_MS'),
+      Math.max(agentTimeoutMs, DEFAULT_ACTION_TIMEOUT_MS),
     ),
     aiTimeoutMs: parseTimeoutMs(
       env.BFF_AI_TIMEOUT_MS,

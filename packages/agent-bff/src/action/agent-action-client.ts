@@ -26,7 +26,7 @@ export interface ActionForm {
 // strict setFields + execute members on top of the form ones.
 export interface Action extends ActionForm {
   setFields(values: Record<string, unknown>): Promise<void>;
-  execute(): Promise<unknown>;
+  execute(options?: { maxTimeAllowed?: number }): Promise<unknown>;
 }
 
 export interface LoadActionParams {

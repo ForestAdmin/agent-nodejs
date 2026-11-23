@@ -24,6 +24,30 @@ export function actionNotAllowed(message = 'Action is not allowed'): BffHttpErro
   return new BffHttpError(403, 'action_not_allowed', message);
 }
 
+const OUTCOME_UNKNOWN = 'unknown';
+
+/**
+ * The agent received the execute and did not answer in time. Cutting the wait cancels nothing: the
+ * action may have run and committed, so the caller is told to check before retrying, which would
+ * otherwise apply it twice. Same status and type as any agent timeout, so a client reading those
+ * keeps working; `details.outcome` is what tells this one apart.
+ */
+export function actionOutcomeUnknown(): BffHttpError {
+  return new BffHttpError(
+    504,
+    'agent_timeout',
+    'The agent did not respond in time. The action may still have run: check its outcome before retrying.',
+    { details: { outcome: OUTCOME_UNKNOWN } },
+  );
+}
+
+export function isActionOutcomeUnknown(error: unknown): boolean {
+  return (
+    error instanceof BffHttpError &&
+    (error.details as { outcome?: unknown } | undefined)?.outcome === OUTCOME_UNKNOWN
+  );
+}
+
 export function invalidRequest(message = 'Invalid request', details?: unknown): BffHttpError {
   return new BffHttpError(400, 'invalid_request', message, { details });
 }

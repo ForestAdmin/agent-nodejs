@@ -22,6 +22,7 @@ import { mapActionForm } from './action-form-mapper';
 import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
+import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
@@ -33,8 +34,10 @@ import { BffHttpError } from '../http/bff-http-error';
 import {
   ACTION_REQUIRES_APPROVAL_TYPE,
   actionError,
+  actionOutcomeUnknown,
   actionRequiresApproval,
   invalidRequest,
+  isActionOutcomeUnknown,
   unknownAction,
 } from '../http/bff-local-errors';
 
@@ -111,6 +114,8 @@ export interface ActionRoutesMiddlewareOptions {
   logger: Logger;
   activityLogs: ActivityLogWriter;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
+  /** Bounds the execute call alone; the transport's own timeout applies when omitted. */
+  actionTimeoutMs?: number;
 }
 
 interface ActionHandlerArgs<TAction extends ActionForm> {
@@ -118,6 +123,10 @@ interface ActionHandlerArgs<TAction extends ActionForm> {
   action: TAction;
   values: Record<string, unknown>;
   logger: Logger;
+}
+
+interface ExecuteHandlerArgs extends ActionHandlerArgs<Action> {
+  actionTimeoutMs?: number;
 }
 
 async function handleForm({
@@ -140,7 +149,8 @@ async function handleExecute({
   action,
   values,
   logger,
-}: ActionHandlerArgs<Action>): Promise<void> {
+  actionTimeoutMs,
+}: ExecuteHandlerArgs): Promise<void> {
   try {
     await action.setFields(values);
   } catch (error) {
@@ -159,7 +169,7 @@ async function handleExecute({
   let raw: unknown;
 
   try {
-    raw = await action.execute();
+    raw = await action.execute({ maxTimeAllowed: actionTimeoutMs });
   } catch (error) {
     if (error instanceof ActionRequiresApprovalError) {
       throw actionRequiresApproval(
@@ -185,6 +195,12 @@ async function handleExecute({
       throw actionError(error.message, html === null ? undefined : { html });
     }
 
+    if (error instanceof AgentTimeoutError) {
+      logger('Warn', 'Agent timeout on action execute: outcome unknown', { cause: error.message });
+
+      throw actionOutcomeUnknown();
+    }
+
     throw mapAgentError(error, { logger });
   }
 
@@ -208,6 +224,7 @@ export default function createActionRoutesMiddleware({
   logger,
   activityLogs,
   createClient = defaultCreateAgentActionClient,
+  actionTimeoutMs,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
     const match = ACTION_ROUTE.exec(ctx.path);
@@ -284,12 +301,13 @@ export default function createActionRoutesMiddleware({
         label: `triggered the action "${actionName}"`,
       },
       isCompletedDespite: isApprovalRequest,
+      isOutcomeUnknown: isActionOutcomeUnknown,
       operation: async () => {
         if (!allowed) refuseUnknownAction();
 
         const action = await loadAction();
 
-        await handleExecute({ ctx, action, values, logger });
+        await handleExecute({ ctx, action, values, logger, actionTimeoutMs });
       },
     });
   };

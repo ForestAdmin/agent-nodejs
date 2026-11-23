@@ -14,6 +14,7 @@ import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
+import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import {
@@ -186,6 +187,23 @@ describe('action routes middleware', () => {
       .send({ recordIds: ['42'] });
 
     expect(form.execute).not.toHaveBeenCalled();
+  });
+
+  it('answers a plain 504 when a change hook times out, since the form runs nothing', async () => {
+    const form = makeAction();
+    form.tryToSetFields.mockRejectedValue(new AgentTimeoutError('Timeout of 10000ms exceeded'));
+    const app = buildApp(storeOf(readModel), clientOf(form), { actionTimeoutMs: 30_000 });
+
+    const response = await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: ['42'], values: { reason: 'x' } });
+
+    expect(response.status).toBe(504);
+    expect(response.body.error).toEqual({
+      type: 'agent_timeout',
+      status: 504,
+      message: 'The agent did not respond in time',
+    });
   });
 
   it('passes an opaque composite recordId through unchanged', async () => {
@@ -805,6 +823,75 @@ describe('action execute', () => {
     expect(response.status).toBe(403);
     expect(response.body.error).toMatchObject({ type: 'action_requires_approval', status: 403 });
     expect(response.body.error.details).toBeUndefined();
+  });
+
+  it('bounds the execute call with the configured action timeout', async () => {
+    const execute = jest.fn(async () => ({ success: 'Done' }));
+    const form = makeAction({ execute });
+    const app = buildApp(storeOf(readModel), clientOf(form), { actionTimeoutMs: 30_000 });
+
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(execute).toHaveBeenCalledWith({ maxTimeAllowed: 30_000 });
+  });
+
+  describe('when the agent does not answer the execute in time', () => {
+    it('answers 504 agent_timeout and says the outcome is unknown', async () => {
+      const form = makeAction({
+        execute: jest.fn(async () => {
+          throw new AgentTimeoutError('Timeout of 30000ms exceeded');
+        }),
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(504);
+      expect(response.body.error).toEqual({
+        type: 'agent_timeout',
+        status: 504,
+        message:
+          'The agent did not respond in time. The action may still have run: check its outcome before retrying.',
+        details: { outcome: 'unknown' },
+      });
+    });
+  });
+
+  describe('when the agent times out before the execute', () => {
+    it('answers a plain 504 when setFields times out, since nothing ran', async () => {
+      const form = makeAction({
+        setFields: jest.fn(async () => {
+          throw new AgentTimeoutError('Timeout of 10000ms exceeded');
+        }),
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(504);
+      expect(response.body.error).toEqual({
+        type: 'agent_timeout',
+        status: 504,
+        message: 'The agent did not respond in time',
+      });
+    });
+
+    it('answers a plain 504 when loading the action times out', async () => {
+      const loadAction = jest.fn(async () => {
+        throw new AgentTimeoutError('Timeout of 10000ms exceeded');
+      });
+
+      const response = await request(execApp(clientOf(makeAction(), loadAction)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(504);
+      expect(response.body.error.details).toBeUndefined();
+    });
   });
 
   it('maps a transport 5xx to agent_unavailable, distinct from the action-Error 400', async () => {
