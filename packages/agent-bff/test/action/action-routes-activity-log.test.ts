@@ -368,6 +368,43 @@ describe('action routes activity log', () => {
       expect(forestServer).toHaveBeenCalledWith(approvalRequestOf(API_KEY_SERVER_TOKEN));
     });
 
+    it('should cancel the action entry and record the approval request as a createApproval entry', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async ({ action }: { action: string }) => ({
+          id: `log-of-${action}`,
+          attributes: { index: ACTIVITY_LOG_INDEX },
+        })),
+      });
+
+      await request(buildApp({ service, agent: approvalGated() }).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+      await drainActivityLogs();
+
+      expect(service.createMcpActivityLog).toHaveBeenCalledTimes(2);
+      expect(service.createMcpActivityLog).toHaveBeenLastCalledWith({
+        forestServerToken: API_KEY_SERVER_TOKEN,
+        renderingId: String(RENDERING_ID),
+        action: 'createApproval',
+        type: 'write',
+        collectionName: 'users',
+        recordIds: ['42'],
+        label: 'requested an approval for the action "approve"',
+      });
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          activityLog: expect.objectContaining({ id: 'log-of-action' }),
+          status: 'canceled',
+        }),
+      );
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          activityLog: expect.objectContaining({ id: 'log-of-createApproval' }),
+          status: 'completed',
+        }),
+      );
+    });
+
     it('should file the approval request with the session server token under OAuth', async () => {
       const service = fakeActivityLogsService();
       const saasAccessToken = sessionAccessToken();

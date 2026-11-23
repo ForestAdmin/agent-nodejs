@@ -16,7 +16,11 @@ import CollectionChart from './collection-chart';
 import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
-import withActivityLogContext, { runCall } from '../activity-log/with-activity-log';
+import withActivityLogContext, {
+  logApprovalRequest,
+  runCall,
+} from '../activity-log/with-activity-log';
+import { isApprovalRequested } from '../approval-requested';
 import toCount from '../count-response';
 import QuerySerializer, { hasFilters, searchOf } from '../query-serializer';
 import serializeRecordId from '../record-id';
@@ -101,12 +105,15 @@ export default class Collection extends CollectionChart {
     const { fill, activityLog, signedApprovalRequest, approvalRequestMessage, ...context } =
       options;
 
-    return withActivityLogContext(
+    const collectionName = this.name;
+    const recordIds = serializeActionIds(context);
+
+    const result = await withActivityLogContext(
       this.activityLog,
       {
         action: 'action',
-        collectionName: this.name,
-        recordIds: serializeActionIds(context),
+        collectionName,
+        recordIds,
         label: activityLog?.label ?? `triggered the action "${actionName}"`,
       },
       async () => {
@@ -117,6 +124,16 @@ export default class Collection extends CollectionChart {
       },
       activityLog?.beforeCall,
     );
+
+    if (isApprovalRequested(result)) {
+      logApprovalRequest(this.activityLog, {
+        collectionName,
+        recordIds,
+        label: `requested an approval for the action "${actionName}"`,
+      });
+    }
+
+    return result;
   }
 
   segment(name: string): Segment {

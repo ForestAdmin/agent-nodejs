@@ -5,7 +5,10 @@ import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-clie
 
 import { drainActivityLogs } from '../../src/activity-log/with-activity-log';
 import Collection from '../../src/domains/collection';
-import AgentHttpError, { ActionRequiresApprovalError } from '../../src/errors';
+import AgentHttpError, {
+  ActionRequiresApprovalError,
+  ApprovalRequestCreationError,
+} from '../../src/errors';
 
 const ACTIVITY_LOG = { id: 'log-1', attributes: { index: 'idx' } };
 
@@ -349,6 +352,145 @@ describe('activity logging inside agent-client calls', () => {
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'canceled' }),
       );
+    });
+
+    describe('when the action is sent for approval', () => {
+      const approvalGated = new AgentHttpError(403, {
+        errors: [{ name: 'CustomActionRequiresApprovalError' }],
+      });
+
+      function setupApproval(overrides: Partial<ActivityLogContext> = {}) {
+        const { query, service, httpRequester, entries } = setup();
+        const logger = jest.fn();
+        const createApprovalRequest = jest.fn(async () => ({ id: 'req_1' }));
+        let created = 0;
+
+        const create = async () => {
+          created += 1;
+
+          return { id: `log-${created}`, attributes: { index: 'idx' } };
+        };
+
+        service.createMcpActivityLog.mockImplementation(create);
+        service.createActivityLog.mockImplementation(create);
+        query.mockRejectedValue(approvalGated);
+
+        const collection = new Collection(
+          'users',
+          httpRequester,
+          actionEndpoints,
+          createApprovalRequest,
+          {
+            service: service as unknown as ActivityLogsServiceInterface,
+            credentials: () => ({ forestServerToken: 'server-token', renderingId: 1 }),
+            logger,
+            ...overrides,
+          },
+        );
+
+        return { collection, service, entries, logger, createApprovalRequest };
+      }
+
+      it('should cancel the action entry and write a completed createApproval entry', async () => {
+        const { collection, service, entries } = setupApproval();
+
+        const result = await collection.executeAction('refund', { recordIds: [1, 2] });
+        await drainActivityLogs();
+
+        expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_1' } });
+        expect(entries()).toEqual([
+          {
+            action: 'action',
+            type: 'write',
+            collectionName: 'users',
+            recordIds: ['1', '2'],
+            label: 'triggered the action "refund"',
+          },
+          {
+            action: 'createApproval',
+            type: 'write',
+            collectionName: 'users',
+            recordIds: ['1', '2'],
+            label: 'requested an approval for the action "refund"',
+          },
+        ]);
+        expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
+        expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+          expect.objectContaining({
+            activityLog: expect.objectContaining({ id: 'log-1' }),
+            status: 'canceled',
+          }),
+        );
+        expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+          expect.objectContaining({
+            activityLog: expect.objectContaining({ id: 'log-2' }),
+            status: 'completed',
+          }),
+        );
+      });
+
+      it('should write the createApproval entry by collection id and workflow run when the surface logs that way', async () => {
+        const workflow = { runId: 'run-1', name: 'Onboarding' };
+        const { collection, service } = setupApproval({
+          collectionIdOf: async name => `id-of-${name}`,
+          workflow,
+        });
+
+        await collection.executeAction('refund', { recordIds: [1] });
+        await drainActivityLogs();
+
+        expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+        expect(service.createActivityLog).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            action: 'createApproval',
+            collectionName: 'id-of-users',
+            recordIds: ['1'],
+            workflow,
+          }),
+        );
+      });
+
+      it('should write no createApproval entry when the approval request could not be filed', async () => {
+        const { collection, entries, createApprovalRequest } = setupApproval();
+        createApprovalRequest.mockRejectedValue(new Error('the Forest server is down'));
+
+        await expect(collection.executeAction('refund')).rejects.toBeInstanceOf(
+          ApprovalRequestCreationError,
+        );
+        await drainActivityLogs();
+
+        expect(entries().map(entry => entry.action)).toEqual(['action']);
+      });
+
+      it('should still answer the request id, and report it, when the createApproval entry cannot be written', async () => {
+        const { collection, service, logger } = setupApproval();
+        service.createMcpActivityLog
+          .mockResolvedValueOnce(ACTIVITY_LOG)
+          .mockRejectedValueOnce(new Error('the audit store is down'));
+
+        const result = await collection.executeAction('refund');
+        await drainActivityLogs();
+
+        expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_1' } });
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
+          'The approval request was filed, but its activity log could not be written',
+          expect.objectContaining({ collectionName: 'users' }),
+        );
+      });
+
+      it('should write no createApproval entry when logging is off', async () => {
+        const { service, httpRequester, query } = setup();
+        query.mockRejectedValue(approvalGated);
+        const collection = new Collection('users', httpRequester, actionEndpoints, async () => ({
+          id: 'req_1',
+        }));
+
+        await collection.executeAction('refund');
+        await drainActivityLogs();
+
+        expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+      });
     });
 
     it('should open no entry when only the form is loaded', async () => {

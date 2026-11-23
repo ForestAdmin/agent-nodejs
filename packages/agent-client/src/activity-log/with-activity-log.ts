@@ -92,6 +92,7 @@ const ACTION_TYPES: Record<ActivityLogAction, ActivityLogType> = {
   update: 'write',
   delete: 'write',
   triggerWorkflow: 'write',
+  createApproval: 'write',
 };
 
 const FORBIDDEN = 403;
@@ -378,6 +379,30 @@ export default async function withActivityLogContext<T>(
     () => runAudited(context, entry, operation, beforeCall),
     describeOperation(entry),
   );
+}
+
+export function logApprovalRequest(
+  context: ActivityLogContext | undefined,
+  entry: Omit<ActivityLogEntry, 'action'>,
+): void {
+  if (!context) return;
+
+  processDrainer
+    .track(async () => {
+      const pending = await createPendingActivityLog(context, {
+        ...entry,
+        action: 'createApproval',
+      });
+
+      if (pending) markActivityLog(context, pending, 'completed');
+    }, describeOperation({ ...entry, action: 'createApproval' }))
+    .catch(error => {
+      (context.logger ?? silentLogger)(
+        'Error',
+        'The approval request was filed, but its activity log could not be written',
+        { collectionName: entry.collectionName, cause: describeCause(error) },
+      );
+    });
 }
 
 export function resolveEntry(
