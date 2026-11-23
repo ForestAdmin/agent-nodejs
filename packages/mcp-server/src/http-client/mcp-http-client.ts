@@ -13,10 +13,6 @@ import type {
   WorkflowsServiceInterface,
 } from './types';
 
-/**
- * Default implementation of ForestServerClient that uses SchemaService and WorkflowsService.
- * This provides a convenient API for MCP server operations.
- */
 export default class ForestServerClientImpl implements ForestServerClient {
   constructor(
     private readonly schemaService: SchemaServiceInterface,

@@ -140,7 +140,6 @@ Check \`_meta\` for data availability context.`,
       const { rpcClient } = buildClient(extra, ctx);
 
       try {
-        // Get schema from forest server (relations, isFilterable, isSortable, etc.)
         const schema = await fetchForestSchema(forestServerClient);
         const schemaFields = getFieldsOfCollection(schema, options.collectionName);
 
@@ -159,7 +158,6 @@ Check \`_meta\` for data availability context.`,
 
         const withRecordKey = (name: string) => recordKeys.get(name) ?? {};
 
-        // Build fields array - use capabilities if available, otherwise fall back to schema
         const fields = collectionCapabilities?.fields
           ? collectionCapabilities.fields.map(capField => {
               const schemaField = schemaFields.find(f => f.field === capField.name);
@@ -192,7 +190,6 @@ Check \`_meta\` for data availability context.`,
                 isSortable: schemaField.isSortable || false,
               }));
 
-        // Extract relations from schema
         const relations = schemaFields
           .filter(f => f.relationship)
           .map(f => {
@@ -209,7 +206,6 @@ Check \`_meta\` for data availability context.`,
             };
           });
 
-        // Extract actions from schema
         const schemaActions = getActionsOfCollection(schema, options.collectionName);
         const actions = schemaActions
           .filter(action => action.endpoint)

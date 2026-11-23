@@ -91,7 +91,6 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
     async (options: ListArgument, extra) => {
       const { rpcClient } = buildClient(extra, ctx);
 
-      // Enhance "Invalid sort" errors with available sortable fields
       const errorEnhancer = async (errorMessage: string) => {
         if (errorMessage?.includes('Invalid sort')) {
           try {

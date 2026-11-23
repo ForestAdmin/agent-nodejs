@@ -127,7 +127,6 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
   );
 }
 
-// The routes that write an activity log say so, so the host can drain the transitions when it stops.
 interface AgentRouteEdge {
   middlewares: Middleware[];
   writesActivityLogs?: boolean;
