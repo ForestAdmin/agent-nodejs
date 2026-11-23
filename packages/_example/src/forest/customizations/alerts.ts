@@ -157,10 +157,11 @@ export default (collection: AlertsCustomizer) =>
 
     .addField('days_open', {
       columnType: 'Number',
-      dependencies: ['triggered_at', 'resolved_at'],
+      dependencies: ['triggered_at', 'resolved_at', 'escalated_at'],
       getValues: records =>
         records.map(record => {
-          const end = record.resolved_at ? new Date(record.resolved_at).getTime() : Date.now();
+          const endedAt = record.resolved_at || record.escalated_at;
+          const end = endedAt ? new Date(endedAt).getTime() : Date.now();
 
           return Math.trunc((end - new Date(record.triggered_at).getTime()) / DAY_IN_MS);
         }),

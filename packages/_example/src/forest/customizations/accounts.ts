@@ -138,6 +138,13 @@ export default (collection: AccountsCustomizer) =>
         const values = context.formValues;
         const type = values['Operation type'] as keyof typeof OPERATIONS;
         const amount = values.Amount as number;
+
+        if (!(amount > 0)) return resultBuilder.error('The amount must be positive');
+
+        if (amount > CONFIRMATION_AMOUNT && values['Confirm large amount'] !== true) {
+          return resultBuilder.error(`Operations over ${CONFIRMATION_AMOUNT} must be confirmed`);
+        }
+
         const { direction, rail, category } = OPERATIONS[type];
         const account = await context.getRecord([...BOOKING_FIELDS, 'overdraft_limit']);
 

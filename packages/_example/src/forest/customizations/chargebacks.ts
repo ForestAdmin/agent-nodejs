@@ -214,6 +214,11 @@ async function fileWithNetwork(context, resultBuilder) {
       CASE_ID_DIGITS,
       '0',
     )}`;
+
+  if (!cb.provisional_credit_issued && FRAUD_CODES.includes(cb.reason_code)) {
+    await provisionalCredit(context, cb, cb.transaction.account_id);
+  }
+
   const due = daysFromNow(answerDays(cb.network));
   await moveTo(
     context,
@@ -230,10 +235,6 @@ async function fileWithNetwork(context, resultBuilder) {
     },
     `Filed with ${codeText(cb.network)}`,
   );
-
-  if (!cb.provisional_credit_issued && FRAUD_CODES.includes(cb.reason_code)) {
-    await provisionalCredit(context, cb, cb.transaction.account_id);
-  }
 
   return resultBuilder.success(
     `${cb.reference} filed with ${codeText(cb.network)} through ${networkTool(

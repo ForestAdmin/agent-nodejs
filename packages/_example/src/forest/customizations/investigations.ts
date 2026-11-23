@@ -165,7 +165,7 @@ async function sarFreeze(context, inv, sar) {
     await coll(context, 'cards').update(
       and(
         { field: 'account_id', operator: 'In', value: ours.map(a => a.id) },
-        { field: 'status', operator: 'In', value: ['ACTIVE', 'PENDING'] },
+        { field: 'status', operator: 'Equal', value: 'ACTIVE' },
       ),
       { status: 'BLOCKED', blocked_reason: 'AML_FREEZE', blocked_at: now() },
     );
@@ -247,6 +247,7 @@ async function fileSar(context, resultBuilder) {
   const sar = await findSar(context, inv.id, ['DRAFT']);
   if (!sar) return resultBuilder.error('No draft SAR on this case.');
   const declaration = ermesNumber(sar);
+  const frozen = await sarFreeze(context, inv, sar);
   await patch(context, 'sar_reports', sar.id, {
     status: 'SUBMITTED',
     filed_at: now(),
@@ -262,7 +263,6 @@ async function fileSar(context, resultBuilder) {
     `Filed with TRACFIN: ${declaration}`,
   );
   await closeInvestigation(context, inv, 'SAR_FILED', `${sar.reference} filed`);
-  const frozen = await sarFreeze(context, inv, sar);
   const freeze = frozen.length
     ? ` Frozen until TRACFIN answers: ${frozen.join(', ')}.`
     : ' No open account to freeze.';

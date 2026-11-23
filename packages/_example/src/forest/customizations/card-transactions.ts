@@ -35,12 +35,12 @@ export default (collection: CardTransactionsCustomizer) =>
           '_id',
           'card_id',
           'transaction_id',
-          'original_amount',
-          'original_currency',
           'status',
           'card:customer_id',
           'card:network',
           'transaction:account_id',
+          'transaction:amount',
+          'transaction:currency',
           'transaction:created_at',
         ]);
 
@@ -73,8 +73,8 @@ export default (collection: CardTransactionsCustomizer) =>
           customerId: cardTransaction.card?.customer_id ?? null,
           transactionId: cardTransaction.transaction_id,
           cardTransactionId,
-          amount: cardTransaction.original_amount,
-          currency: cardTransaction.original_currency,
+          amount: cardTransaction.transaction?.amount,
+          currency: cardTransaction.transaction?.currency,
           paidAt: cardTransaction.transaction?.created_at,
           accountId: cardTransaction.transaction?.account_id,
         });

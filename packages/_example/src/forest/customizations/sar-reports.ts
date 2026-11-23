@@ -40,6 +40,29 @@ async function keepBlocked(context, customerId: string, sar, note: string | null
   return frozen.map(a => a.iban);
 }
 
+async function otherFiledSars(context, sar) {
+  const others = await coll(context, 'sar_reports').list(
+    and(
+      { field: 'customer_id', operator: 'Equal', value: sar.customer_id },
+      { field: 'status', operator: 'In', value: FILED_STATUSES },
+      { field: 'id', operator: 'NotEqual', value: sar.id },
+    ),
+    ['reference'],
+  );
+
+  return others.map(other => other.reference);
+}
+
+async function release(context, sar, inv) {
+  const pending = await otherFiledSars(context, sar);
+  if (pending.length) return { changed: [], heldBy: pending };
+
+  return {
+    changed: await liftAmlFreeze(context, inv, `TRACFIN answered ${sar.reference}`, 'SAR_FILED'),
+    heldBy: [],
+  };
+}
+
 async function recordTracfinAnswer(context, resultBuilder) {
   const sar = await context.getRecord([
     'id',
@@ -62,10 +85,10 @@ async function recordTracfinAnswer(context, resultBuilder) {
     'reference',
     'customer_id',
   ])) || { customer_id: sar.customer_id };
-  const changed =
+  const { changed, heldBy } =
     answer === 'KEEP_BLOCKED'
-      ? await keepBlocked(context, sar.customer_id, sar, note)
-      : await liftAmlFreeze(context, inv, `TRACFIN answered ${sar.reference}`, 'SAR_FILED');
+      ? { changed: await keepBlocked(context, sar.customer_id, sar, note), heldBy: [] }
+      : await release(context, sar, inv);
 
   await context.collection.update(context.filter, {
     status: 'ANSWERED',
@@ -82,11 +105,14 @@ async function recordTracfinAnswer(context, resultBuilder) {
     `TRACFIN: ${readable(answer)}${note ? ` (${note})` : ''}`,
   );
   const accounts = changed.length ? ` ${CHANGED_ACCOUNTS[answer]}: ${changed.join(', ')}.` : '';
+  const held = heldBy.length
+    ? ` The accounts stay frozen until TRACFIN answers ${heldBy.join(', ')}.`
+    : '';
 
   return resultBuilder.success(
     `${sar.reference}: TRACFIN's answer recorded (${ANSWER_TITLES[
       answer
-    ].toLowerCase()}).${accounts}`,
+    ].toLowerCase()}).${accounts}${held}`,
   );
 }
 

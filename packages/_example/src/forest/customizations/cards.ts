@@ -6,6 +6,7 @@ import { demoFields } from '../../connections/data-model';
 
 const BLOCKED_REASONS = demoFields('cards').find(field => field.name === 'blocked_reason').enum;
 const REASONS_THAT_NEED_A_NEW_CARD = ['LOST', 'STOLEN'];
+const AML_FREEZE = 'AML_FREEZE';
 const SYSTEMATIC_CHECK_THRESHOLD = 1000;
 const CARD_TYPES = demoFields('cards').find(field => field.name === 'card_type').enum;
 const CARD_VALIDITY_IN_YEARS = 3;
@@ -44,7 +45,12 @@ export default (collection: CardsCustomizer) =>
     .addAction('Unfreeze card', {
       scope: 'Single',
       execute: async (context, resultBuilder) => {
-        const card = await context.getRecord(['status', 'blocked_reason', 'last_four_digits']);
+        const card = await context.getRecord([
+          'status',
+          'blocked_reason',
+          'last_four_digits',
+          'account:status',
+        ]);
 
         if (card.status !== 'BLOCKED') {
           return resultBuilder.error(
@@ -56,6 +62,16 @@ export default (collection: CardsCustomizer) =>
           return resultBuilder.error(
             `A card blocked as ${card.blocked_reason} cannot be unfrozen: issue a new card`,
           );
+        }
+
+        if (card.blocked_reason === AML_FREEZE) {
+          return resultBuilder.error(
+            "A card blocked by an AML freeze is released with TRACFIN's answer on the SAR",
+          );
+        }
+
+        if (card.account?.status !== 'ACTIVE') {
+          return resultBuilder.error(`The card's account is ${card.account?.status}`);
         }
 
         await context.collection.update(context.filter, {
