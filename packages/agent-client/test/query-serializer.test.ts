@@ -287,10 +287,13 @@ describe('QuerySerializer', () => {
       expect(parsed.conditions[1].operator).toBe('greater_than');
     });
 
-    it('should handle collection names with special characters', () => {
-      const result = QuerySerializer.serialize({ fields: ['id'] }, 'user+data');
-      expect(result['fields[user\\+data]']).toBe('id');
-    });
+    it.each(['user+data', 'user data', 'utilisé', 'what?', 'a*b'])(
+      'keys the projection on the raw collection name %s, the key the agent reads',
+      collectionName => {
+        const result = QuerySerializer.serialize({ fields: ['id'] }, collectionName);
+        expect(result).toEqual({ [`fields[${collectionName}]`]: 'id' });
+      },
+    );
 
     it('should handle undefined sort', () => {
       const result = QuerySerializer.serialize({ sort: undefined }, 'users');
@@ -353,11 +356,10 @@ describe('QuerySerializer', () => {
         expect(result['fields[customer]']).toBe('name,email');
       });
 
-      it('should escape special characters in relation names', () => {
-        const result = QuerySerializer.serialize({ fields: ['id', 'user+data@@@name'] }, 'orders');
+      it('keys a related projection on the raw relation name', () => {
+        const result = QuerySerializer.serialize({ fields: ['id', 'user data@@@name'] }, 'orders');
 
-        expect(result['fields[orders]']).toBe('id,user+data');
-        expect(result['fields[user\\+data]']).toBe('name');
+        expect(result).toEqual({ 'fields[orders]': 'id,user data', 'fields[user data]': 'name' });
       });
 
       it('should handle empty fields array', () => {

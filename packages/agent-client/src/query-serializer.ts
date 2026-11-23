@@ -2,7 +2,6 @@ import type { SelectOptions } from './types';
 import type { PlainFilter, PlainSortClause } from '@forestadmin/datasource-toolkit';
 
 import toWireFilter from './filter-wire-format';
-import HttpRequester from './http-requester';
 
 export function searchOf(options?: SelectOptions): string | undefined {
   return options?.search?.trim() || undefined;
@@ -63,7 +62,7 @@ export default class QuerySerializer {
   private static formatFields(collectionName: string, fields: string[]): Record<string, string> {
     if (!fields) return {};
 
-    const projectionName = `fields[${HttpRequester.escapeUrlSlug(collectionName)}]`;
+    const projectionName = `fields[${collectionName}]`;
     const projection: Record<string, string[]> = {
       [projectionName]: [],
     };
@@ -92,7 +91,7 @@ export default class QuerySerializer {
         }
 
         // Add related field to its collection projection
-        const relatedProjectionName = `fields[${HttpRequester.escapeUrlSlug(trimmedRelation)}]`;
+        const relatedProjectionName = `fields[${trimmedRelation}]`;
 
         if (!projection[relatedProjectionName]) {
           projection[relatedProjectionName] = [];
