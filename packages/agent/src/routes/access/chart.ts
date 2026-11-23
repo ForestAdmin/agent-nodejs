@@ -334,7 +334,10 @@ export default class ChartRoute extends CollectionRoute {
     const scopes = await Promise.all(
       scoped.map(async ({ collectionName, prefix }) => {
         const collection = this.dataSource.getCollection(collectionName);
-        const scope = await this.services.authorization.getScope(collection, context);
+        const scope = await this.services.authorization.getScopeForRelatedRecords(
+          collection,
+          context,
+        );
 
         return prefix ? scope?.nest(prefix) : scope;
       }),

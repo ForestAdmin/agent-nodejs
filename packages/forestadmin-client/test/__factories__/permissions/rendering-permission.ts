@@ -8,6 +8,7 @@ export class RenderingPermissionsFactory extends Factory<RenderingPermissionServ
   mockAllMethods() {
     return this.afterBuild(permissions => {
       permissions.getScope = jest.fn();
+      permissions.scopeAppliesToRelatedRecords = jest.fn();
       permissions.canExecuteChart = jest.fn();
       permissions.invalidateCache = jest.fn();
       permissions.invalidateAllCache = jest.fn();

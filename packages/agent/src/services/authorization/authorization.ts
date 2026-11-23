@@ -304,6 +304,23 @@ export default class AuthorizationService {
     }
   }
 
+  /**
+   * The caller's scope on a collection reached through a relation, when the server flags that
+   * scope as applying there. Unflagged scopes keep their earlier behaviour: they filter only
+   * their own collection.
+   */
+  public async getScopeForRelatedRecords(
+    collection: Collection,
+    context: Context,
+  ): Promise<ConditionTree> {
+    const applies = await this.forestAdminClient.scopeAppliesToRelatedRecords?.({
+      renderingId: context.state.user.renderingId,
+      collectionName: collection.name,
+    });
+
+    return applies ? this.getScope(collection, context) : null;
+  }
+
   /** The caller's scope on each collection the projection reaches through a to-one relation. */
   public async getRelationScopes(
     context: Context,
@@ -327,7 +344,7 @@ export default class AuthorizationService {
         );
         const path = prefix ? `${prefix}:${name}` : name;
         const [scope, nested] = await Promise.all([
-          this.getScope(foreignCollection, context),
+          this.getScopeForRelatedRecords(foreignCollection, context),
           this.collectRelationScopes(context, foreignCollection, subProjection, path),
         ]);
 

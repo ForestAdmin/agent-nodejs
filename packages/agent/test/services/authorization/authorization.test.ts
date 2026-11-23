@@ -656,8 +656,69 @@ describe('AuthorizationService', () => {
       );
     });
 
-    it('should fetch the scope of every collection reached through a relation', async () => {
+    const buildClient = (flagged = true) => {
       const forestAdminClient = factories.forestAdminClient.build();
+      (forestAdminClient.scopeAppliesToRelatedRecords as jest.Mock).mockResolvedValue(flagged);
+
+      return forestAdminClient;
+    };
+
+    it('should ask whether each reached scope applies to related records', async () => {
+      const forestAdminClient = buildClient();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      await authorizationService.getRelationScopes(
+        context,
+        buildDataSource().getCollection('cards'),
+        new Projection('id', 'holder:nationalId'),
+      );
+
+      expect(forestAdminClient.scopeAppliesToRelatedRecords).toHaveBeenCalledWith({
+        renderingId: 42,
+        collectionName: 'holders',
+      });
+    });
+
+    it('should ignore the scopes that do not apply to related records', async () => {
+      const forestAdminClient = buildClient(false);
+      const authorizationService = new AuthorizationService(forestAdminClient);
+      (forestAdminClient.getScope as jest.Mock).mockImplementation(
+        async ({ collectionName }) => scopesByCollection[collectionName] ?? null,
+      );
+
+      const relationScopes = await authorizationService.getRelationScopes(
+        context,
+        buildDataSource().getCollection('cards'),
+        new Projection('id', 'account:iban', 'holder:nationalId'),
+      );
+
+      expect(
+        relationScopes.withScopeFields(new Projection('id', 'account:iban', 'holder:nationalId')),
+      ).toEqual(['id', 'account:iban', 'holder:nationalId']);
+    });
+
+    it('should treat a client without the flag lookup as not flagged', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      delete forestAdminClient.scopeAppliesToRelatedRecords;
+      const authorizationService = new AuthorizationService(forestAdminClient);
+      (forestAdminClient.getScope as jest.Mock).mockImplementation(
+        async ({ collectionName }) => scopesByCollection[collectionName] ?? null,
+      );
+
+      const relationScopes = await authorizationService.getRelationScopes(
+        context,
+        buildDataSource().getCollection('cards'),
+        new Projection('id', 'holder:nationalId'),
+      );
+
+      expect(relationScopes.withScopeFields(new Projection('id', 'holder:nationalId'))).toEqual([
+        'id',
+        'holder:nationalId',
+      ]);
+    });
+
+    it('should fetch the scope of every collection reached through a relation', async () => {
+      const forestAdminClient = buildClient();
       const authorizationService = new AuthorizationService(forestAdminClient);
 
       await authorizationService.getRelationScopes(
@@ -673,7 +734,7 @@ describe('AuthorizationService', () => {
     });
 
     it('should nest each scope under the relation path that reaches its collection', async () => {
-      const forestAdminClient = factories.forestAdminClient.build();
+      const forestAdminClient = buildClient();
       const authorizationService = new AuthorizationService(forestAdminClient);
       (forestAdminClient.getScope as jest.Mock).mockImplementation(
         async ({ collectionName }) => scopesByCollection[collectionName] ?? null,
@@ -697,7 +758,7 @@ describe('AuthorizationService', () => {
     });
 
     it('should fetch no scope when the projection reaches no relation', async () => {
-      const forestAdminClient = factories.forestAdminClient.build();
+      const forestAdminClient = buildClient();
       const authorizationService = new AuthorizationService(forestAdminClient);
 
       await authorizationService.getRelationScopes(

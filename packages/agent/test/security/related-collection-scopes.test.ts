@@ -115,13 +115,14 @@ describe('scopes on related collections', () => {
     memberships: { field: 'status', operator: 'equal', value: 'active' },
   };
 
-  const buildServices = () => {
+  const buildServices = ({ flagged = true } = {}) => {
     const forestAdminClient = factories.forestAdminClient.build();
 
     (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
     (forestAdminClient.getScope as jest.Mock).mockImplementation(
       async ({ collectionName }) => scopes[collectionName] ?? null,
     );
+    (forestAdminClient.scopeAppliesToRelatedRecords as jest.Mock).mockResolvedValue(flagged);
 
     const services = factories.forestAdminHttpDriverServices.build();
     services.authorization = new AuthorizationService(forestAdminClient);
@@ -209,6 +210,35 @@ describe('scopes on related collections', () => {
         ],
         null,
       );
+    });
+  });
+
+  describe('when the related scopes are not flagged', () => {
+    it('should serve the related records unchanged', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices({ flagged: false });
+      jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue(cards);
+
+      await new List(services, options, dataSource, 'cards').handleList(
+        buildContext({}, projectionHeader),
+      );
+
+      expect(services.serializer.serializeWithSearchMetadata).toHaveBeenCalledWith(
+        dataSource.getCollection('cards'),
+        cards,
+        null,
+      );
+    });
+
+    it('should not fetch the columns of the related scopes', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(buildServices({ flagged: false }), options, dataSource, 'cards').handleList(
+        buildContext({}, projectionHeader),
+      );
+
+      expect(list.mock.calls[0][2]).not.toContain('holder:region');
     });
   });
 
@@ -307,6 +337,26 @@ describe('scopes on related collections', () => {
             expect.objectContaining({ field: 'organization:name', value: 'OwnOrg' }),
           ],
         }),
+      );
+    });
+
+    it('should aggregate under the root scope only when the aggregated scope is not flagged', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices({ flagged: false });
+      const body = leaderboard('accounts', 'name');
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+      scopes.organizations.value = 'Root';
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('accounts'), 'aggregate')
+        .mockResolvedValue([]);
+
+      await new Chart(services, options, dataSource, 'organizations').handleChart(
+        buildContext({}, {}, body),
+      );
+      scopes.organizations.value = 'OwnOrg';
+
+      expect(aggregate.mock.calls[0][1].conditionTree).toEqual(
+        expect.objectContaining({ field: 'organization:name', value: 'Root' }),
       );
     });
 
