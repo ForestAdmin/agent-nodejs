@@ -95,6 +95,8 @@
     "**/ignore-walk/minimatch": "^11.0.1",
     "**/pacote/**/minimatch": "^11.0.1",
     "**/typedoc/minimatch": "^11.0.1",
+    "**/nx/minimatch": "^11.0.1",
+    "**/@nx/devkit/minimatch": "^11.0.1",
     "**/nx/brace-expansion": "^5.0.12",
     "**/lerna/nx": "^22.7.10",
     "**/@langchain/mcp-adapters/@modelcontextprotocol/sdk": "^1.31.0",
