@@ -1228,6 +1228,28 @@ describe('toAvailableStepExecution', () => {
       expect(callScopeOf(run)?.startStepIndex).toBe(2);
     });
 
+    it('carries the outer call start entry once a call nested in it has closed', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'parent-1', stepIndex: 0 }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'load-x', stepIndex: 2, done: true }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 3 },
+            { calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'load-y', stepIndex: 4, done: true }),
+          makeCloseSubWorkflowHistory({ stepName: 'close-2', stepIndex: 5 }),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 6, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.startStepIndex).toBe(1);
+    });
+
     // The inner call pins "workflow start", which in its own frame means the record the outer call
     // pinned — so the pin resolves one frame out while the guard stays on the inner collection.
     it('resolves a nested workflow-start pin against the enclosing call', () => {

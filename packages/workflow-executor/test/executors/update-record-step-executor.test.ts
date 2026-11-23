@@ -3411,6 +3411,23 @@ describe('UpdateRecordStepExecutor inside a Sub-workflow call', () => {
     ]);
   });
 
+  it("keeps the calling workflow's loads out of the write targets in a call pinned to workflow start", async () => {
+    const { model, bindTools } = makeSelectThenUpdateModel('Step 4 - Items #7');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], {
+      model,
+      callScope: {
+        currentFrameStepIndexes: [4],
+        calledWorkflowCollectionName: 'customers',
+        isPinned: true,
+        startStepIndex: 3,
+      },
+    });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual(['Step 0 - Customers #42', 'Step 4 - Items #7']);
+  });
+
   it("fails without writing when the call's record cannot be resolved", async () => {
     const agentPort = makeMockAgentPort();
     const context = makeCallContext([accountsRef, itemsRef], {

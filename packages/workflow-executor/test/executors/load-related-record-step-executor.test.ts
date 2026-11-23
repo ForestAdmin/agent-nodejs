@@ -5490,4 +5490,30 @@ describe('LoadRelatedRecordStepExecutor inside a Sub-workflow call', () => {
       expect.objectContaining({ selectedRecordRef: ordersRef }),
     );
   });
+
+  it("fails with the call's error when the call's record cannot be resolved", async () => {
+    const agentPort = makeMockAgentPort();
+    const context = makeContext({
+      stepIndex: 3,
+      agentPort,
+      callScope: {
+        selectedRecordStepId: 'load-1',
+        pinnedFrameStepIndexes: [1],
+        currentFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'orders',
+        isPinned: true,
+        startStepIndex: 2,
+      },
+      stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+      previousSteps: [],
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome.status).toBe('error');
+    expect(result.stepOutcome.error).toBe(
+      'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    );
+    expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+  });
 });

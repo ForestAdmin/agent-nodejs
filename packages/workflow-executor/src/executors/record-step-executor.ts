@@ -1,7 +1,7 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
-import type { Step } from '../types/validated/execution';
+import type { CallScope, Step } from '../types/validated/execution';
 import type {
   LoadRelatedRecordStepDefinition,
   StepDefinition,
@@ -50,6 +50,11 @@ export function findPinnedLoadStep(
   frameStepIndexes?: number[],
 ): Step | undefined {
   return findLatestStepInFrame(previousSteps, StepType.LoadRelatedRecord, stepId, frameStepIndexes);
+}
+
+// A call carrying a pin, "workflow start" included. A call pinning nothing has no record of its own.
+function isPinnedCall(callScope: CallScope | undefined): boolean {
+  return Boolean(callScope?.selectedRecordStepId || callScope?.isPinned);
 }
 
 // Every record a load-related-record execution loaded: one, several, or one per record it ran for.
@@ -139,7 +144,7 @@ export default abstract class RecordStepExecutor<
 
     // A call pinning nothing keeps the behaviour it had before the pin existed, whatever
     // collection the called workflow is on, until the Editor sets one.
-    if (!callScope.selectedRecordStepId && !callScope.isPinned) return baseRecordRef;
+    if (!isPinnedCall(callScope)) return baseRecordRef;
 
     // A call pinning "workflow start" all the way out pins the run's record, and is still checked.
     let record = baseRecordRef;
@@ -236,8 +241,7 @@ export default abstract class RecordStepExecutor<
   // Undefined outside a call pinned to a record: a call pinning nothing has no record of its own,
   // so its steps keep choosing among everything the run loaded.
   private async getCallRecordRef(): Promise<RecordRef | undefined> {
-    const { callScope } = this.context;
-    if (!callScope?.selectedRecordStepId && !callScope?.isPinned) return undefined;
+    if (!isPinnedCall(this.context.callScope)) return undefined;
 
     return this.resolveSourceRecordRef(WORKFLOW_START_STEP_ID);
   }
