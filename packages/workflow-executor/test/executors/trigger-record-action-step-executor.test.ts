@@ -705,7 +705,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('does NOT create an activity log (the frontend logs on its side)', async () => {
+    it('does not execute the action while awaiting confirmation, the frontend runs it', async () => {
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
@@ -3556,7 +3556,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('idempotency', () => {
-    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+    it('returns success without executing the action again when idempotencyPhase is done', async () => {
       const agentPort = makeMockAgentPort();
       const doneExecution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
@@ -3579,7 +3579,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('returns error without activity log when idempotencyPhase is executing', async () => {
+    it('returns error without executing the action when idempotencyPhase is executing', async () => {
       const agentPort = makeMockAgentPort();
       const executingExecution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',

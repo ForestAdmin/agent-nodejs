@@ -1853,7 +1853,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           query: expect.objectContaining({ collection: 'customers', id: [42] }),
           audit: {
             context: context.activityLog,
-            call: { action: 'listRelatedData', label: 'list relation "Order"' },
+            call: { label: 'list relation "Order"' },
           },
         },
       ]);
@@ -1880,7 +1880,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           query: expect.objectContaining({ collection: 'customers', id: [42] }),
           audit: {
             context: context.activityLog,
-            call: { action: 'listRelatedData', label: 'list relation "Order"' },
+            call: { label: 'list relation "Order"' },
           },
         },
       ]);

@@ -183,6 +183,18 @@ describe('withActivityLogContext', () => {
       expect(statusesOf(service)).toEqual(['canceled']);
     });
 
+    it('should mark a read completed when the record it returns says approvalRequested', async () => {
+      const service = fakeService();
+
+      await withActivityLogContext(contextOf(service), READ, async () => ({
+        id: 1,
+        approvalRequested: true,
+      }));
+      await drainActivityLogs();
+
+      expect(statusesOf(service)).toEqual(['completed']);
+    });
+
     it('should mark the entry canceled when the action requires an approval', async () => {
       const service = fakeService();
 
@@ -253,6 +265,34 @@ describe('withActivityLogContext', () => {
         label: 'triggered the action "Refund"',
         workflow,
       });
+    });
+  });
+
+  describe('when the collection id cannot be resolved', () => {
+    const failure = new Error('collection lookup failed');
+    const lookupContext = (service: FakeService) =>
+      contextOf(service, {
+        collectionIdOf: async () => {
+          throw failure;
+        },
+      });
+
+    it('should run a read unaudited', async () => {
+      const service = fakeService();
+
+      await expect(
+        withActivityLogContext(lookupContext(service), READ, async () => 'done'),
+      ).resolves.toBe('done');
+      expect(service.createActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('should block a write as unavailable, carrying the lookup error as its cause', async () => {
+      const operation = jest.fn(async () => 'done');
+
+      await expect(
+        withActivityLogContext(lookupContext(fakeService()), WRITE, operation),
+      ).rejects.toMatchObject({ reason: 'unavailable', cause: failure });
+      expect(operation).not.toHaveBeenCalled();
     });
   });
 
@@ -501,6 +541,19 @@ describe('withActivityLogContext', () => {
 
       await expect(run).rejects.toMatchObject({ reason: 'unavailable' });
       expect(service.createMcpActivityLog).toHaveBeenCalledTimes(4);
+    });
+
+    it('should not retry a refused creation, and block the write as not authorized', async () => {
+      const service = rejectingService(new HttpError('forbidden', 403));
+
+      await expect(
+        withActivityLogContext(
+          contextOf(service, { retryCreation: true }),
+          WRITE,
+          async () => 'done',
+        ),
+      ).rejects.toMatchObject({ reason: 'notAuthorized' });
+      expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
     });
 
     it('should not retry it otherwise', async () => {

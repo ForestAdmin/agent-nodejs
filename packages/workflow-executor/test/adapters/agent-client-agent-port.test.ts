@@ -11,6 +11,7 @@ import {
   UnknownActionFieldError as ClientUnknownActionFieldError,
   HttpRequester,
   createRemoteAgentClient,
+  withActivityLog,
 } from '@forestadmin/agent-client';
 import { readFileSync } from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
@@ -94,6 +95,7 @@ jest.mock('@forestadmin/agent-client', () => {
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
     ActivityLogBlockedError: jest.requireActual('@forestadmin/agent-client')
       .ActivityLogBlockedError,
+    withActivityLog: jest.fn((_config, _entry, operation) => operation()),
   };
 });
 
@@ -1657,10 +1659,26 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('opens no entry for the target read of a single relation', async () => {
+    it('logs one listRelatedData entry around both reads of a single relation', async () => {
+      const reads: string[] = [];
+      (withActivityLog as jest.Mock).mockImplementationOnce(async (_config, _entry, operation) => {
+        reads.push('entry opened');
+        const result = await operation();
+        reads.push('entry closed');
+
+        return result;
+      });
       mockCollection.getOne
-        .mockResolvedValueOnce({ data: { relationships: { author: { data: { id: '7' } } } } })
-        .mockResolvedValueOnce({ id: 7 });
+        .mockImplementationOnce(async () => {
+          reads.push('parent');
+
+          return { data: { relationships: { author: { data: { id: '7' } } } } };
+        })
+        .mockImplementationOnce(async () => {
+          reads.push('target');
+
+          return { id: 7 };
+        });
 
       await port.getSingleRelatedData(
         {
@@ -1677,12 +1695,23 @@ describe('AgentClientAgentPort', () => {
           },
         },
         user,
-        { context: context as never },
+        { context: context as never, call: { label: 'list relation "Author"' } },
       );
 
+      expect(withActivityLog).toHaveBeenCalledWith(
+        context,
+        {
+          action: 'listRelatedData',
+          collectionName: 'posts',
+          recordIds: ['1'],
+          label: 'list relation "Author"',
+        },
+        expect.any(Function),
+      );
+      expect(reads).toEqual(['entry opened', 'parent', 'target', 'entry closed']);
       expect(
         mockedCreateRemoteAgentClient.mock.calls.map(([options]) => options.activityLog),
-      ).toEqual([context.activityLog, undefined]);
+      ).toEqual([undefined, undefined]);
     });
 
     it('turns an operation blocked by its activity log into ActivityLogCreationError', async () => {

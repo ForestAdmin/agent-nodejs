@@ -37,7 +37,7 @@ import { StepExecutionMode, StepType } from '../src/types/validated/step-definit
 // Helpers
 jest.mock('@forestadmin/agent-client', () => ({
   ...jest.requireActual('@forestadmin/agent-client'),
-  drainActivityLogs: jest.fn().mockResolvedValue(undefined),
+  drainActivityLogs: jest.fn().mockResolvedValue([]),
 }));
 
 // ---------------------------------------------------------------------------
@@ -545,10 +545,10 @@ describe('graceful shutdown', () => {
 
     (drainActivityLogs as jest.Mock).mockImplementationOnce(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<string[]>(resolve => {
           releaseDrain = () => {
             callOrder.push('activityLogDrain');
-            resolve();
+            resolve([]);
           };
         }),
     );
@@ -572,6 +572,24 @@ describe('graceful shutdown', () => {
 
     expect(callOrder[0]).toBe('activityLogDrain');
     expect(callOrder.slice(1).sort()).toEqual(['aiClose', 'runStoreClose']);
+  });
+
+  it('bounds the activity log drain by the time left of stopTimeoutS and names what it left unfinished', async () => {
+    const logger = createMockLogger();
+    (drainActivityLogs as jest.Mock).mockResolvedValueOnce(["'index' request on 'users'"]);
+    runner = new Runner(createRunnerConfig({ logger, stopTimeoutS: 5 }));
+    await runner.start();
+
+    await runner.stop();
+
+    const [timeoutMs] = (drainActivityLogs as jest.Mock).mock.calls.at(-1);
+    expect(timeoutMs).toBeGreaterThan(0);
+    expect(timeoutMs).toBeLessThanOrEqual(5_000);
+    expect(logger).toHaveBeenCalledWith('Error', 'Drain timeout — activity logs still in flight', {
+      unfinished: ["'index' request on 'users'"],
+      timeoutS: 5,
+    });
+    expect(runner.state).toBe('stopped');
   });
 
   it('stops after the drain timeout while a poll never answers, and says the poll was pending', async () => {

@@ -5,13 +5,19 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { withActivityLog } from '@forestadmin/agent-client';
+
 import filterSchema from '../../src/schemas/filter';
 import declareDescribeCollectionTool from '../../src/tools/describe-collection';
-import buildClient from '../../src/utils/agent-caller';
+import buildClient, { activityLogConfigOf } from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
+jest.mock('@forestadmin/agent-client', () => ({
+  ...jest.requireActual('@forestadmin/agent-client'),
+  withActivityLog: jest.fn((_config, _entry, operation) => operation()),
+}));
 jest.mock('../../src/utils/schema-fetcher');
 
 const mockLogger: Logger = jest.fn();
@@ -230,7 +236,39 @@ describe('declareDescribeCollectionTool', () => {
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
       expect(mockCollection).toHaveBeenCalledWith('users');
-      expect(mockCapabilities).toHaveBeenCalledWith({ action: 'describeCollection' });
+      expect(mockCapabilities).toHaveBeenCalledWith();
+    });
+
+    it('should audit the whole tool once, so an older agent answering 404 on capabilities still ends completed', async () => {
+      const activityLogConfig = { forestServer: {}, activityLog: {} };
+      (activityLogConfigOf as jest.Mock).mockReturnValue(activityLogConfig);
+      let audited: Promise<unknown> | undefined;
+      (withActivityLog as jest.Mock).mockImplementationOnce((_config, _entry, operation) => {
+        audited = operation();
+
+        return audited;
+      });
+      mockBuildClient.mockReturnValue({
+        rpcClient: {
+          collection: jest.fn().mockReturnValue({
+            capabilities: jest.fn().mockRejectedValue(new Error('404 Not Found')),
+          }),
+        },
+      } as unknown as ReturnType<typeof buildClient>);
+      mockFetchForestSchema.mockResolvedValue({ collections: [] });
+      mockGetFieldsOfCollection.mockReturnValue([]);
+
+      await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+      expect(withActivityLog).toHaveBeenCalledTimes(1);
+      expect(withActivityLog).toHaveBeenCalledWith(
+        activityLogConfig,
+        { action: 'describeCollection', collectionName: 'users' },
+        expect.any(Function),
+      );
+      await expect(audited).resolves.toEqual(
+        expect.objectContaining({ content: expect.any(Array) }),
+      );
     });
 
     describe('when capabilities are available', () => {

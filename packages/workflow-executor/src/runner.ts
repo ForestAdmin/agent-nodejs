@@ -115,6 +115,9 @@ export default class Runner {
       this.pollingTimer = null;
     }
 
+    const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
+    const deadline = Date.now() + timeoutS * 1000;
+
     try {
       // Drain in-flight runs (each entry may cover a whole auto-chain), and the poll in progress,
       // which hands back whatever it claims now that nothing will run it.
@@ -124,7 +127,6 @@ export default class Runner {
           runs: [...this.inFlightRuns.keys()],
         });
 
-        const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
           Promise.all([this.pollCycle, this.inFlightRuns.drain()]).then(() => {
@@ -150,7 +152,14 @@ export default class Runner {
 
       // Wait for fire-and-forget activity-log transitions to settle before closing resources —
       // otherwise audit-trail rows can be left stuck in Pending.
-      await drainActivityLogs();
+      const unfinishedActivityLogs = await drainActivityLogs(Math.max(deadline - Date.now(), 0));
+
+      if (unfinishedActivityLogs.length > 0) {
+        this.logger('Error', 'Drain timeout — activity logs still in flight', {
+          unfinished: unfinishedActivityLogs,
+          timeoutS,
+        });
+      }
 
       const results = await Promise.allSettled([
         this.config.aiModelPort.closeConnections(),

@@ -102,7 +102,7 @@ describe('AgentWithLog', () => {
       });
     });
 
-    it('names getSingleRelatedData listRelatedData, labelled with the relation displayName', async () => {
+    it('labels getSingleRelatedData with the relation displayName', async () => {
       const deps = makeDeps();
       const query = { collection: 'customers', id: [42], relation: 'order', relatedSchema };
 
@@ -110,7 +110,7 @@ describe('AgentWithLog', () => {
 
       expect(deps.agentPort.getSingleRelatedData).toHaveBeenCalledWith(query, deps.user, {
         context: deps.activityLog,
-        call: { action: 'listRelatedData', label: 'list relation "Order"' },
+        call: { label: 'list relation "Order"' },
       });
     });
 
@@ -122,7 +122,7 @@ describe('AgentWithLog', () => {
 
       expect(deps.agentPort.getSingleRelatedData).toHaveBeenCalledWith(query, deps.user, {
         context: deps.activityLog,
-        call: { action: 'listRelatedData', label: 'list relation "invoice"' },
+        call: { label: 'list relation "invoice"' },
       });
     });
   });

@@ -107,18 +107,9 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
           .collection(options.collectionName)
           .relation(options.relationName, options.parentRecordId);
 
-        let response: { records: unknown[]; totalCount?: number | null };
-
-        if (options.enableCount) {
-          const [records, totalCount] = await Promise.all([
-            relation.list(options as SelectOptions, { label }),
-            relation.count(options as SelectOptions),
-          ]);
-          response = { records, totalCount };
-        } else {
-          const records = await relation.list(options as SelectOptions, { label });
-          response = { records };
-        }
+        const response = options.enableCount
+          ? await relation.listAndCount(options as SelectOptions, { label })
+          : { records: await relation.list(options as SelectOptions, { label }) };
 
         return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {

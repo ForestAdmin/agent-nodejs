@@ -92,6 +92,61 @@ describe('activity logging inside agent-client calls', () => {
     expect(service.createMcpActivityLog).not.toHaveBeenCalled();
   });
 
+  describe('listAndCount', () => {
+    it('should log one entry for the list and its count', async () => {
+      const { collection, query, entries } = setup();
+      query.mockImplementation(async ({ path }) => (path.endsWith('/count') ? { count: 3 } : []));
+
+      await expect(collection.listAndCount({ search: 'ada' })).resolves.toEqual({
+        records: [],
+        totalCount: 3,
+      });
+      expect(entries()).toEqual([
+        {
+          action: 'search',
+          type: 'read',
+          collectionName: 'users',
+          recordIds: undefined,
+          label: undefined,
+        },
+      ]);
+    });
+
+    it('should send the list and its count without waiting for each other', async () => {
+      const { collection, query } = setup();
+      const pending: (() => void)[] = [];
+      query.mockImplementation(
+        ({ path }) =>
+          new Promise(resolve => {
+            pending.push(() => resolve(path.endsWith('/count') ? { count: 0 } : []));
+          }),
+      );
+
+      const run = collection.listAndCount();
+      await new Promise(setImmediate);
+
+      expect(query).toHaveBeenCalledTimes(2);
+      pending.forEach(release => release());
+      await run;
+    });
+
+    it('should mark the entry failed when the count fails after the list answered', async () => {
+      const { collection, query, service } = setup();
+      query.mockImplementation(async ({ path }) => {
+        if (path.endsWith('/count')) throw new Error('count failed');
+
+        return [];
+      });
+
+      await expect(collection.listAndCount()).rejects.toThrow('count failed');
+      await drainActivityLogs();
+
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+  });
+
   it('should log a getOne as an index of that record', async () => {
     const { collection, entries } = setup();
 
@@ -255,6 +310,25 @@ describe('activity logging inside agent-client calls', () => {
       await collection.relation('posts', 9).count();
 
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('should log one listRelatedData entry for a list and its count, failed when the count fails', async () => {
+      const { collection, query, service, entries } = setup();
+      query.mockImplementation(async ({ path }) => {
+        if (path.endsWith('/count')) throw new Error('count failed');
+
+        return [];
+      });
+
+      await expect(collection.relation('posts', 9).listAndCount()).rejects.toThrow('count failed');
+      await drainActivityLogs();
+
+      expect(entries()).toEqual([
+        expect.objectContaining({ action: 'listRelatedData', recordIds: ['9'] }),
+      ]);
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
     });
 
     it('should log associate and dissociate as updates of the parent record', async () => {

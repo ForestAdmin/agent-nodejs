@@ -255,7 +255,7 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
-    it('does not log the update while only awaiting confirmation', async () => {
+    it('does not send the update to the agent while only awaiting confirmation', async () => {
       const runStore = makeMockRunStore();
       const agentPort = makeMockAgentPort();
       const context = makeContext({
@@ -2670,7 +2670,7 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('idempotency', () => {
-    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+    it('returns success without sending the update again when idempotencyPhase is done', async () => {
       const agentPort = makeMockAgentPort();
       const doneExecution: UpdateRecordStepExecutionData = {
         type: 'update-record',
@@ -2693,7 +2693,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('returns error without activity log when idempotencyPhase is executing', async () => {
+    it('returns error without sending the update when idempotencyPhase is executing', async () => {
       const agentPort = makeMockAgentPort();
       const executingExecution: UpdateRecordStepExecutionData = {
         type: 'update-record',

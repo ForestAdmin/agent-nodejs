@@ -65,7 +65,7 @@ export default class AgentWithLog {
 
     return this.agentPort.getSingleRelatedData(query, this.user, {
       context: this.activityLog,
-      call: { action: 'listRelatedData', label },
+      call: { label },
     });
   }
 

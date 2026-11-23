@@ -1,4 +1,8 @@
-import type { ActivityLogCallOptions, ActivityLogContext } from '../activity-log/with-activity-log';
+import type {
+  ActivityLogCallOptions,
+  ActivityLogContext,
+  DerivedActivityLogEntry,
+} from '../activity-log/with-activity-log';
 import type HttpRequester from '../http-requester';
 import type { RecordId, SelectOptions } from '../types';
 
@@ -43,22 +47,40 @@ export default class Relation {
     options?: SelectOptions,
     activityLog?: ActivityLogCallOptions,
   ): Promise<Data[]> {
-    return runCall(
-      this.activityLog,
-      {
-        action: 'listRelatedData',
-        collectionName: this.collectionName,
-        recordIds: [this.parentId],
-        label: `list relation "${this.name}"${refinementsOf(options)}`,
-      },
-      activityLog,
-      () =>
-        this.httpRequester.query<Data[]>({
-          method: 'get',
-          path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
-          query: QuerySerializer.serialize(options, this.listedCollectionName),
-        }),
+    return runCall(this.activityLog, this.listEntryOf(options), activityLog, () =>
+      this.fetchList<Data>(options),
     );
+  }
+
+  listAndCount<Data = unknown>(
+    options?: SelectOptions,
+    activityLog?: ActivityLogCallOptions,
+  ): Promise<{ records: Data[]; totalCount: number | null }> {
+    return runCall(this.activityLog, this.listEntryOf(options), activityLog, async () => {
+      const [records, totalCount] = await Promise.all([
+        this.fetchList<Data>(options),
+        this.count(options),
+      ]);
+
+      return { records, totalCount };
+    });
+  }
+
+  private listEntryOf(options?: SelectOptions): DerivedActivityLogEntry {
+    return {
+      action: 'listRelatedData',
+      collectionName: this.collectionName,
+      recordIds: [this.parentId],
+      label: `list relation "${this.name}"${refinementsOf(options)}`,
+    };
+  }
+
+  private fetchList<Data>(options?: SelectOptions): Promise<Data[]> {
+    return this.httpRequester.query<Data[]>({
+      method: 'get',
+      path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
+      query: QuerySerializer.serialize(options, this.listedCollectionName),
+    });
   }
 
   async count(options?: SelectOptions): Promise<number | null> {

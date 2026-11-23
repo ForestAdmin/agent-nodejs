@@ -296,9 +296,11 @@ describe('declareListRelatedTool', () => {
 
     it('should return records with totalCount when enableCount is true', async () => {
       const mockData = [{ id: 1, name: 'Order 1' }];
-      const mockList = jest.fn().mockResolvedValue(mockData);
-      const mockCount = jest.fn().mockResolvedValue(42);
-      const mockRelation = jest.fn().mockReturnValue({ list: mockList, count: mockCount });
+      const mockList = jest.fn();
+      const mockListAndCount = jest.fn().mockResolvedValue({ records: mockData, totalCount: 42 });
+      const mockRelation = jest
+        .fn()
+        .mockReturnValue({ list: mockList, listAndCount: mockListAndCount });
       const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
       mockBuildClient.mockReturnValue({
         rpcClient: { collection: mockCollection },
@@ -310,6 +312,11 @@ describe('declareListRelatedTool', () => {
         mockExtra,
       );
 
+      expect(mockList).not.toHaveBeenCalled();
+      expect(mockListAndCount).toHaveBeenCalledWith(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 1, enableCount: true },
+        { label: 'list relation "orders"' },
+      );
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ records: mockData, totalCount: 42 }) }],
       });
@@ -317,8 +324,7 @@ describe('declareListRelatedTool', () => {
 
     it('should answer a null totalCount when count is deactivated for the listed collection', async () => {
       const mockRelation = jest.fn().mockReturnValue({
-        list: jest.fn().mockResolvedValue([{ id: 1 }]),
-        count: jest.fn().mockResolvedValue(null),
+        listAndCount: jest.fn().mockResolvedValue({ records: [{ id: 1 }], totalCount: null }),
       });
       mockBuildClient.mockReturnValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ relation: mockRelation }) },
@@ -335,25 +341,6 @@ describe('declareListRelatedTool', () => {
           { type: 'text', text: JSON.stringify({ records: [{ id: 1 }], totalCount: null }) },
         ],
       });
-    });
-
-    it('should call list and count in parallel when enableCount is true', async () => {
-      const mockList = jest.fn().mockResolvedValue([]);
-      const mockCount = jest.fn().mockResolvedValue(0);
-      const mockRelation = jest.fn().mockReturnValue({ list: mockList, count: mockCount });
-      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
-      mockBuildClient.mockReturnValue({
-        rpcClient: { collection: mockCollection },
-        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-      } as unknown as ReturnType<typeof buildClient>);
-
-      await registeredToolHandler(
-        { collectionName: 'users', relationName: 'orders', parentRecordId: 1, enableCount: true },
-        mockExtra,
-      );
-
-      expect(mockList).toHaveBeenCalled();
-      expect(mockCount).toHaveBeenCalled();
     });
 
     describe('activity log label', () => {

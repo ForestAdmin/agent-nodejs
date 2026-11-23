@@ -165,7 +165,6 @@ async function writeActivityLog(
   context: ActivityLogContext,
   entry: ActivityLogEntry,
   credentials: ActivityLogCredentials,
-  collectionId: string | undefined,
 ): Promise<ActivityLogResponse> {
   const params: CreateActivityLogParams = {
     forestServerToken: credentials.forestServerToken,
@@ -177,6 +176,10 @@ async function writeActivityLog(
   };
 
   if (context.collectionIdOf) {
+    const collectionId = entry.collectionName
+      ? await context.collectionIdOf(entry.collectionName)
+      : undefined;
+
     return createWithRetry(context, () =>
       context.service.createActivityLog({
         ...params,
@@ -202,11 +205,6 @@ async function createPendingActivityLog(
     ? { collectionName: entry.collectionName }
     : {};
 
-  const collectionId =
-    context.collectionIdOf && entry.collectionName
-      ? await context.collectionIdOf(entry.collectionName)
-      : undefined;
-
   let credentials: ActivityLogCredentials;
 
   try {
@@ -227,7 +225,7 @@ async function createPendingActivityLog(
   let activityLog: ActivityLogResponse;
 
   try {
-    activityLog = await writeActivityLog(context, entry, credentials, collectionId);
+    activityLog = await writeActivityLog(context, entry, credentials);
   } catch (error) {
     logger('Error', `Activity log for '${action}' could not be created`, {
       ...located,
@@ -346,7 +344,11 @@ async function runAudited<T>(
     const result = await operation();
 
     if (pending) {
-      markActivityLog(context, pending, isApprovalRequested(result) ? 'canceled' : 'completed');
+      markActivityLog(
+        context,
+        pending,
+        entry.action === 'action' && isApprovalRequested(result) ? 'canceled' : 'completed',
+      );
     }
 
     return result;

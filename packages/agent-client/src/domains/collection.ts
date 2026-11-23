@@ -168,13 +168,35 @@ export default class Collection extends CollectionChart {
       this.activityLog,
       { action: listActionOf(options), collectionName: this.name },
       activityLog,
-      () =>
-        this.httpRequester.query<Data[]>({
-          method: 'get',
-          path: `/forest/${this.name}`,
-          query: QuerySerializer.serialize(options, this.name),
-        }),
+      () => this.fetchList<Data>(options),
     );
+  }
+
+  async listAndCount<Data = unknown>(
+    options?: SelectOptions,
+    activityLog?: ActivityLogCallOptions,
+  ): Promise<{ records: Data[]; totalCount: number | null }> {
+    return runCall(
+      this.activityLog,
+      { action: listActionOf(options), collectionName: this.name },
+      activityLog,
+      async () => {
+        const [records, totalCount] = await Promise.all([
+          this.fetchList<Data>(options),
+          this.count(options),
+        ]);
+
+        return { records, totalCount };
+      },
+    );
+  }
+
+  private fetchList<Data>(options?: SelectOptions): Promise<Data[]> {
+    return this.httpRequester.query<Data[]>({
+      method: 'get',
+      path: `/forest/${this.name}`,
+      query: QuerySerializer.serialize(options, this.name),
+    });
   }
 
   async exportCsv(stream: WriteStream, options?: ExportOptions): Promise<void> {
