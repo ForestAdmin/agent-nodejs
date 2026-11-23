@@ -1,6 +1,7 @@
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import makeCreateApprovalRequest from '../src/approval-request-creator';
+import { ActivityLogSource } from '../src/forest-server';
 
 jest.mock('@forestadmin/forestadmin-client', () => ({
   ServerUtils: { queryWithBearerToken: jest.fn() },
@@ -44,6 +45,40 @@ describe('makeCreateApprovalRequest', () => {
         },
       },
     });
+  });
+
+  it('names the application source and resolves the server token when the request is filed', async () => {
+    queryWithBearerToken.mockResolvedValueOnce({ data: { id: 'req_42' } });
+    const serverToken = jest.fn(async () => 'resolved-token');
+    const create = makeCreateApprovalRequest({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: serverToken,
+      renderingId: 42,
+      source: ActivityLogSource.BFF,
+    });
+
+    expect(serverToken).not.toHaveBeenCalled();
+
+    await create({
+      collectionName: 'users',
+      actionName: 'refund',
+      recordIds: ['1'],
+      inputs: [],
+      message: 'why',
+    });
+
+    const expected = {
+      bearerToken: 'resolved-token',
+      headers: { 'forest-rendering-id': '42', 'Forest-Application-Source': 'BFF' },
+    };
+    expect(queryWithBearerToken).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ path: '/api/action-approvals', ...expected }),
+    );
+    expect(queryWithBearerToken).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ path: '/api/action-approvals/req_42/comments', ...expected }),
+    );
   });
 
   it('posts the message as a comment on the created approval', async () => {

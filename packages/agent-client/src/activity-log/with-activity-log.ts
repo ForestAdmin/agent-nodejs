@@ -1,3 +1,4 @@
+import type { ActivityLogSource, ForestServerConnection } from '../forest-server';
 import type {
   ActivityLogAction,
   ActivityLogResponse,
@@ -7,7 +8,7 @@ import type {
   CreateActivityLogParams,
 } from '@forestadmin/forestadmin-client';
 
-import { HttpError } from '@forestadmin/forestadmin-client';
+import { ActivityLogsService, ForestHttpApi, HttpError } from '@forestadmin/forestadmin-client';
 
 import processDrainer from './activity-log-drainer';
 import { isApprovalRequested } from '../approval-requested';
@@ -16,6 +17,7 @@ import {
   ActivityLogBlockedError,
   ApprovalRequestCreationError,
 } from '../errors';
+import { APPLICATION_SOURCE_HEADER, resolveServerToken } from '../forest-server';
 
 export type ActivityLogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 
@@ -30,9 +32,8 @@ export interface ActivityLogCredentials {
   renderingId: string | number;
 }
 
-export interface ActivityLogContext {
-  service: ActivityLogsServiceInterface;
-  credentials: () => Promise<ActivityLogCredentials> | ActivityLogCredentials;
+export interface ActivityLogOptions {
+  source: ActivityLogSource;
   logger?: ActivityLogLogger;
   workflow?: ActivityLogWorkflow;
   collectionIdOf?: (collectionName: string) => Promise<string>;
@@ -43,6 +44,16 @@ export interface ActivityLogContext {
    * drop what it cached. Without it a 401 refuses the read like a 403.
    */
   onExpiredCredential?: () => void;
+}
+
+export interface ActivityLogConfig {
+  forestServer: ForestServerConnection;
+  activityLog: ActivityLogOptions;
+}
+
+export interface ActivityLogContext extends Omit<ActivityLogOptions, 'source'> {
+  service: ActivityLogsServiceInterface;
+  credentials: () => Promise<ActivityLogCredentials> | ActivityLogCredentials;
 }
 
 export interface ActivityLogEntry {
@@ -351,7 +362,7 @@ function describeOperation({ action, collectionName }: ActivityLogEntry): string
   return collectionName ? `'${action}' request on '${collectionName}'` : `'${action}' request`;
 }
 
-export default async function withActivityLog<T>(
+export default async function withActivityLogContext<T>(
   context: ActivityLogContext | undefined,
   entry: ActivityLogEntry | null,
   operation: () => Promise<T>,
@@ -388,7 +399,38 @@ export function runCall<T>(
   call: ActivityLogCallOptions | undefined,
   operation: () => Promise<T>,
 ): Promise<T> {
-  return withActivityLog(context, resolveEntry(derived, call), operation, call?.beforeCall);
+  return withActivityLogContext(context, resolveEntry(derived, call), operation, call?.beforeCall);
+}
+
+export function toActivityLogContext({
+  forestServer,
+  activityLog: { source, ...options },
+}: ActivityLogConfig): ActivityLogContext {
+  return {
+    ...options,
+    service: new ActivityLogsService(new ForestHttpApi(), {
+      forestServerUrl: forestServer.serverUrl,
+      headers: { [APPLICATION_SOURCE_HEADER]: source },
+    }),
+    credentials: async () => ({
+      forestServerToken: await resolveServerToken(forestServer.serverToken),
+      renderingId: forestServer.renderingId,
+    }),
+  };
+}
+
+export function withActivityLog<T>(
+  config: ActivityLogConfig | undefined,
+  entry: ActivityLogEntry | null,
+  operation: () => Promise<T>,
+  beforeCall?: () => Promise<void>,
+): Promise<T> {
+  return withActivityLogContext(
+    config && toActivityLogContext(config),
+    entry,
+    operation,
+    beforeCall,
+  );
 }
 
 export function drainActivityLogs(timeoutMs?: number): Promise<string[]> {

@@ -16,7 +16,7 @@ import CollectionChart from './collection-chart';
 import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
-import withActivityLog, { runCall } from '../activity-log/with-activity-log';
+import withActivityLogContext, { runCall } from '../activity-log/with-activity-log';
 import QuerySerializer from '../query-serializer';
 import serializeRecordId from '../record-id';
 
@@ -100,7 +100,7 @@ export default class Collection extends CollectionChart {
     const { fill, activityLog, signedApprovalRequest, approvalRequestMessage, ...context } =
       options;
 
-    return withActivityLog(
+    return withActivityLogContext(
       this.activityLog,
       {
         action: 'action',

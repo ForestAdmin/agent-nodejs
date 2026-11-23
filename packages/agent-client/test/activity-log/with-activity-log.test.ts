@@ -6,7 +6,7 @@ import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-clie
 
 import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
-import withActivityLog, {
+import withActivityLogContext, {
   drainActivityLogs,
   resolveEntry,
 } from '../../src/activity-log/with-activity-log';
@@ -72,7 +72,7 @@ function statusesOf(service: FakeService): string[] {
   return service.updateActivityLogStatus.mock.calls.map(([params]) => params.status);
 }
 
-describe('withActivityLog', () => {
+describe('withActivityLogContext', () => {
   afterEach(async () => {
     await drainActivityLogs();
   });
@@ -81,9 +81,9 @@ describe('withActivityLog', () => {
     it('should run the operation and the hook without writing anything', async () => {
       const beforeCall = jest.fn(async () => undefined);
 
-      await expect(withActivityLog(undefined, WRITE, async () => 'done', beforeCall)).resolves.toBe(
-        'done',
-      );
+      await expect(
+        withActivityLogContext(undefined, WRITE, async () => 'done', beforeCall),
+      ).resolves.toBe('done');
       expect(beforeCall).toHaveBeenCalledTimes(1);
     });
   });
@@ -92,7 +92,7 @@ describe('withActivityLog', () => {
     it('should create the pending entry by collection name with the derived type', async () => {
       const service = fakeService();
 
-      await withActivityLog(contextOf(service), WRITE, async () => 'done');
+      await withActivityLogContext(contextOf(service), WRITE, async () => 'done');
 
       expect(service.createMcpActivityLog).toHaveBeenCalledWith({
         forestServerToken: SERVER_TOKEN,
@@ -115,7 +115,7 @@ describe('withActivityLog', () => {
         }),
       });
 
-      await withActivityLog(
+      await withActivityLogContext(
         contextOf(service),
         WRITE,
         async () => {
@@ -132,7 +132,7 @@ describe('withActivityLog', () => {
     it('should mark the entry completed when the operation succeeds', async () => {
       const service = fakeService();
 
-      await withActivityLog(contextOf(service), READ, async () => 'done');
+      await withActivityLogContext(contextOf(service), READ, async () => 'done');
       await drainActivityLogs();
 
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith({
@@ -147,7 +147,7 @@ describe('withActivityLog', () => {
       const failure = new Error('agent down');
 
       await expect(
-        withActivityLog(contextOf(service), READ, async () => {
+        withActivityLogContext(contextOf(service), READ, async () => {
           throw failure;
         }),
       ).rejects.toBe(failure);
@@ -161,7 +161,7 @@ describe('withActivityLog', () => {
       const operation = jest.fn();
 
       await expect(
-        withActivityLog(contextOf(service), WRITE, operation, async () => {
+        withActivityLogContext(contextOf(service), WRITE, operation, async () => {
           throw new Error('marker not saved');
         }),
       ).rejects.toThrow('marker not saved');
@@ -174,7 +174,7 @@ describe('withActivityLog', () => {
     it('should mark the entry canceled when the result is an approval request', async () => {
       const service = fakeService();
 
-      await withActivityLog(contextOf(service), WRITE, async () => ({
+      await withActivityLogContext(contextOf(service), WRITE, async () => ({
         approvalRequested: true as const,
         approvalRequest: { id: 'approval-1' },
       }));
@@ -187,7 +187,7 @@ describe('withActivityLog', () => {
       const service = fakeService();
 
       await expect(
-        withActivityLog(contextOf(service), WRITE, async () => {
+        withActivityLogContext(contextOf(service), WRITE, async () => {
           throw new ActionRequiresApprovalError('needs approval');
         }),
       ).rejects.toBeInstanceOf(ActionRequiresApprovalError);
@@ -200,7 +200,7 @@ describe('withActivityLog', () => {
       const service = fakeService();
 
       await expect(
-        withActivityLog(contextOf(service), WRITE, async () => {
+        withActivityLogContext(contextOf(service), WRITE, async () => {
           throw new ApprovalRequestCreationError(new Error('server down'));
         }),
       ).rejects.toBeInstanceOf(ApprovalRequestCreationError);
@@ -220,9 +220,9 @@ describe('withActivityLog', () => {
         ),
       });
 
-      await expect(withActivityLog(contextOf(service), READ, async () => 'done')).resolves.toBe(
-        'done',
-      );
+      await expect(
+        withActivityLogContext(contextOf(service), READ, async () => 'done'),
+      ).resolves.toBe('done');
       await expect(drainActivityLogs(10)).resolves.toEqual([
         `'completed' transition of the activity log ${ACTIVITY_LOG_ID}`,
       ]);
@@ -236,7 +236,7 @@ describe('withActivityLog', () => {
       const service = fakeService();
       const workflow = { runId: 'run-1', name: 'Onboarding', stepName: 'Refund' };
 
-      await withActivityLog(
+      await withActivityLogContext(
         contextOf(service, { collectionIdOf: async name => `id-of-${name}`, workflow }),
         WRITE,
         async () => 'done',
@@ -264,7 +264,7 @@ describe('withActivityLog', () => {
       const service = fakeService();
       const context = contextOf(service, unresolved);
 
-      await withActivityLog(context, READ, async () => 'done');
+      await withActivityLogContext(context, READ, async () => 'done');
 
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
@@ -277,7 +277,7 @@ describe('withActivityLog', () => {
       const service = fakeService();
 
       await expect(
-        withActivityLog(contextOf(service, unresolved), READ, async () => 'done'),
+        withActivityLogContext(contextOf(service, unresolved), READ, async () => 'done'),
       ).resolves.toBe('done');
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
     });
@@ -286,7 +286,7 @@ describe('withActivityLog', () => {
       const operation = jest.fn();
 
       await expect(
-        withActivityLog(contextOf(fakeService(), unresolved), WRITE, operation),
+        withActivityLogContext(contextOf(fakeService(), unresolved), WRITE, operation),
       ).rejects.toMatchObject({ reason: 'unavailable', cause: failure });
       expect(operation).not.toHaveBeenCalled();
     });
@@ -299,7 +299,7 @@ describe('withActivityLog', () => {
       const service = noId();
       const context = contextOf(service);
 
-      await expect(withActivityLog(context, READ, async () => 'done')).resolves.toBe('done');
+      await expect(withActivityLogContext(context, READ, async () => 'done')).resolves.toBe('done');
       await drainActivityLogs();
 
       expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
@@ -313,7 +313,9 @@ describe('withActivityLog', () => {
     it('should block a write, which must not run unaudited', async () => {
       const operation = jest.fn();
 
-      await expect(withActivityLog(contextOf(noId()), WRITE, operation)).rejects.toMatchObject({
+      await expect(
+        withActivityLogContext(contextOf(noId()), WRITE, operation),
+      ).rejects.toMatchObject({
         reason: 'dropped',
       });
       expect(operation).not.toHaveBeenCalled();
@@ -329,7 +331,7 @@ describe('withActivityLog', () => {
       const service = fakeService({ createMcpActivityLog: jest.fn(async () => answer) });
 
       await expect(
-        withActivityLog(contextOf(service), WRITE, async () => 'done'),
+        withActivityLogContext(contextOf(service), WRITE, async () => 'done'),
       ).rejects.toMatchObject({ reason: 'dropped' });
     });
 
@@ -338,9 +340,9 @@ describe('withActivityLog', () => {
         createMcpActivityLog: jest.fn(async () => ({ id: '', attributes: { index: '' } })),
       });
 
-      await expect(withActivityLog(contextOf(service), READ, async () => 'done')).resolves.toBe(
-        'done',
-      );
+      await expect(
+        withActivityLogContext(contextOf(service), READ, async () => 'done'),
+      ).resolves.toBe('done');
     });
   });
 
@@ -350,13 +352,13 @@ describe('withActivityLog', () => {
       ['a 501', new HttpError('not implemented', 501)],
     ])('should block a write as endpointAbsent on %s', async (_, error) => {
       await expect(
-        withActivityLog(contextOf(rejectingService(error)), WRITE, async () => 'done'),
+        withActivityLogContext(contextOf(rejectingService(error)), WRITE, async () => 'done'),
       ).rejects.toMatchObject({ reason: 'endpointAbsent', cause: error });
     });
 
     it('should block a write as unavailable when the endpoint answered with a failure', async () => {
       await expect(
-        withActivityLog(
+        withActivityLogContext(
           contextOf(rejectingService(new HttpError('the audit store is down', 500))),
           WRITE,
           async () => 'done',
@@ -366,14 +368,18 @@ describe('withActivityLog', () => {
 
     it('should run a read unaudited rather than refuse it', async () => {
       await expect(
-        withActivityLog(contextOf(rejectingService(new NotFoundError())), READ, async () => 'done'),
+        withActivityLogContext(
+          contextOf(rejectingService(new NotFoundError())),
+          READ,
+          async () => 'done',
+        ),
       ).resolves.toBe('done');
     });
 
     it('should log the cause with the rendering and the collection', async () => {
       const context = contextOf(rejectingService(new HttpError('the audit store is down', 500)));
 
-      await withActivityLog(context, READ, async () => 'done');
+      await withActivityLogContext(context, READ, async () => 'done');
 
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
@@ -392,7 +398,7 @@ describe('withActivityLog', () => {
       const operation = jest.fn();
 
       await expect(
-        withActivityLog(
+        withActivityLogContext(
           contextOf(rejectingService(new HttpError('forbidden', 403))),
           READ,
           operation,
@@ -404,7 +410,7 @@ describe('withActivityLog', () => {
     it('should keep the cached credential', async () => {
       const onExpiredCredential = jest.fn();
 
-      await withActivityLog(
+      await withActivityLogContext(
         contextOf(rejectingService(new HttpError('forbidden', 403)), { onExpiredCredential }),
         READ,
         async () => 'done',
@@ -422,14 +428,18 @@ describe('withActivityLog', () => {
         const onExpiredCredential = jest.fn();
 
         await expect(
-          withActivityLog(contextOf(expired(), { onExpiredCredential }), READ, async () => 'done'),
+          withActivityLogContext(
+            contextOf(expired(), { onExpiredCredential }),
+            READ,
+            async () => 'done',
+          ),
         ).resolves.toBe('done');
         expect(onExpiredCredential).toHaveBeenCalledTimes(1);
       });
 
       it('should block a write as unavailable, not as not authorized', async () => {
         await expect(
-          withActivityLog(
+          withActivityLogContext(
             contextOf(expired(), { onExpiredCredential: jest.fn() }),
             WRITE,
             async () => 'done',
@@ -441,7 +451,7 @@ describe('withActivityLog', () => {
     describe('for a consumer whose credential does not renew', () => {
       it('should refuse a read as not authorized', async () => {
         await expect(
-          withActivityLog(contextOf(expired()), READ, async () => 'done'),
+          withActivityLogContext(contextOf(expired()), READ, async () => 'done'),
         ).rejects.toMatchObject({ reason: 'notAuthorized' });
       });
     });
@@ -467,7 +477,7 @@ describe('withActivityLog', () => {
           }),
       });
 
-      const run = withActivityLog(
+      const run = withActivityLogContext(
         contextOf(service, { retryCreation: true }),
         WRITE,
         async () => 'done',
@@ -481,7 +491,7 @@ describe('withActivityLog', () => {
     it('should give up after the last retry and block the write', async () => {
       const service = rejectingService(new HttpError('busy', 503));
 
-      const run = withActivityLog(
+      const run = withActivityLogContext(
         contextOf(service, { retryCreation: true }),
         WRITE,
         async () => 'done',
@@ -497,7 +507,7 @@ describe('withActivityLog', () => {
       const service = rejectingService(new HttpError('busy', 503));
 
       await expect(
-        withActivityLog(contextOf(service), WRITE, async () => 'done'),
+        withActivityLogContext(contextOf(service), WRITE, async () => 'done'),
       ).rejects.toBeInstanceOf(ActivityLogBlockedError);
       expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
     });
@@ -521,7 +531,7 @@ describe('withActivityLog', () => {
           .mockResolvedValueOnce(undefined),
       });
 
-      await withActivityLog(contextOf(service), READ, async () => 'done');
+      await withActivityLogContext(contextOf(service), READ, async () => 'done');
       await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS);
       await drainActivityLogs();
 
@@ -548,7 +558,7 @@ describe('withActivityLog', () => {
           .mockResolvedValueOnce(undefined),
       });
 
-      await withActivityLog(contextOf(service), READ, async () => 'done');
+      await withActivityLogContext(contextOf(service), READ, async () => 'done');
       await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS);
       await drainActivityLogs();
 
@@ -562,7 +572,7 @@ describe('withActivityLog', () => {
       });
       const context = contextOf(service);
 
-      await withActivityLog(context, READ, async () => {
+      await withActivityLogContext(context, READ, async () => {
         throw new Error('agent down');
       }).catch(() => undefined);
       await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS * MAX_ATTEMPTS);
@@ -604,7 +614,7 @@ describe('withActivityLog', () => {
           .mockResolvedValueOnce(undefined),
       });
 
-      await withActivityLog(contextOf(service), READ, async () => 'done');
+      await withActivityLogContext(contextOf(service), READ, async () => 'done');
       await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS);
       await drainActivityLogs();
 
@@ -621,7 +631,7 @@ describe('withActivityLog', () => {
       });
       const context = contextOf(service);
 
-      await withActivityLog(context, READ, async () => 'done');
+      await withActivityLogContext(context, READ, async () => 'done');
       await drainActivityLogs();
 
       expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(1);
@@ -641,7 +651,7 @@ describe('withActivityLog', () => {
     it('should name an audited operation still running when the deadline expires', async () => {
       let finish: () => void = () => undefined;
 
-      const running = withActivityLog(
+      const running = withActivityLogContext(
         contextOf(fakeService()),
         READ,
         () =>

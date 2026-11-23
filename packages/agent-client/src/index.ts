@@ -1,13 +1,15 @@
-import type { ActivityLogContext } from './activity-log/with-activity-log';
+import type { ActivityLogOptions } from './activity-log/with-activity-log';
 import type { ActionEndpointsByCollection } from './domains/action';
 import type {
   CollectionPermissionsOverride,
   PermissionsOverride,
   SmartActionPermissionsOverride,
 } from './domains/remote-agent-client';
+import type { ForestServerConnection } from './forest-server';
 
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
+import { toActivityLogContext } from './activity-log/with-activity-log';
 import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
 import AgentHttpError, {
@@ -52,12 +54,18 @@ export function createRemoteAgentClient(params: {
    * Forest server (e.g. creating approval requests); omit it for a client that only talks to the
    * agent (e.g. tests). `serverUrl` is the Forest server, distinct from the agent `url` above.
    */
-  forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
+  forestServer?: ForestServerConnection;
   /** Default timezone sent on every agent request. Defaults to `Europe/Paris`. */
   timezone?: string;
   httpRequester?: HttpRequester;
-  activityLog?: ActivityLogContext;
+  activityLog?: ActivityLogOptions;
 }) {
+  const { forestServer, activityLog } = params;
+
+  if (activityLog && !forestServer) {
+    throw new Error('An activity log needs the Forest server connection it is written to');
+  }
+
   const httpRequester =
     params.httpRequester ??
     new HttpRequester(params.token, { url: params.url, timezone: params.timezone });
@@ -66,12 +74,13 @@ export function createRemoteAgentClient(params: {
     actionEndpoints: params.actionEndpoints,
     httpRequester,
     overridePermissions: params.overridePermissions,
-    activityLog: params.activityLog,
-    createApprovalRequest: params.forestServer
+    activityLog: activityLog && toActivityLogContext({ forestServer, activityLog }),
+    createApprovalRequest: forestServer
       ? makeCreateApprovalRequest({
-          forestServerUrl: params.forestServer.serverUrl,
-          forestServerToken: params.forestServer.serverToken,
-          renderingId: params.forestServer.renderingId,
+          forestServerUrl: forestServer.serverUrl,
+          forestServerToken: forestServer.serverToken,
+          renderingId: forestServer.renderingId,
+          source: activityLog?.source,
         })
       : undefined,
   });
@@ -90,12 +99,14 @@ export type { ExecuteActionOptions } from './domains/collection';
 export type { ActivityLogBlockedReason } from './errors';
 export { isApprovalRequested } from './approval-requested';
 export type { ApprovalRequestedResult } from './approval-requested';
-export { default as withActivityLog, drainActivityLogs } from './activity-log/with-activity-log';
+export { withActivityLog, drainActivityLogs } from './activity-log/with-activity-log';
 export type {
   ActivityLogCallOptions,
-  ActivityLogContext,
-  ActivityLogCredentials,
+  ActivityLogConfig,
   ActivityLogEntry,
   ActivityLogLogger,
+  ActivityLogOptions,
 } from './activity-log/with-activity-log';
+export { ActivityLogSource } from './forest-server';
+export type { ForestServerConnection, ForestServerToken } from './forest-server';
 export type { File } from '@forestadmin/datasource-toolkit';
