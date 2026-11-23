@@ -27,10 +27,10 @@ export function actionNotAllowed(message = 'Action is not allowed'): BffHttpErro
 const OUTCOME_UNKNOWN = 'unknown';
 
 /**
- * The agent received the execute and did not answer in time. Cutting the wait cancels nothing: the
- * action may have run and committed, so the caller is told to check before retrying, which would
- * otherwise apply it twice. Same status and type as any agent timeout, so a client reading those
- * keeps working; `details.outcome` is what tells this one apart.
+ * The execute got no answer in time, and the agent may already have received it. Cutting the wait
+ * cancels nothing: the action may have run and committed, so the caller is told to check before
+ * retrying, which would otherwise apply it twice. Same status and type as any agent timeout, so a
+ * client reading those keeps working; `details.outcome` is what tells this one apart.
  */
 class ActionOutcomeUnknownError extends BffHttpError {}
 

@@ -261,8 +261,8 @@ request starts, so at the default a host that accepts nothing and never resets i
 because the kernel gives up first and reports `ETIMEDOUT` rather than superagent's deadline.
 
 A timeout bounds the wait, not the work: nothing is cancelled on the agent. On
-`POST /agent/v1/{collection}/actions/{action}/execute` that matters, because the agent already
-received the execute when the deadline fires, and the action may run to completion and commit. That
+`POST /agent/v1/{collection}/actions/{action}/execute` that matters, because the agent may already
+have received the execute when the deadline fires, and the action may run to completion and commit. That
 504 is told apart by `details.outcome: "unknown"` and its message says to check the outcome of the
 action before retrying, since a blind retry can apply it twice. Its activity log is left `pending`,
 neither `completed` nor `failed`, because the BFF cannot know which. A timeout while loading the
