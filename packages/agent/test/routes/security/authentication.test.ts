@@ -1,8 +1,13 @@
 import type { AgentOptionsWithDefaults } from '../../../src/types';
 
 import { AuthenticationError, ForbiddenError } from '@forestadmin/forestadmin-client';
+import bodyParser from '@koa/bodyparser';
+import Router from '@koa/router';
 import { createMockContext } from '@shopify/jest-koa-mocks';
+import jsonwebtoken from 'jsonwebtoken';
+import Koa from 'koa';
 import { errors } from 'openid-client';
+import request from 'supertest';
 
 import Authentication from '../../../src/routes/security/authentication';
 import * as factories from '../../__factories__';
@@ -20,7 +25,7 @@ describe('Authentication', () => {
     route = new Authentication(services, options);
   });
 
-  test('setupRoutes should register two routes and one middleware', async () => {
+  test('setupRoutes should register two routes and two middlewares', async () => {
     route.setupRoutes(router);
 
     expect(router.post).toHaveBeenCalledWith('/authentication', expect.any(Function));
@@ -29,7 +34,7 @@ describe('Authentication', () => {
       expect.any(Function),
       expect.any(Function),
     );
-    expect(router.use).toHaveBeenCalledWith(expect.any(Function));
+    expect(router.use).toHaveBeenCalledTimes(2);
   });
 
   test('bootstrap should retrieve the openId client', async () => {
@@ -237,6 +242,92 @@ describe('Authentication', () => {
           ).rejects.toThrow('Something went wrong');
         });
       });
+    });
+  });
+
+  describe('on a route behind the authentication middleware', () => {
+    const PRIVATE_PATH = '/private';
+
+    function buildApp() {
+      const realRouter = new Router();
+      route.setupRoutes(realRouter);
+      realRouter.get(PRIVATE_PATH, context => {
+        context.body = { served: true };
+      });
+
+      const app = new Koa();
+      app.use(bodyParser());
+      app.use(realRouter.routes());
+
+      return app.callback();
+    }
+
+    function token(claims: Record<string, unknown>, secret = options.authSecret) {
+      return jsonwebtoken.sign({ id: 1, renderingId: 1, ...claims }, secret, { expiresIn: '1h' });
+    }
+
+    test('serves a session token without a type', async () => {
+      const response = await request(buildApp())
+        .get(PRIVATE_PATH)
+        .set('Authorization', `Bearer ${token({})}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ served: true });
+    });
+
+    test('serves a token of another type', async () => {
+      const response = await request(buildApp())
+        .get(PRIVATE_PATH)
+        .set('Authorization', `Bearer ${token({ type: 'other' })}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ served: true });
+    });
+
+    test('serves a session token sent in the session cookie', async () => {
+      const response = await request(buildApp())
+        .get(PRIVATE_PATH)
+        .set('Cookie', `forest_session_token=${token({})}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ served: true });
+    });
+
+    test('refuses a bff_access token sent as a bearer', async () => {
+      const response = await request(buildApp())
+        .get(PRIVATE_PATH)
+        .set('Authorization', `Bearer ${token({ type: 'bff_access' })}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body).not.toEqual({ served: true });
+    });
+
+    test('refuses a bff_access token sent in the session cookie', async () => {
+      const response = await request(buildApp())
+        .get(PRIVATE_PATH)
+        .set('Cookie', `forest_session_token=${token({ type: 'bff_access' })}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body).not.toEqual({ served: true });
+    });
+
+    test('refuses a token signed with another secret, whatever its type', async () => {
+      const response = await request(buildApp())
+        .get(PRIVATE_PATH)
+        .set('Authorization', `Bearer ${token({}, 'another-secret')}`);
+
+      expect(response.status).toBe(401);
+    });
+
+    test('keeps the authentication route public', async () => {
+      jest
+        .spyOn(options.forestAdminClient.authService, 'generateAuthorizationUrl')
+        .mockResolvedValue('https://forest.example.com/authorize');
+
+      const response = await request(buildApp()).post('/authentication').send({ renderingId: '1' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ authorizationUrl: 'https://forest.example.com/authorize' });
     });
   });
 });
