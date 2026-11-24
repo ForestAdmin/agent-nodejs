@@ -2,7 +2,7 @@ import type { ForestServerClient } from '../../src/http-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import InProcessHttpRequester from '../../src/in-process-http-requester';
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
@@ -20,12 +20,51 @@ const mockCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFuncti
   typeof createRemoteAgentClient
 >;
 
+const logger = jest.fn();
+const caller = { forestServerToken: 'forest-token', renderingId: 456 };
+
+function toolContext(forestServerClient: ForestServerClient = createMockForestServerClient()) {
+  return { forestServerClient, logger };
+}
+
+describe('activity logging', () => {
+  it('should write the activity log to the Forest server with the caller identity, as MCP', () => {
+    const forestServerClient = createMockForestServerClient({
+      forestServerUrl: 'https://api.forestadmin.com',
+    });
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          renderingId: 456,
+          forestServerToken: 'forest-token',
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    buildClient(request, toolContext(forestServerClient));
+
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        forestServer: {
+          serverUrl: 'https://api.forestadmin.com',
+          serverToken: 'forest-token',
+          renderingId: '456',
+        },
+        activityLog: { source: ActivityLogSource.MCP, logger },
+      }),
+    );
+  });
+});
+
 describe('buildClient', () => {
   it('should create a remote agent client with the token from authInfo', () => {
     const request = {
       authInfo: {
         token: 'test-auth-token',
         extra: {
+          ...caller,
           userId: 123,
           renderingId: 456,
           environmentId: 789,
@@ -35,7 +74,7 @@ describe('buildClient', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = buildClient(request);
+    const result = buildClient(request, toolContext());
 
     expect(result.rpcClient).toBeDefined();
     expect(typeof result.rpcClient.collection).toBe('function');
@@ -46,6 +85,7 @@ describe('buildClient', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           userId: 999,
           renderingId: 888,
           environmentId: 777,
@@ -55,9 +95,10 @@ describe('buildClient', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = buildClient(request);
+    const result = buildClient(request, toolContext());
 
     expect(result.authData).toEqual({
+      ...caller,
       userId: 999,
       renderingId: 888,
       environmentId: 777,
@@ -71,12 +112,13 @@ describe('buildClient', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           environmentApiEndpoint: 'http://custom-agent:4000',
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = buildClient(request);
+    const result = buildClient(request, toolContext());
 
     // The client should have the collection method
     expect(result.rpcClient.collection).toBeDefined();
@@ -91,18 +133,37 @@ describe('buildClient', () => {
     const request = {
       authInfo: {
         extra: {
+          ...caller,
           environmentApiEndpoint: 'http://localhost:3310',
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    expect(() => buildClient(request)).toThrow('Authentication token is missing');
+    expect(() => buildClient(request, toolContext())).toThrow('Authentication token is missing');
+  });
+
+  it('refuses to build a client for a request carrying no rendering', () => {
+    mockCreateRemoteAgentClient.mockClear();
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          forestServerToken: 'forest-token',
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    expect(() => buildClient(request, toolContext())).toThrow(
+      'Invalid or missing renderingId in authentication context',
+    );
+    expect(mockCreateRemoteAgentClient).not.toHaveBeenCalled();
   });
 
   it('should throw error when authInfo is missing', () => {
     const request = {} as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    expect(() => buildClient(request)).toThrow('Authentication token is missing');
+    expect(() => buildClient(request, toolContext())).toThrow('Authentication token is missing');
   });
 
   it('should throw error when environmentApiEndpoint is missing', () => {
@@ -110,12 +171,15 @@ describe('buildClient', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           userId: 123,
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    expect(() => buildClient(request)).toThrow('Environment API endpoint is missing or invalid');
+    expect(() => buildClient(request, toolContext())).toThrow(
+      'Environment API endpoint is missing or invalid',
+    );
   });
 
   it('should throw error when environmentApiEndpoint is not a string', () => {
@@ -123,12 +187,15 @@ describe('buildClient', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           environmentApiEndpoint: 12345, // number instead of string
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    expect(() => buildClient(request)).toThrow('Environment API endpoint is missing or invalid');
+    expect(() => buildClient(request, toolContext())).toThrow(
+      'Environment API endpoint is missing or invalid',
+    );
   });
 
   describe('when an agentDispatcher is provided', () => {
@@ -138,10 +205,16 @@ describe('buildClient', () => {
 
     it('builds an in-process httpRequester instead of reaching a url', () => {
       const request = {
-        authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://public:3310' } },
+        authInfo: {
+          token: 'test-token',
+          extra: {
+            ...caller,
+            environmentApiEndpoint: 'http://public:3310',
+          },
+        },
       } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-      buildClient(request, agentDispatcher);
+      buildClient(request, { ...toolContext(), agentDispatcher });
 
       expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
@@ -150,10 +223,15 @@ describe('buildClient', () => {
 
     it('wires the in-process requester with an empty url when environmentApiEndpoint is absent', () => {
       const request = {
-        authInfo: { token: 'test-token', extra: {} },
+        authInfo: {
+          token: 'test-token',
+          extra: {
+            ...caller,
+          },
+        },
       } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-      buildClient(request, agentDispatcher);
+      buildClient(request, { ...toolContext(), agentDispatcher });
 
       expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester), url: '' }),
@@ -164,10 +242,16 @@ describe('buildClient', () => {
   it('does not build an httpRequester when no agentDispatcher is provided', () => {
     mockCreateRemoteAgentClient.mockClear();
     const request = {
-      authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://localhost:3310' } },
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          ...caller,
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    buildClient(request);
+    buildClient(request, toolContext());
 
     expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
       expect.objectContaining({ httpRequester: undefined }),
@@ -215,12 +299,13 @@ describe('buildClientWithActions', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           environmentApiEndpoint: 'http://localhost:3310',
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await buildClientWithActions(request, mockForestServerClient);
+    await buildClientWithActions(request, { forestServerClient: mockForestServerClient, logger });
 
     expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
     expect(mockGetActionEndpoints).toHaveBeenCalledWith(mockSchema);
@@ -264,12 +349,16 @@ describe('buildClientWithActions', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           environmentApiEndpoint: 'http://localhost:3310',
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = await buildClientWithActions(request, mockForestServerClient);
+    const result = await buildClientWithActions(request, {
+      forestServerClient: mockForestServerClient,
+      logger,
+    });
 
     expect(result.rpcClient).toBeDefined();
     expect(typeof result.rpcClient.collection).toBe('function');
@@ -283,6 +372,7 @@ describe('buildClientWithActions', () => {
       authInfo: {
         token: 'test-token',
         extra: {
+          ...caller,
           userId: 123,
           renderingId: 456,
           environmentId: 789,
@@ -292,9 +382,13 @@ describe('buildClientWithActions', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = await buildClientWithActions(request, mockForestServerClient);
+    const result = await buildClientWithActions(request, {
+      forestServerClient: mockForestServerClient,
+      logger,
+    });
 
     expect(result.authData).toEqual({
+      ...caller,
       userId: 123,
       renderingId: 456,
       environmentId: 789,
@@ -310,14 +404,15 @@ describe('buildClientWithActions', () => {
     const request = {
       authInfo: {
         extra: {
+          ...caller,
           environmentApiEndpoint: 'http://localhost:3310',
         },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await expect(buildClientWithActions(request, mockForestServerClient)).rejects.toThrow(
-      'Authentication token is missing',
-    );
+    await expect(
+      buildClientWithActions(request, { forestServerClient: mockForestServerClient, logger }),
+    ).rejects.toThrow('Authentication token is missing');
   });
 
   it('passes the forestServer connection when url, token and renderingId are all present', async () => {
@@ -338,41 +433,32 @@ describe('buildClientWithActions', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await buildClientWithActions(request, mockForestServerClient);
+    await buildClientWithActions(request, { forestServerClient: mockForestServerClient, logger });
 
     expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
       expect.objectContaining({
         forestServer: {
           serverUrl: 'https://api.forestadmin.com',
           serverToken: 'server-token',
-          renderingId: 456,
+          renderingId: '456',
         },
       }),
     );
   });
 
-  it('omits the forestServer connection when forestServerToken is missing', async () => {
-    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
-    mockGetActionEndpoints.mockReturnValue({});
-    mockForestServerClient = createMockForestServerClient({
-      forestServerUrl: 'https://api.forestadmin.com',
-    });
-
+  it('refuses to build a client for a request carrying no Forest server token', async () => {
+    mockCreateRemoteAgentClient.mockClear();
     const request = {
       authInfo: {
         token: 'test-token',
-        extra: {
-          renderingId: 456,
-          environmentApiEndpoint: 'http://localhost:3310',
-        },
+        extra: { renderingId: 456, environmentApiEndpoint: 'http://localhost:3310' },
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await buildClientWithActions(request, mockForestServerClient);
-
-    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
-      expect.objectContaining({ forestServer: undefined }),
-    );
+    await expect(
+      buildClientWithActions(request, { forestServerClient: mockForestServerClient, logger }),
+    ).rejects.toThrow('Invalid or missing forestServerToken in authentication context');
+    expect(mockCreateRemoteAgentClient).not.toHaveBeenCalled();
   });
 
   it('builds an in-process httpRequester when an agentDispatcher is provided', async () => {
@@ -381,10 +467,20 @@ describe('buildClientWithActions', () => {
     const agentDispatcher = { request: jest.fn() };
 
     const request = {
-      authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://public:3310' } },
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          ...caller,
+          environmentApiEndpoint: 'http://public:3310',
+        },
+      },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await buildClientWithActions(request, mockForestServerClient, agentDispatcher);
+    await buildClientWithActions(request, {
+      forestServerClient: mockForestServerClient,
+      logger,
+      agentDispatcher,
+    });
 
     expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
       expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),

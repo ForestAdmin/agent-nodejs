@@ -1,5 +1,5 @@
 import type { AgentTransport } from '../agent/agent-transport';
-import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, ActivityLogConfig } from '@forestadmin/agent-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
@@ -36,14 +36,24 @@ export interface LoadActionParams {
   timezone: string;
 }
 
+export interface ExecuteActionParams extends LoadActionParams {
+  approvalRequestMessage?: string;
+  maxTimeAllowed?: number;
+  isOutcomeUnknown: (error: unknown) => boolean;
+  beforeCall: () => Promise<void>;
+  fill: (action: Action) => Promise<void>;
+}
+
 export interface AgentActionClient {
   loadAction(params: LoadActionParams): Promise<Action>;
+  executeAction(params: ExecuteActionParams): Promise<unknown>;
 }
 
 export interface AgentActionClientOptions {
   transport: AgentTransport;
   token: string;
   actionEndpoints: ActionEndpointsByCollection;
+  activityLog?: ActivityLogConfig;
 }
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
@@ -66,16 +76,37 @@ export default function createAgentActionClient({
   transport,
   token,
   actionEndpoints,
+  activityLog,
 }: AgentActionClientOptions): AgentActionClient {
   const client = createRemoteAgentClient({
     url: transport.url,
     token,
     actionEndpoints,
     httpRequester: transport.createRequester(token),
+    ...activityLog,
   });
 
   return {
     loadAction: ({ collection, actionName, recordIds, timezone }) =>
       client.collection(collection).action(actionName, { recordIds, timezone }),
+    executeAction: ({
+      collection,
+      actionName,
+      recordIds,
+      timezone,
+      approvalRequestMessage,
+      maxTimeAllowed,
+      isOutcomeUnknown,
+      beforeCall,
+      fill,
+    }) =>
+      client.collection(collection).executeAction(actionName, {
+        recordIds,
+        timezone,
+        approvalRequestMessage,
+        maxTimeAllowed,
+        fill,
+        activityLog: { beforeCall, isOutcomeUnknown },
+      }),
   };
 }

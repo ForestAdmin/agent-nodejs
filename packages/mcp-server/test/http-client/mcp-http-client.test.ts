@@ -1,5 +1,4 @@
 import type {
-  ActivityLogsServiceInterface,
   ForestSchemaCollection,
   SchemaServiceInterface,
   WorkflowsServiceInterface,
@@ -10,18 +9,12 @@ import ForestServerClientImpl from '../../src/http-client/mcp-http-client';
 
 describe('ForestServerClientImpl', () => {
   let mockSchemaService: jest.Mocked<SchemaServiceInterface>;
-  let mockActivityLogsService: jest.Mocked<ActivityLogsServiceInterface>;
   let mockWorkflowsService: jest.Mocked<WorkflowsServiceInterface>;
   let client: ForestServerClientImpl;
 
   beforeEach(() => {
     mockSchemaService = {
       getSchema: jest.fn(),
-    };
-    mockActivityLogsService = {
-      createActivityLog: jest.fn(),
-      createMcpActivityLog: jest.fn(),
-      updateActivityLogStatus: jest.fn(),
     };
     mockWorkflowsService = {
       listMcpEnabledWorkflows: jest.fn(),
@@ -31,7 +24,6 @@ describe('ForestServerClientImpl', () => {
     };
     client = new ForestServerClientImpl(
       mockSchemaService,
-      mockActivityLogsService,
       mockWorkflowsService,
       'https://api.forestadmin.com',
     );
@@ -53,62 +45,6 @@ describe('ForestServerClientImpl', () => {
 
       expect(mockSchemaService.getSchema).toHaveBeenCalledTimes(1);
       expect(result).toBe(mockSchema);
-    });
-  });
-
-  describe('createActivityLog', () => {
-    it('should delegate to activityLogsService.createActivityLog()', async () => {
-      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-      mockActivityLogsService.createActivityLog.mockResolvedValue(mockActivityLog);
-
-      const params = {
-        forestServerToken: 'test-token',
-        renderingId: '12345',
-        action: 'index' as const,
-        type: 'read' as const,
-        collectionName: 'users',
-      };
-
-      const result = await client.createActivityLog(params);
-
-      expect(mockActivityLogsService.createActivityLog).toHaveBeenCalledWith(params);
-      expect(result).toBe(mockActivityLog);
-    });
-  });
-
-  describe('createMcpActivityLog', () => {
-    it('should delegate to activityLogsService.createMcpActivityLog()', async () => {
-      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-      mockActivityLogsService.createMcpActivityLog.mockResolvedValue(mockActivityLog);
-
-      const params = {
-        forestServerToken: 'test-token',
-        renderingId: '12345',
-        action: 'index' as const,
-        type: 'read' as const,
-        collectionName: 'users',
-      };
-
-      const result = await client.createMcpActivityLog(params);
-
-      expect(mockActivityLogsService.createMcpActivityLog).toHaveBeenCalledWith(params);
-      expect(result).toBe(mockActivityLog);
-    });
-  });
-
-  describe('updateActivityLogStatus', () => {
-    it('should delegate to activityLogsService.updateActivityLogStatus()', async () => {
-      mockActivityLogsService.updateActivityLogStatus.mockResolvedValue(undefined);
-
-      const params = {
-        forestServerToken: 'test-token',
-        activityLog: { id: 'log-123', attributes: { index: 'idx-456' } },
-        status: 'completed' as const,
-      };
-
-      await client.updateActivityLogStatus(params);
-
-      expect(mockActivityLogsService.updateActivityLogStatus).toHaveBeenCalledWith(params);
     });
   });
 
@@ -232,9 +168,6 @@ describe('createForestServerClient', () => {
 
     expect(client).toBeDefined();
     expect(client.fetchSchema).toBeDefined();
-    expect(client.createActivityLog).toBeDefined();
-    expect(client.createMcpActivityLog).toBeDefined();
-    expect(client.updateActivityLogStatus).toBeDefined();
     expect(client.listMcpEnabledWorkflows).toBeDefined();
     expect(client.getMcpWorkflowById).toBeDefined();
     expect(client.triggerMcpWorkflow).toBeDefined();

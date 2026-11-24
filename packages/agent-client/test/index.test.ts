@@ -3,7 +3,11 @@ import nock from 'nock';
 import makeCreateApprovalRequest from '../src/approval-request-creator';
 import RemoteAgentClient from '../src/domains/remote-agent-client';
 import HttpRequester from '../src/http-requester';
-import { type ActionEndpointsByCollection, createRemoteAgentClient } from '../src/index';
+import {
+  type ActionEndpointsByCollection,
+  ActivityLogSource,
+  createRemoteAgentClient,
+} from '../src/index';
 
 jest.mock('../src/approval-request-creator');
 
@@ -96,6 +100,36 @@ describe('createRemoteAgentClient', () => {
       forestServerToken: 'server-token',
       renderingId: 42,
     });
+  });
+
+  it('files approval requests under the source of the activity log', () => {
+    createRemoteAgentClient({
+      url: 'https://api.example.com',
+      token: 'test-token',
+      forestServer: {
+        serverUrl: 'https://api.forestadmin.com',
+        serverToken: 'server-token',
+        renderingId: 42,
+      },
+      activityLog: { source: ActivityLogSource.BFF },
+    });
+
+    expect(mockMakeCreateApprovalRequest).toHaveBeenCalledWith({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+      source: 'BFF',
+    });
+  });
+
+  it('refuses an activity log without the Forest server connection it is written to', () => {
+    expect(() =>
+      createRemoteAgentClient({
+        url: 'https://api.example.com',
+        token: 'test-token',
+        activityLog: { source: ActivityLogSource.MCP },
+      }),
+    ).toThrow('An activity log needs the Forest server connection it is written to');
   });
 
   it('does not wire createApprovalRequest when forestServer is omitted', () => {

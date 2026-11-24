@@ -1,3 +1,4 @@
+import { ActivityLogBlockedError } from '@forestadmin/agent-client';
 import Koa from 'koa';
 import request from 'supertest';
 
@@ -26,6 +27,18 @@ describe('error middleware', () => {
     expect(res.body).toEqual({
       error: { type: 'custom', status: 422, message: 'boom', details: { field: 'x' } },
     });
+  });
+
+  it('answers a write blocked by its activity log with audit_unavailable and a retry hint', async () => {
+    const { callback } = buildApp(() => {
+      throw new ActivityLogBlockedError('unavailable', new Error('down'));
+    });
+
+    const res = await request(callback).get('/');
+
+    expect(res.status).toBe(503);
+    expect(res.headers['retry-after']).toBe('5');
+    expect(res.body.error.type).toBe('audit_unavailable');
   });
 
   it('maps a client-status http error (e.g. malformed body) to a structured 4xx', async () => {

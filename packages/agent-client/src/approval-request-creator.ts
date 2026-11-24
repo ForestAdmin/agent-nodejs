@@ -1,4 +1,8 @@
+import type { ActivityLogSource, ForestServerToken } from './forest-server';
+
 import { ServerUtils } from '@forestadmin/forestadmin-client';
+
+import { APPLICATION_SOURCE_HEADER, resolveServerToken } from './forest-server';
 
 export type ApprovalRequestInput = { name: string; type: string | string[]; value: unknown };
 
@@ -18,17 +22,25 @@ const APPROVAL_REQUEST_PATH = '/api/action-approvals';
 
 export default function makeCreateApprovalRequest(options: {
   forestServerUrl: string;
-  forestServerToken: string;
+  forestServerToken: ForestServerToken;
   renderingId: number | string;
+  source?: ActivityLogSource;
 }): CreateApprovalRequest {
+  const headers = {
+    'forest-rendering-id': String(options.renderingId),
+    ...(options.source && { [APPLICATION_SOURCE_HEADER]: options.source }),
+  };
+
   return async payload => {
+    const bearerToken = await resolveServerToken(options.forestServerToken);
+
     // JSON:API create response — the created approval's id is the resource id (data.id).
     const body = await ServerUtils.queryWithBearerToken<{ data?: { id?: string | number } }>({
       forestServerUrl: options.forestServerUrl,
-      bearerToken: options.forestServerToken,
+      bearerToken,
       method: 'post',
       path: APPROVAL_REQUEST_PATH,
-      headers: { 'forest-rendering-id': String(options.renderingId) },
+      headers,
       body: {
         data: {
           type: 'action-approvals',
@@ -51,10 +63,10 @@ export default function makeCreateApprovalRequest(options: {
       try {
         await ServerUtils.queryWithBearerToken({
           forestServerUrl: options.forestServerUrl,
-          bearerToken: options.forestServerToken,
+          bearerToken,
           method: 'post',
           path: `${APPROVAL_REQUEST_PATH}/${id}/comments`,
-          headers: { 'forest-rendering-id': String(options.renderingId) },
+          headers,
           body: { data: { attributes: { comment: payload.message } } },
         });
       } catch (error) {

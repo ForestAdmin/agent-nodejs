@@ -67,28 +67,19 @@ describe('mapListResponse', () => {
 
 describe('mapCountResponse', () => {
   it('should report available with the numeric count', () => {
-    expect(mapCountResponse({ count: 42 })).toEqual({ count: 42, countStatus: 'available' });
+    expect(mapCountResponse(42)).toEqual({ count: 42, countStatus: 'available' });
   });
 
   it('should report available with zero for an active empty collection', () => {
-    expect(mapCountResponse({ count: 0 })).toEqual({ count: 0, countStatus: 'available' });
+    expect(mapCountResponse(0)).toEqual({ count: 0, countStatus: 'available' });
   });
 
-  it('should report deactivated from the raw meta marker', () => {
-    expect(mapCountResponse({ meta: { count: 'deactivated' } })).toEqual({
-      count: null,
-      countStatus: 'deactivated',
-    });
+  it('should report deactivated when the agent counts nothing for the collection', () => {
+    expect(mapCountResponse(null)).toEqual({ count: null, countStatus: 'deactivated' });
   });
 
-  it('should throw a mapping error when neither a numeric count nor the marker is present', () => {
-    expect(() => mapCountResponse({})).toThrow(
-      expect.objectContaining({ type: 'mapping_error', status: 500 }),
-    );
-  });
-
-  it('should not trust a NaN count from the lossy helper', () => {
-    expect(() => mapCountResponse({ count: Number.NaN })).toThrow(
+  it('should throw a mapping error when the agent answered neither a count nor the marker', () => {
+    expect(() => mapCountResponse(Number.NaN)).toThrow(
       expect.objectContaining({ type: 'mapping_error', status: 500 }),
     );
   });

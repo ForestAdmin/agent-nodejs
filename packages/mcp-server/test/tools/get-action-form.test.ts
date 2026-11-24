@@ -14,9 +14,6 @@ const mockLogger: Logger = jest.fn();
 const mockForestServerClient: ForestServerClient = {
   forestServerUrl: 'https://api.forestadmin.com',
   fetchSchema: jest.fn(),
-  createActivityLog: jest.fn(),
-  createMcpActivityLog: jest.fn(),
-  updateActivityLogStatus: jest.fn(),
   listMcpEnabledWorkflows: jest.fn(),
   getMcpWorkflowById: jest.fn(),
   triggerMcpWorkflow: jest.fn(),
@@ -226,8 +223,7 @@ describe('declareGetActionFormTool', () => {
 
       expect(mockBuildClientWithActions).toHaveBeenCalledWith(
         mockExtra,
-        mockForestServerClient,
-        undefined,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
       );
     });
 

@@ -9,6 +9,8 @@ import type { AvailableStepExecution } from '../src/types/execution-context';
 import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
+import { drainActivityLogs } from '@forestadmin/agent-client';
+
 import {
   AiModelPortError,
   ConfigurationError,
@@ -33,6 +35,11 @@ import { StepExecutionMode, StepType } from '../src/types/validated/step-definit
 
 // ---------------------------------------------------------------------------
 // Helpers
+jest.mock('@forestadmin/agent-client', () => ({
+  ...jest.requireActual('@forestadmin/agent-client'),
+  drainActivityLogs: jest.fn().mockResolvedValue([]),
+}));
+
 // ---------------------------------------------------------------------------
 
 const POLLING_INTERVAL_S = 1;
@@ -115,14 +122,7 @@ function createRunnerConfig(
     } as unknown as RunStore,
     pollingIntervalS: POLLING_INTERVAL_S,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,
-    activityLogPortFactory: {
-      forRun: jest.fn().mockReturnValue({
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      }),
-      drain: jest.fn().mockResolvedValue(undefined),
-    },
+    forestServerUrl: 'https://api.forestadmin.com',
     logger: createMockLogger(),
     schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
@@ -538,17 +538,17 @@ describe('graceful shutdown', () => {
     expect(runner.state).toBe('stopped');
   });
 
-  it('stop() awaits activityLogPortFactory.drain() before closing resources', async () => {
+  it('stop() awaits the activity log drain before closing resources', async () => {
     const config = createRunnerConfig();
     const callOrder: string[] = [];
     let releaseDrain!: () => void;
 
-    (config.activityLogPortFactory.drain as jest.Mock).mockImplementation(
+    (drainActivityLogs as jest.Mock).mockImplementationOnce(
       () =>
-        new Promise<void>(resolve => {
+        new Promise<string[]>(resolve => {
           releaseDrain = () => {
             callOrder.push('activityLogDrain');
-            resolve();
+            resolve([]);
           };
         }),
     );
@@ -572,6 +572,24 @@ describe('graceful shutdown', () => {
 
     expect(callOrder[0]).toBe('activityLogDrain');
     expect(callOrder.slice(1).sort()).toEqual(['aiClose', 'runStoreClose']);
+  });
+
+  it('bounds the activity log drain by the time left of stopTimeoutS and names what it left unfinished', async () => {
+    const logger = createMockLogger();
+    (drainActivityLogs as jest.Mock).mockResolvedValueOnce(["'index' request on 'users'"]);
+    runner = new Runner(createRunnerConfig({ logger, stopTimeoutS: 5 }));
+    await runner.start();
+
+    await runner.stop();
+
+    const [timeoutMs] = (drainActivityLogs as jest.Mock).mock.calls.at(-1);
+    expect(timeoutMs).toBeGreaterThan(0);
+    expect(timeoutMs).toBeLessThanOrEqual(5_000);
+    expect(logger).toHaveBeenCalledWith('Error', 'Drain timeout — activity logs still in flight', {
+      unfinished: ["'index' request on 'users'"],
+      timeoutS: 5,
+    });
+    expect(runner.state).toBe('stopped');
   });
 
   it('stops after the drain timeout while a poll never answers, and says the poll was pending', async () => {
@@ -1674,7 +1692,7 @@ describe('chain', () => {
     expect(workflowPort.updateStepExecution).toHaveBeenNthCalledWith(2, 'run-1', expect.anything());
   });
 
-  it('uses the forestServerToken from each dispatch when calling activityLogPortFactory.forRun', async () => {
+  it('builds each step with the forestServerToken of its own dispatch', async () => {
     const workflowPort = createMockWorkflowPort();
     const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
     const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
@@ -1691,12 +1709,11 @@ describe('chain', () => {
       })
       .mockResolvedValueOnce(null);
 
-    const config = createRunnerConfig({ workflowPort });
-    runner = new Runner(config);
+    const createSpy = jest.spyOn(StepExecutorFactory, 'create');
+    runner = new Runner(createRunnerConfig({ workflowPort }));
     await triggerAndDrain(runner, 'run-1');
 
-    expect(config.activityLogPortFactory.forRun).toHaveBeenNthCalledWith(1, 'token-initial');
-    expect(config.activityLogPortFactory.forRun).toHaveBeenNthCalledWith(2, 'token-chained');
+    expect(createSpy.mock.calls.map(call => call[4])).toEqual(['token-initial', 'token-chained']);
   });
 
   it('exits the chain when the server returns a non-progressing next step', async () => {
@@ -1995,7 +2012,6 @@ describe('chain', () => {
       1,
       initial,
       expect.anything(),
-      expect.anything(),
       expect.any(Function),
       { userConfirmed: true },
       'token-0',
@@ -2003,7 +2019,6 @@ describe('chain', () => {
     expect(createSpy).toHaveBeenNthCalledWith(
       2,
       chained,
-      expect.anything(),
       expect.anything(),
       expect.any(Function),
       undefined,
@@ -2801,66 +2816,36 @@ describe('StepExecutorFactory.create — factory', () => {
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
-  });
-
-  const makeRunLogger = () => ({
-    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-    markSucceeded: jest.fn().mockResolvedValue(undefined),
-    markFailed: jest.fn().mockResolvedValue(undefined),
+    forestServerUrl: 'https://api.forestadmin.com',
   });
 
   it('dispatches Condition steps to ConditionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.Condition });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(ConditionStepExecutor);
   });
 
   it('dispatches ReadRecord steps to ReadRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.ReadRecord });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(ReadRecordStepExecutor);
   });
 
   it('dispatches UpdateRecord steps to UpdateRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.UpdateRecord });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(UpdateRecordStepExecutor);
   });
 
   it('dispatches TriggerAction steps to TriggerRecordActionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.TriggerAction });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(TriggerRecordActionStepExecutor);
   });
 
   it('dispatches LoadRelatedRecord steps to LoadRelatedRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.LoadRelatedRecord });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(LoadRelatedRecordStepExecutor);
   });
 
@@ -2876,12 +2861,7 @@ describe('StepExecutorFactory.create — factory', () => {
     const fetchRemoteTools = jest
       .fn()
       .mockResolvedValue({ tools: [], mcpServerName: 'Production Slack' });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      fetchRemoteTools,
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), fetchRemoteTools);
     expect(executor).toBeInstanceOf(McpStepExecutor);
     expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42', 1);
     expect(
@@ -2893,12 +2873,7 @@ describe('StepExecutorFactory.create — factory', () => {
 
   it('dispatches Guidance steps to GuidanceStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.Guidance });
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(GuidanceStepExecutor);
   });
 
@@ -2907,12 +2882,7 @@ describe('StepExecutorFactory.create — factory', () => {
       ...makePendingStep(),
       stepDefinition: { type: 'unknown-type' as StepType },
     } as unknown as AvailableStepExecution;
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
     expect(stepOutcome.error).toBe('An unexpected error occurred while processing this step.');
@@ -2921,12 +2891,7 @@ describe('StepExecutorFactory.create — factory', () => {
   it('returns an executor with an error outcome when loadTools rejects for a McpTask step', async () => {
     const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockRejectedValueOnce(new Error('MCP server down'));
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      makeRunLogger(),
-      loadTools,
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
     expect(stepOutcome.type).toBe('mcp');
@@ -2948,7 +2913,7 @@ describe('StepExecutorFactory.create — factory', () => {
       logger,
     };
 
-    await StepExecutorFactory.create(makePendingStep(), contextConfig, makeRunLogger(), jest.fn());
+    await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
 
     expect(logger).toHaveBeenCalledWith(
       'Error',
@@ -2967,12 +2932,7 @@ describe('StepExecutorFactory.create — factory', () => {
       } as unknown as AiModelPort,
     };
 
-    const executor = await StepExecutorFactory.create(
-      makePendingStep(),
-      contextConfig,
-      makeRunLogger(),
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
     const { stepOutcome } = await executor.execute();
 
     expect(stepOutcome.status).toBe('error');
@@ -2995,7 +2955,7 @@ describe('StepExecutorFactory.create — factory', () => {
       logger,
     };
 
-    await StepExecutorFactory.create(makePendingStep(), contextConfig, makeRunLogger(), jest.fn());
+    await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
 
     expect(logger).toHaveBeenCalledWith(
       'Error',
@@ -3008,7 +2968,7 @@ describe('StepExecutorFactory.create — factory', () => {
     const cfg = makeContextConfig();
     const step = makePendingStep({ stepType: StepType.ReadRecord }); // user.id = 1
 
-    await StepExecutorFactory.create(step, cfg, makeRunLogger(), jest.fn());
+    await StepExecutorFactory.create(step, cfg, jest.fn());
 
     expect(cfg.aiModelPort.getModel).toHaveBeenCalledWith({
       aiConfigName: step.stepDefinition.aiConfigName,
@@ -3544,7 +3504,6 @@ describe('triggerPoll with options', () => {
     expect(createSpy).toHaveBeenCalledWith(
       step,
       expect.anything(),
-      expect.anything(),
       expect.any(Function),
       { userConfirmed: true, value: 'new' },
       'test-forest-token',
@@ -3574,7 +3533,6 @@ describe('triggerPoll with options', () => {
 
     expect(createSpy).toHaveBeenCalledWith(
       step,
-      expect.anything(),
       expect.anything(),
       expect.any(Function),
       undefined,

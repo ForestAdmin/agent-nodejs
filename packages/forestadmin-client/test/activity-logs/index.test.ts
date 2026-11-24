@@ -388,6 +388,26 @@ describe('ActivityLogsService', () => {
       );
     });
 
+    it('should update activity log status to canceled', async () => {
+      mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+
+      await service.updateActivityLogStatus({
+        forestServerToken: 'test-token',
+        activityLog,
+        status: 'canceled',
+      });
+
+      expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        'idx-456',
+        'log-123',
+        { status: 'canceled' },
+      );
+    });
+
     it('should pass custom headers when updating status', async () => {
       mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);
 

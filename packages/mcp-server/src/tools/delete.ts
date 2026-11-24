@@ -4,8 +4,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import buildClient from '../utils/agent-caller';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 interface DeleteArgument {
   collectionName: string;
@@ -23,7 +23,7 @@ function createArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareDeleteTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames } = ctx;
+  const { logger, collectionNames } = ctx;
   const argumentShape = createArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -35,29 +35,20 @@ export default function declareDeleteTool(mcpServer: McpServer, ctx: ToolContext
       inputSchema: argumentShape,
     },
     async (options: DeleteArgument, extra) => {
-      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
+      const { rpcClient } = buildClient(extra, ctx);
 
       // Cast to satisfy the type system - the API accepts both string[] and number[]
       const recordIds = options.recordIds as string[] | number[];
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'delete',
-        context: {
-          collectionName: options.collectionName,
-          label: 'deleted',
-          recordIds,
-        },
-        logger,
-        operation: async () => {
-          await rpcClient.collection(options.collectionName).delete(recordIds);
+      try {
+        await rpcClient.collection(options.collectionName).delete(recordIds);
 
-          return {
-            content: [{ type: 'text', text: JSON.stringify({ deletedCount: recordIds.length }) }],
-          };
-        },
-      });
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ deletedCount: recordIds.length }) }],
+        };
+      } catch (error) {
+        throw await toToolError(error, { logger });
+      }
     },
     logger,
   );

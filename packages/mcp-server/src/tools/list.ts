@@ -7,8 +7,8 @@ import { z } from 'zod';
 import filterSchema from '../schemas/filter';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 // Preprocess to handle LLM sending filters as JSON string instead of object
 const filtersWithPreprocess = z.preprocess(val => {
@@ -89,64 +89,41 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
       inputSchema: listArgumentShape,
     },
     async (options: ListArgument, extra) => {
-      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
+      const { rpcClient } = buildClient(extra, ctx);
 
-      let actionType: 'index' | 'search' | 'filter' = 'index';
+      const errorEnhancer = async (errorMessage: string) => {
+        if (errorMessage?.includes('Invalid sort')) {
+          try {
+            const fields = getFieldsOfCollection(
+              await fetchForestSchema(forestServerClient),
+              options.collectionName,
+            );
 
-      if (options.search) {
-        actionType = 'search';
-      } else if (options.filters) {
-        actionType = 'filter';
+            return `The sort field provided is invalid for this collection. Available fields for the collection ${
+              options.collectionName
+            } are: ${fields
+              .filter(field => field.isSortable)
+              .map(field => field.field)
+              .join(', ')}.`;
+          } catch (schemaError) {
+            logger('Debug', `Failed to fetch schema for error enhancement: ${schemaError}`);
+          }
+        }
+
+        return errorMessage;
+      };
+
+      try {
+        const collection = rpcClient.collection(options.collectionName);
+
+        const response = options.enableCount
+          ? await collection.listAndCount(options as SelectOptions)
+          : { records: await collection.list(options as SelectOptions) };
+
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+      } catch (error) {
+        throw await toToolError(error, { logger, errorEnhancer });
       }
-
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: actionType,
-        context: { collectionName: options.collectionName },
-        logger,
-        operation: async () => {
-          const collection = rpcClient.collection(options.collectionName);
-
-          let response: { records: unknown[]; totalCount?: number };
-
-          if (options.enableCount) {
-            const [records, totalCount] = await Promise.all([
-              collection.list(options as SelectOptions),
-              collection.count(options as SelectOptions),
-            ]);
-
-            response = { records, totalCount };
-          } else {
-            const records = await collection.list(options as SelectOptions);
-            response = { records };
-          }
-
-          return { content: [{ type: 'text', text: JSON.stringify(response) }] };
-        },
-        errorEnhancer: async errorMessage => {
-          // Enhance "Invalid sort" errors with available sortable fields
-          if (errorMessage?.includes('Invalid sort')) {
-            try {
-              const fields = getFieldsOfCollection(
-                await fetchForestSchema(forestServerClient),
-                options.collectionName,
-              );
-
-              return `The sort field provided is invalid for this collection. Available fields for the collection ${
-                options.collectionName
-              } are: ${fields
-                .filter(field => field.isSortable)
-                .map(field => field.field)
-                .join(', ')}.`;
-            } catch (schemaError) {
-              logger('Debug', `Failed to fetch schema for error enhancement: ${schemaError}`);
-            }
-          }
-
-          return errorMessage;
-        },
-      });
     },
     logger,
   );

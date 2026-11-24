@@ -5,15 +5,6 @@ export default function createMockForestServerClient(
 ): jest.Mocked<ForestServerClient> {
   return {
     fetchSchema: jest.fn().mockResolvedValue([]),
-    createActivityLog: jest.fn().mockResolvedValue({
-      id: 'mock-log-id',
-      attributes: { index: 'mock-index' },
-    }),
-    createMcpActivityLog: jest.fn().mockResolvedValue({
-      id: 'mock-log-id',
-      attributes: { index: 'mock-index' },
-    }),
-    updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
     listMcpEnabledWorkflows: jest.fn().mockResolvedValue([]),
     getMcpWorkflowById: jest.fn().mockResolvedValue({
       workflowId: 'wf-1',

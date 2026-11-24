@@ -1,6 +1,7 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
 import type { CreateApprovalRequest } from '../approval-request-creator';
+import type { ApprovalRequestedResult } from '../approval-requested';
 import type HttpRequester from '../http-requester';
 import type { RecordId } from '../types';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
@@ -108,9 +109,7 @@ export type ActionExecuteOptions = {
   maxTimeAllowed?: number;
 };
 
-export type ActionExecuteResult =
-  | { success: string; html?: string }
-  | { approvalRequested: true; approvalRequest?: { id: string } };
+export type ActionExecuteResult = { success: string; html?: string } | ApprovalRequestedResult;
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {

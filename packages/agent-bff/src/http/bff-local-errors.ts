@@ -1,4 +1,6 @@
-import { BffHttpError } from './bff-http-error';
+import type { ActivityLogBlockedError } from '@forestadmin/agent-client';
+
+import { BffHttpError, isSerializableError } from './bff-http-error';
 
 export function unknownCollection(message = 'Unknown collection'): BffHttpError {
   return new BffHttpError(404, 'unknown_collection', message);
@@ -32,23 +34,13 @@ const OUTCOME_UNKNOWN = 'unknown';
  * retrying, which would otherwise apply it twice. Same status and type as any agent timeout, so a
  * client reading those keeps working; `details.outcome` is what tells this one apart.
  */
-class ActionOutcomeUnknownError extends BffHttpError {}
-
 export function actionOutcomeUnknown(): BffHttpError {
-  return new ActionOutcomeUnknownError(
+  return new BffHttpError(
     504,
     'agent_timeout',
     'The agent did not respond in time. The action may still have run: check its outcome before retrying.',
     { details: { outcome: OUTCOME_UNKNOWN } },
   );
-}
-
-/**
- * Keyed on the class, not on `details.outcome`: an agent error's data lands in `details` too, and a
- * hook that fails with `outcome: 'unknown'` must still mark its attempt failed.
- */
-export function isActionOutcomeUnknown(error: unknown): boolean {
-  return error instanceof ActionOutcomeUnknownError;
 }
 
 export function invalidRequest(message = 'Invalid request', details?: unknown): BffHttpError {
@@ -134,13 +126,10 @@ export function tooManyRequests(
   });
 }
 
-export const ACTION_REQUIRES_APPROVAL_TYPE = 'action_requires_approval';
-
-export function actionRequiresApproval(
-  message = 'This action requires an approval before it can run',
-  details?: unknown,
+export function approvalRequestFailed(
+  message = 'The action requires an approval, and the approval request could not be filed, so the action was not run',
 ): BffHttpError {
-  return new BffHttpError(403, ACTION_REQUIRES_APPROVAL_TYPE, message, { details });
+  return new BffHttpError(503, 'approval_request_failed', message);
 }
 
 export const AUDIT_RETRY_AFTER_SECONDS = 5;
@@ -158,23 +147,29 @@ export function auditUnavailable(
   return new BffHttpError(503, AUDIT_UNAVAILABLE_TYPE, message, { retryAfter });
 }
 
-/**
- * The audit trail cannot be written in this deployment at all — no credential minted, no endpoint
- * exposed — as opposed to an outage that a retry outlives. The missing `retryAfter` is the marker:
- * it is what the callers above use to say a retry can never succeed.
- */
-export function isUnretryableAuditFailure(error: unknown): boolean {
-  return (
-    error instanceof BffHttpError &&
-    error.type === AUDIT_UNAVAILABLE_TYPE &&
-    error.retryAfter === undefined
-  );
-}
-
 export function auditNotAuthorized(
   message = 'Not authorized to write the activity log for this request',
 ): BffHttpError {
   return new BffHttpError(403, 'audit_not_authorized', message);
+}
+
+const NO_AUDIT_ENDPOINT_MESSAGE =
+  'The Forest server does not expose the endpoint the activity log is written through, so the ' +
+  'operation was not performed';
+
+/**
+ * A credential this edge failed to resolve is already one of its own answers — an expired session,
+ * a plan lacking the feature, a deployment minting no audit token — so it is answered as is.
+ */
+export function auditErrorOf(error: ActivityLogBlockedError): unknown {
+  if (error.reason === 'notAuthorized') return auditNotAuthorized();
+  if (isSerializableError(error.cause)) return error.cause;
+
+  if (error.reason === 'endpointAbsent') {
+    return auditUnavailable(undefined, NO_AUDIT_ENDPOINT_MESSAGE);
+  }
+
+  return auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
 }
 
 export function environmentUnresolved(): BffHttpError {

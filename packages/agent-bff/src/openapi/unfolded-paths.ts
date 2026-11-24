@@ -16,6 +16,7 @@ import toFieldSchema from './field-schemas';
 import createNamer, { quoted } from './names';
 import recordSchema, { listResponseSchema } from './record-schemas';
 import {
+  APPROVAL_REQUEST_MESSAGE_NOTE,
   ActionFormResponseSchema,
   ActionResultSchema,
   CLOSED_BODY_NOTE,
@@ -414,6 +415,7 @@ function registerActionRequest(
       recordIds: { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'number' }] } },
       values: actionValuesSchema(action),
       timezone: pool.reuse('Timezone', TimezoneSchema),
+      approvalRequestMessage: { type: 'string', description: APPROVAL_REQUEST_MESSAGE_NOTE },
     },
     required: ['recordIds'],
     additionalProperties: false,

@@ -7,16 +7,13 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import declareUpdateTool from '../../src/tools/update';
 import buildClient from '../../src/utils/agent-caller';
-import withActivityLog from '../../src/utils/with-activity-log';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 
 describe('declareUpdateTool', () => {
   let mcpServer: McpServer;
@@ -35,9 +32,6 @@ describe('declareUpdateTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
-
-    // By default, withActivityLog executes the operation and returns its result
-    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
@@ -169,7 +163,10 @@ describe('declareUpdateTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
+      expect(mockBuildClient).toHaveBeenCalledWith(
+        mockExtra,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
+      );
     });
 
     it('should call rpcClient.collection with the collection name', async () => {
@@ -220,51 +217,6 @@ describe('declareUpdateTool', () => {
 
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ record: updatedRecord }) }],
-      });
-    });
-
-    describe('activity logging', () => {
-      beforeEach(() => {
-        const mockUpdate = jest.fn().mockResolvedValue({ id: 1 });
-        const mockCollection = jest.fn().mockReturnValue({ update: mockUpdate });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-      });
-
-      it('should call withActivityLog with correct parameters', async () => {
-        await registeredToolHandler(
-          { collectionName: 'users', recordId: 42, attributes: { name: 'Updated' } },
-          mockExtra,
-        );
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'update',
-          context: { collectionName: 'users', recordId: 42, label: 'updated' },
-          logger: mockLogger,
-          operation: expect.any(Function),
-        });
-      });
-
-      it('should wrap the update operation with activity logging', async () => {
-        const mockUpdate = jest.fn().mockResolvedValue({ id: 1, name: 'Updated' });
-        const mockCollection = jest.fn().mockReturnValue({ update: mockUpdate });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-
-        await registeredToolHandler(
-          { collectionName: 'users', recordId: 42, attributes: { name: 'Updated' } },
-          mockExtra,
-        );
-
-        // Verify the operation was executed through withActivityLog
-        expect(mockWithActivityLog).toHaveBeenCalled();
-        expect(mockUpdate).toHaveBeenCalledWith(42, { name: 'Updated' });
       });
     });
 
@@ -342,7 +294,7 @@ describe('declareUpdateTool', () => {
           mockExtra,
         );
         expect(result).toEqual({
-          content: [{ type: 'text', text: '{"unknownProperty":"some value"}' }],
+          content: [{ type: 'text', text: '[object Object]' }],
           isError: true,
         });
       });

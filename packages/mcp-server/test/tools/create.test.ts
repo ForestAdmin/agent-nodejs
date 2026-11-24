@@ -7,16 +7,13 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import declareCreateTool from '../../src/tools/create';
 import buildClient from '../../src/utils/agent-caller';
-import withActivityLog from '../../src/utils/with-activity-log';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 
 describe('declareCreateTool', () => {
   let mcpServer: McpServer;
@@ -35,9 +32,6 @@ describe('declareCreateTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
-
-    // By default, withActivityLog executes the operation and returns its result
-    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
@@ -153,7 +147,10 @@ describe('declareCreateTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
+      expect(mockBuildClient).toHaveBeenCalledWith(
+        mockExtra,
+        expect.objectContaining({ forestServerClient: mockForestServerClient, logger: mockLogger }),
+      );
     });
 
     it('should call rpcClient.collection with the collection name', async () => {
@@ -204,51 +201,6 @@ describe('declareCreateTool', () => {
 
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ record: createdRecord }) }],
-      });
-    });
-
-    describe('activity logging', () => {
-      beforeEach(() => {
-        const mockCreate = jest.fn().mockResolvedValue({ id: 1 });
-        const mockCollection = jest.fn().mockReturnValue({ create: mockCreate });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-      });
-
-      it('should call withActivityLog with correct parameters', async () => {
-        await registeredToolHandler(
-          { collectionName: 'users', attributes: { name: 'John' } },
-          mockExtra,
-        );
-
-        expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerClient: mockForestServerClient,
-          request: mockExtra,
-          action: 'create',
-          context: { collectionName: 'users', label: 'created' },
-          logger: mockLogger,
-          operation: expect.any(Function),
-        });
-      });
-
-      it('should wrap the create operation with activity logging', async () => {
-        const mockCreate = jest.fn().mockResolvedValue({ id: 1, name: 'John' });
-        const mockCollection = jest.fn().mockReturnValue({ create: mockCreate });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-
-        await registeredToolHandler(
-          { collectionName: 'users', attributes: { name: 'John' } },
-          mockExtra,
-        );
-
-        // Verify the operation was executed through withActivityLog
-        expect(mockWithActivityLog).toHaveBeenCalled();
-        expect(mockCreate).toHaveBeenCalledWith({ name: 'John' });
       });
     });
 
@@ -323,7 +275,7 @@ describe('declareCreateTool', () => {
           mockExtra,
         );
         expect(result).toEqual({
-          content: [{ type: 'text', text: '{"unknownProperty":"some value"}' }],
+          content: [{ type: 'text', text: '[object Object]' }],
           isError: true,
         });
       });

@@ -4,8 +4,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import buildClient from '../utils/agent-caller';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 interface DissociateArgument {
   collectionName: string;
@@ -29,7 +29,7 @@ function createDissociateArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareDissociateTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames } = ctx;
+  const { logger, collectionNames } = ctx;
   const argumentShape = createDissociateArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -42,38 +42,29 @@ export default function declareDissociateTool(mcpServer: McpServer, ctx: ToolCon
       inputSchema: argumentShape,
     },
     async (options: DissociateArgument, extra) => {
-      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
+      const { rpcClient } = buildClient(extra, ctx);
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'update',
-        context: {
-          collectionName: options.collectionName,
-          recordId: options.parentRecordId,
-          label: `dissociate "${options.relationName}" from ${options.targetRecordIds.length} record(s)`,
-        },
-        logger,
-        operation: async () => {
-          const relation = rpcClient
-            .collection(options.collectionName)
-            .relation(options.relationName, options.parentRecordId);
+      try {
+        const relation = rpcClient
+          .collection(options.collectionName)
+          .relation(options.relationName, options.parentRecordId);
 
-          await relation.dissociate(options.targetRecordIds);
+        await relation.dissociate(options.targetRecordIds);
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  message: `Successfully dissociated ${options.targetRecordIds.length} record(s) from ${options.collectionName}/${options.parentRecordId} through relation "${options.relationName}"`,
-                }),
-              },
-            ],
-          };
-        },
-      });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                message: `Successfully dissociated ${options.targetRecordIds.length} record(s) from ${options.collectionName}/${options.parentRecordId} through relation "${options.relationName}"`,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        throw await toToolError(error, { logger });
+      }
     },
     logger,
   );

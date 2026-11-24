@@ -17,7 +17,6 @@ export { MCP_PATHS, isMcpRoute, makeIsMcpRoute, normalizeMountPath } from './mcp
 export { ForestServerClientImpl, createForestServerClient } from './http-client';
 export type {
   ForestServerClient,
-  ActivityLogsServiceInterface,
   SchemaServiceInterface,
   CreateForestServerClientOptions,
 } from './http-client';

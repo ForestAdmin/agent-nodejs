@@ -5,10 +5,20 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { ForbiddenError, HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
+import {
+  ActivityLogsService,
+  ForbiddenError,
+  HttpError,
+  NotFoundError,
+} from '@forestadmin/forestadmin-client';
 
 import declareTriggerWorkflowTool from '../../src/tools/trigger-workflow';
 import createMockForestServerClient from '../helpers/forest-server-client';
+
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.requireActual('@forestadmin/forestadmin-client'),
+  ActivityLogsService: jest.fn(),
+}));
 
 const mockLogger: Logger = jest.fn();
 
@@ -17,11 +27,24 @@ describe('declareTriggerWorkflowTool', () => {
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (args: unknown, extra: unknown) => Promise<unknown>;
   let registeredToolConfig: RegisteredToolConfig;
+  let activityLogs: {
+    createMcpActivityLog: jest.Mock;
+    updateActivityLogStatus: jest.Mock;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockForestServerClient = createMockForestServerClient();
+    mockForestServerClient = createMockForestServerClient({
+      forestServerUrl: 'https://api.forestadmin.com',
+    });
+    activityLogs = {
+      createMcpActivityLog: jest
+        .fn()
+        .mockResolvedValue({ id: 'mock-log-id', attributes: { index: 'mock-index' } }),
+      updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
+    };
+    (ActivityLogsService as jest.Mock).mockImplementation(() => activityLogs);
 
     mcpServer = {
       registerTool: jest.fn((name, config, handler) => {
@@ -166,31 +189,43 @@ describe('declareTriggerWorkflowTool', () => {
     it('should record the activity log before triggering, labelled as a request', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
-      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+      expect(activityLogs.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'triggerWorkflow',
           type: 'write',
           collectionName: 'orders',
-          recordId: '42',
+          recordIds: ['42'],
           label: 'requested the workflow "Refund order" via MCP',
         }),
       );
 
-      const logOrder = mockForestServerClient.createMcpActivityLog.mock.invocationCallOrder[0];
+      const logOrder = activityLogs.createMcpActivityLog.mock.invocationCallOrder[0];
       const triggerOrder = mockForestServerClient.triggerMcpWorkflow.mock.invocationCallOrder[0];
       expect(logOrder).toBeLessThan(triggerOrder);
+    });
+
+    it('should write the activity log to the Forest server under the MCP source', async () => {
+      await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(ActivityLogsService).toHaveBeenCalledWith(expect.anything(), {
+        forestServerUrl: 'https://api.forestadmin.com',
+        headers: { 'Forest-Application-Source': 'MCP' },
+      });
+      expect(activityLogs.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ forestServerToken: 'forest-token', renderingId: '123' }),
+      );
     });
 
     it('should mark the activity log as completed after a successful trigger', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
-      expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
+      expect(activityLogs.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'completed' }),
       );
     });
 
     it('should not start the run when the pending activity log cannot be created (fail-closed)', async () => {
-      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+      activityLogs.createMcpActivityLog.mockRejectedValue(
         new Error('connect ECONNREFUSED 10.0.0.4:5432'),
       );
 
@@ -209,7 +244,7 @@ describe('declareTriggerWorkflowTool', () => {
     });
 
     it('should not start the run when the audit store returns a 200 with a null id (fail-closed)', async () => {
-      mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+      activityLogs.createMcpActivityLog.mockResolvedValue({
         id: null,
         attributes: {},
       } as never);
@@ -223,7 +258,7 @@ describe('declareTriggerWorkflowTool', () => {
         isError: true,
       });
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
-      expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
+      expect(activityLogs.updateActivityLogStatus).not.toHaveBeenCalled();
     });
 
     it('should return an error result when the auth context is missing the token', async () => {
@@ -258,7 +293,7 @@ describe('declareTriggerWorkflowTool', () => {
         isError: true,
       });
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
-      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(activityLogs.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
     it('should reject a recordId longer than the server column, before any call', async () => {
@@ -334,7 +369,7 @@ describe('declareTriggerWorkflowTool', () => {
         'Error',
         expect.stringContaining('connect ECONNREFUSED 10.1.2.3:3310'),
       );
-      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(activityLogs.createMcpActivityLog).not.toHaveBeenCalled();
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
     });
 
@@ -394,7 +429,7 @@ describe('declareTriggerWorkflowTool', () => {
       expect((result as { content: [{ text: string }] }).content[0].text).toContain('retry later');
     });
 
-    // The lookup's guard is one call early: the start itself goes through withActivityLog, which
+    // The lookup's guard is one call early: the start itself goes through the activity log, which
     // rethrows the parsed message as-is.
     it('should keep transport detail out of the model when the trigger call itself fails', async () => {
       mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
@@ -415,7 +450,7 @@ describe('declareTriggerWorkflowTool', () => {
         'Failed to trigger workflow "wf-1": connect ECONNREFUSED 10.0.4.17:3310',
       );
       // The audit row was written before the trigger and must still be closed out.
-      expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
+      expect(activityLogs.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
     });
@@ -437,7 +472,7 @@ describe('declareTriggerWorkflowTool', () => {
         isError: true,
       });
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
-      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(activityLogs.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
     it('should reject a workflow whose collection is unavailable without auditing or triggering', async () => {
@@ -461,9 +496,9 @@ describe('declareTriggerWorkflowTool', () => {
         ],
         isError: true,
       });
-      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(activityLogs.createMcpActivityLog).not.toHaveBeenCalled();
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
-      expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
+      expect(activityLogs.updateActivityLogStatus).not.toHaveBeenCalled();
     });
 
     it('should map a trigger-time 404 race to the friendly error and mark the log failed', async () => {
@@ -479,15 +514,15 @@ describe('declareTriggerWorkflowTool', () => {
         ],
         isError: true,
       });
-      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+      expect(activityLogs.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'triggerWorkflow',
           collectionName: 'orders',
-          recordId: '42',
+          recordIds: ['42'],
           label: 'requested the workflow "Refund order" via MCP',
         }),
       );
-      expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
+      expect(activityLogs.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
     });
@@ -508,15 +543,15 @@ describe('declareTriggerWorkflowTool', () => {
         ],
         isError: true,
       });
-      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+      expect(activityLogs.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'triggerWorkflow',
           collectionName: 'orders',
-          recordId: '42',
+          recordIds: ['42'],
           label: 'requested the workflow "Refund order" via MCP',
         }),
       );
-      expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
+      expect(activityLogs.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
     });

@@ -1,4 +1,4 @@
-import ActivityLogDrainer from '../../src/activity-log/activity-log-drainer';
+import { ActivityLogDrainer } from '../../src/activity-log/activity-log-drainer';
 
 const stalled = () => new Promise<void>(() => {});
 

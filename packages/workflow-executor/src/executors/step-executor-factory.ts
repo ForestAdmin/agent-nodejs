@@ -1,5 +1,4 @@
 import type { PerRecordSource } from './per-record-step-executor';
-import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { AiModelPort } from '../ports/ai-model-port';
 import type { Logger } from '../ports/logger-port';
@@ -26,7 +25,10 @@ import type {
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
 } from '../types/validated/step-definition';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
+
+import { ActivityLogSource } from '@forestadmin/agent-client';
 
 import {
   ApprovalOutcomesPerRecordError,
@@ -42,7 +44,6 @@ import {
   toErrorOutcome,
 } from '../errors';
 import SchemaResolver from '../schema-resolver';
-import ActivityLog from './activity-log';
 import AgentWithLog from './agent-with-log';
 import { findStepExecution } from './base-step-executor';
 import CallRecordRunStore from './call-record-run-store';
@@ -176,6 +177,7 @@ export interface StepContextConfig {
   runStore: RunStore;
   schemaCache: SchemaCache;
   logger: Logger;
+  forestServerUrl: string;
   stepTimeoutS?: number;
   aiInvokeTimeoutS?: number;
   runControl?: RunControl;
@@ -185,7 +187,6 @@ export default class StepExecutorFactory {
   static async create(
     step: AvailableStepExecution,
     contextConfig: StepContextConfig,
-    activityLogPort: ActivityLogPort,
     fetchRemoteTools: (mcpServerId: string, userId: number) => Promise<FetchRemoteToolsResult>,
     incomingPendingData?: unknown,
     forestServerToken?: string,
@@ -194,7 +195,6 @@ export default class StepExecutorFactory {
       const builtContext = StepExecutorFactory.buildContext(
         step,
         contextConfig,
-        activityLogPort,
         incomingPendingData,
         forestServerToken,
       );
@@ -313,7 +313,6 @@ export default class StepExecutorFactory {
   private static buildContext(
     step: AvailableStepExecution,
     cfg: StepContextConfig,
-    activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,
     forestServerToken?: string,
   ): ExecutionContext {
@@ -323,11 +322,25 @@ export default class StepExecutorFactory {
       step.runId,
       step.user.renderingId,
     );
-    const activityLog = new ActivityLog(
-      activityLogPort,
-      step.user,
-      StepExecutorFactory.toActivityLogWorkflow(step),
-    );
+    const activityLog: ActivityLogConfig = {
+      forestServer: {
+        serverUrl: cfg.forestServerUrl,
+        serverToken: () => {
+          if (!forestServerToken) throw new Error('The run carries no Forest server token');
+
+          return forestServerToken;
+        },
+        renderingId: step.user.renderingId,
+      },
+      activityLog: {
+        source: ActivityLogSource.WorkflowExecutor,
+        logger: cfg.logger,
+        workflow: StepExecutorFactory.toActivityLogWorkflow(step),
+        collectionIdOf: async collectionName =>
+          (await schemaResolver.resolve(collectionName)).collectionId,
+        retryCreation: true,
+      },
+    };
 
     return {
       runId: step.runId,

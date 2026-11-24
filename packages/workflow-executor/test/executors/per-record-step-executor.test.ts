@@ -1,6 +1,5 @@
 import type { RunControl, StepContextConfig } from '../../src/executors/step-executor-factory';
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
-import type { AgentPort } from '../../src/ports/agent-port';
+import type { AgentAudit, AgentPort } from '../../src/ports/agent-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { AvailableStepExecution } from '../../src/types/execution-context';
 import type { StepExecutionData, StepIteration } from '../../src/types/step-execution-data';
@@ -120,15 +119,23 @@ function makeAgentPort(overrides: Partial<AgentPort> = {}): jest.Mocked<AgentPor
       values: { pep: id[0] === 2, note: `note-of-${id[0]}`, city: `city-of-${id[0]}` },
     })),
     updateRecord: jest.fn(
-      async ({
-        collection,
-        id,
-        values,
-      }: {
-        collection: string;
-        id: unknown[];
-        values: Record<string, unknown>;
-      }) => ({ collectionName: collection, recordId: id, values }),
+      async (
+        {
+          collection,
+          id,
+          values,
+        }: {
+          collection: string;
+          id: unknown[];
+          values: Record<string, unknown>;
+        },
+        _user: unknown,
+        audit?: AgentAudit,
+      ) => {
+        await audit?.call?.beforeCall?.();
+
+        return { collectionName: collection, recordId: id, values };
+      },
     ),
     getRelatedData: jest.fn().mockResolvedValue([]),
     getSingleRelatedData: jest.fn().mockResolvedValue(null),
@@ -144,12 +151,6 @@ function makeAgentPort(overrides: Partial<AgentPort> = {}): jest.Mocked<AgentPor
 function makeModel(invoke = jest.fn()) {
   return { invoke, bindTools: jest.fn().mockReturnValue({ invoke }) };
 }
-
-const activityLogPort: ActivityLogPort = {
-  createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-  markSucceeded: jest.fn().mockResolvedValue(undefined),
-  markFailed: jest.fn().mockResolvedValue(undefined),
-};
 
 function makeRunControl(...answers: Array<'continue' | 'stop' | 'yield'>): jest.Mocked<RunControl> {
   const beforeRecord = jest.fn();
@@ -173,7 +174,7 @@ const USER = {
 
 // Which record each agent call read or wrote, and as whom.
 function recordsCalled(
-  spy: jest.MockInstance<unknown, [{ id: unknown }, unknown]>,
+  spy: jest.MockInstance<unknown, [{ id: unknown }, unknown, AgentAudit?]>,
 ): Array<{ id: unknown; user: unknown }> {
   return spy.mock.calls.map(([query, user]) => ({ id: query.id, user }));
 }
@@ -246,6 +247,7 @@ async function setup({
     runStore,
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
+    forestServerUrl: 'https://api.forestadmin.com',
     stepTimeoutS,
     runControl,
   };
@@ -254,7 +256,6 @@ async function setup({
     const executor = await StepExecutorFactory.create(
       makeStep(stepDefinition, { previousSteps, ...(callScope && { callScope }) }),
       contextConfig,
-      activityLogPort,
       jest.fn(),
       incomingPendingData,
     );
@@ -495,6 +496,7 @@ describe('a step running once per record', () => {
       expect(harness.agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'ubos', id: [1], values: { note: 'checked' } },
         USER,
+        expect.anything(),
       );
       const { iterations } = await harness.row();
       expect(iterations?.[0].executionResult).toStrictEqual({ updatedValues: { note: 'checked' } });
@@ -521,6 +523,7 @@ describe('a step running once per record', () => {
       expect(harness.agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'ubos', id: [1], values: { note: 'checked' } },
         USER,
+        expect.anything(),
       );
       const { iterations } = await harness.row();
       expect(iterations?.[0].executionResult).toStrictEqual({ updatedValues: { note: 'checked' } });
@@ -856,14 +859,28 @@ describe('a step running once per record', () => {
       try {
         let releaseAuditLog: () => void = () => {};
 
-        (activityLogPort.createPending as jest.Mock).mockImplementationOnce(
-          () =>
-            new Promise(resolve => {
-              releaseAuditLog = () => resolve({ id: 'log-late', index: '0' });
-            }),
-        );
-        const { run, agentPort } = await setup({
+        const updated: unknown[] = [];
+        const agentPort = makeAgentPort();
+
+        const runUpdate = async (query: { id: (string | number)[] }, audit?: AgentAudit) => {
+          await audit?.call?.beforeCall?.();
+          updated.push(query.id);
+
+          return { collectionName: 'ubos', recordId: query.id, values: {} };
+        };
+
+        agentPort.updateRecord
+          .mockImplementationOnce(async (query, _user, audit) => {
+            await new Promise<void>(resolve => {
+              releaseAuditLog = resolve;
+            });
+
+            return runUpdate(query, audit);
+          })
+          .mockImplementation(async (query, _user, audit) => runUpdate(query, audit));
+        const { run } = await setup({
           stepDefinition: updateUbos(StepExecutionMode.FullyAutomated),
+          agentPort,
           stepTimeoutS: 1,
         });
 
@@ -873,10 +890,7 @@ describe('a step running once per record', () => {
         releaseAuditLog();
         await jest.advanceTimersByTimeAsync(10);
 
-        expect(agentPort.updateRecord.mock.calls.map(([args]) => args.id)).toStrictEqual([
-          [2],
-          [3],
-        ]);
+        expect(updated).toStrictEqual([[2], [3]]);
       } finally {
         jest.useRealTimers();
       }
@@ -887,7 +901,11 @@ describe('a step running once per record', () => {
 
       try {
         const agentPort = makeAgentPort();
-        agentPort.updateRecord.mockImplementationOnce(() => new Promise(() => {}));
+        agentPort.updateRecord.mockImplementationOnce(async (_query, _user, audit) => {
+          await audit?.call?.beforeCall?.();
+
+          return new Promise(() => {});
+        });
         const { run, row, logger } = await setup({
           stepDefinition: updateUbos(StepExecutionMode.FullyAutomated),
           agentPort,
@@ -1173,6 +1191,7 @@ describe('a step running once per record', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'ubos', id: [2], fields: ['pep'] },
         USER,
+        expect.anything(),
       );
       expect(runControl.beforeRecord).not.toHaveBeenCalled();
     });
@@ -1225,6 +1244,7 @@ describe('a step running once per record', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'addresses', id: [20], fields: ['city'] },
         USER,
+        expect.anything(),
       );
     });
   });

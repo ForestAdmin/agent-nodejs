@@ -1,12 +1,12 @@
-import { BffHttpError } from '../../src/http/bff-http-error';
+import { ActivityLogBlockedError } from '@forestadmin/agent-client';
+
 import {
   actionNotAllowed,
-  actionOutcomeUnknown,
+  auditErrorOf,
   auditNotAuthorized,
   auditUnavailable,
   collectionNotAllowed,
   invalidRequest,
-  isActionOutcomeUnknown,
   mappingError,
   openapiDisabled,
   relationNotAllowed,
@@ -17,6 +17,7 @@ import {
   unknownRelation,
   unsupportedActionResult,
 } from '../../src/http/bff-local-errors';
+import { planFeatureMissing } from '../../src/oauth/oauth-error';
 
 describe('bff local errors', () => {
   it.each([
@@ -45,18 +46,6 @@ describe('bff local errors', () => {
     });
   });
 
-  it('recognizes the execute timeout it built as an unknown outcome', () => {
-    expect(isActionOutcomeUnknown(actionOutcomeUnknown())).toBe(true);
-  });
-
-  it('does not take an agent error carrying outcome unknown in its details for one', () => {
-    const agentError = new BffHttpError(403, 'forbidden', 'Denied', {
-      details: { outcome: 'unknown' },
-    });
-
-    expect(isActionOutcomeUnknown(agentError)).toBe(false);
-  });
-
   it('carries details on invalidRequest', () => {
     expect(invalidRequest('bad', { field: 'x' })).toMatchObject({
       type: 'invalid_request',
@@ -64,4 +53,41 @@ describe('bff local errors', () => {
       details: { field: 'x' },
     });
   });
+});
+
+describe('auditErrorOf', () => {
+  it('should answer audit_not_authorized when the audit store refused the identity', () => {
+    expect(auditErrorOf(new ActivityLogBlockedError('notAuthorized'))).toMatchObject({
+      status: 403,
+      type: 'audit_not_authorized',
+    });
+  });
+
+  it('should answer the error the edge raised while resolving its credential', () => {
+    const refusal = planFeatureMissing();
+
+    expect(auditErrorOf(new ActivityLogBlockedError('unavailable', refusal))).toBe(refusal);
+  });
+
+  it('should answer audit_unavailable without a retry hint when the endpoint is absent', () => {
+    expect(auditErrorOf(new ActivityLogBlockedError('endpointAbsent'))).toMatchObject({
+      status: 503,
+      type: 'audit_unavailable',
+      retryAfter: undefined,
+      message:
+        'The Forest server does not expose the endpoint the activity log is written through, so ' +
+        'the operation was not performed',
+    });
+  });
+
+  it.each(['unavailable', 'dropped'] as const)(
+    'should answer audit_unavailable with a retry hint when the log was %s',
+    reason => {
+      expect(auditErrorOf(new ActivityLogBlockedError(reason, new Error('down')))).toMatchObject({
+        status: 503,
+        type: 'audit_unavailable',
+        retryAfter: 5,
+      });
+    },
+  );
 });
