@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.75.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.74.0...@forestadmin/datasource-customizer@1.75.0) (2026-11-24)
+
+
+### Features
+
+* add SA field form isPending option ([#2086](https://github.com/ForestAdmin/agent-nodejs/issues/2086)) ([f6ba9d5](https://github.com/ForestAdmin/agent-nodejs/commit/f6ba9d52a1c740187c0fa65051cc4cdc63310687))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+
 # @forestadmin/datasource-customizer [1.74.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.73.3...@forestadmin/datasource-customizer@1.74.0) (2026-11-18)
 
 

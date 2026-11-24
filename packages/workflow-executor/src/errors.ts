@@ -600,6 +600,14 @@ export class McpToolInvocationError extends WorkflowExecutorError {
   }
 }
 
+// The connector's provider refused its credentials: the provider's message tells an admin what to fix.
+export class McpCredentialsRefusedError extends WorkflowConfigurationError {
+  constructor(toolName: string, cause: Error) {
+    super(`MCP tool "${toolName}" invocation failed: ${cause.message}`, cause.message);
+    this.cause = cause;
+  }
+}
+
 export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);
@@ -788,6 +796,15 @@ export class MissingConditionQuantifierError extends WorkflowConfigurationError 
     super(
       `Condition on "${fieldName}" for option "${option}" reads per-record data without a quantifier`,
       `The option "${option}" reads "${fieldName}" from a step that runs once per record without saying whether any, every or no record must match. Reconfigure this decision step.`,
+    );
+  }
+}
+
+export class PerRecordSubWorkflowEndConditionError extends WorkflowConfigurationError {
+  constructor(option: string, sourceStepId: string) {
+    super(
+      `Condition for option "${option}" reads the End of Sub-workflow step "${sourceStepId}", which ran once per record`,
+      `The option "${option}" reads the End of a Sub-workflow step that runs once for each record, so it reached several Ends. A decision cannot read them yet. Reconfigure this decision step.`,
     );
   }
 }

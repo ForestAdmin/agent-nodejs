@@ -1,3 +1,13 @@
+## @forestadmin/datasource-dynamodb [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dynamodb@1.1.0...@forestadmin/datasource-dynamodb@1.1.1) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+
 # @forestadmin/datasource-dynamodb [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dynamodb@1.0.1...@forestadmin/datasource-dynamodb@1.1.0) (2026-11-18)
 
 

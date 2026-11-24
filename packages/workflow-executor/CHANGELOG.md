@@ -1,3 +1,70 @@
+## @forestadmin/workflow-executor [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.0...@forestadmin/workflow-executor@1.42.1) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.5
+* **@forestadmin/ai-proxy:** upgraded to 1.17.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.47.0
+
+# @forestadmin/workflow-executor [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.41.0...@forestadmin/workflow-executor@1.42.0) (2026-11-24)
+
+
+### Features
+
+* **workflow-executor:** use a sub-workflow's end as a decision condition source ([#2070](https://github.com/ForestAdmin/agent-nodejs/issues/2070)) ([64055fe](https://github.com/ForestAdmin/agent-nodejs/commit/64055fef8eba5369024df29c71ecdfc651fd65be))
+
+# @forestadmin/workflow-executor [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.2...@forestadmin/workflow-executor@1.41.0) (2026-11-20)
+
+
+### Features
+
+* **workflow-executor:** let the AI draft Guidance Task answers as rich text ([#2081](https://github.com/ForestAdmin/agent-nodejs/issues/2081)) ([ae05ede](https://github.com/ForestAdmin/agent-nodejs/commit/ae05ede98214c2ee26d3a48609108ffc2456c906))
+
+## @forestadmin/workflow-executor [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.1...@forestadmin/workflow-executor@1.40.2) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.46.0
+
+## @forestadmin/workflow-executor [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.0...@forestadmin/workflow-executor@1.40.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **workflow-executor:** replay an MCP step's tool calls as native tool messages ([#2091](https://github.com/ForestAdmin/agent-nodejs/issues/2091)) ([fb12518](https://github.com/ForestAdmin/agent-nodejs/commit/fb125181a6104c67ce38a8eb1b9b40578d25d778))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.17.1
+
+# @forestadmin/workflow-executor [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.39.0...@forestadmin/workflow-executor@1.40.0) (2026-11-19)
+
+
+### Features
+
+* **ai-proxy:** let the Zendesk connector authenticate with an OAuth client ([#2072](https://github.com/ForestAdmin/agent-nodejs/issues/2072)) ([e530c73](https://github.com/ForestAdmin/agent-nodejs/commit/e530c739110f30f853d73442ccb3f5acd3688ef5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.17.0
+
 # @forestadmin/workflow-executor [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.38.0...@forestadmin/workflow-executor@1.39.0) (2026-11-19)
 
 

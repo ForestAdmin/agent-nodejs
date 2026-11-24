@@ -1,4 +1,4 @@
-import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { DataSourceDatabase, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type ForestSchema = {
   collections: ForestServerCollection[];
@@ -9,6 +9,7 @@ export type ForestSchema = {
     stack: {
       engine: string;
       engine_version: string;
+      databases?: DataSourceDatabase[];
     };
   };
 };
@@ -45,6 +46,7 @@ export type ForestServerAction = {
   layout?: ForestServerActionFormLayoutElement[];
   description?: string;
   submitButtonLabel?: string;
+  pendingRefreshInterval?: number;
   hooks: {
     load: boolean;
     change: Array<unknown>;
@@ -75,6 +77,7 @@ export type ForestServerActionFieldCommon<
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
+  isPending?: boolean;
   enums: null | string[];
   widgetEdit: TWidgetEdit;
 };

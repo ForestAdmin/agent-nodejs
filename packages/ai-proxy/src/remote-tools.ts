@@ -4,7 +4,12 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
-import { AIBadRequestError, AIToolNotFoundError, AIToolUnprocessableError } from './errors';
+import {
+  AIBadRequestError,
+  AIToolCredentialsRefusedError,
+  AIToolNotFoundError,
+  AIToolUnprocessableError,
+} from './errors';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
 
@@ -51,6 +56,8 @@ export class RemoteTools {
     try {
       return (await matches[0].base.invoke(messages)) as unknown;
     } catch (error) {
+      if (error instanceof AIToolCredentialsRefusedError) throw error;
+
       throw new AIToolUnprocessableError(
         `Error while calling tool ${toolName}: ${(error as Error).message}`,
       );

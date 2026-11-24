@@ -16,7 +16,10 @@ Write the response the operator would type, using the step instructions and the 
 - Answer the instructions directly; do not narrate what you are doing or address the operator.
 - Keep a reasonable length: a few sentences unless the instructions clearly require more.
 - Use only facts available in the context — never invent names, dates, amounts or identifiers.
-- Plain text only (no markdown headings or code blocks).`;
+- Format the response as HTML when it helps the reader, and always when the instructions ask for formatting.
+- Wrap every paragraph in <p>, and use only <strong>, <em>, <s>, <a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>.
+- When the instructions ask for plain text or no formatting, write plain text with no HTML tag at all.
+- Never use markdown or code blocks.`;
 
 // The trigger record grounds the AI; cap field count and value length to keep the prompt bounded.
 const MAX_TRIGGER_RECORD_FIELDS = 40;
@@ -185,9 +188,13 @@ export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepD
 
     const tool = new DynamicStructuredTool({
       name: 'submit_guidance_response',
-      description: 'Submit the free-text response for this workflow step.',
+      description: 'Submit the response for this workflow step.',
       schema: z.object({
-        response: z.string().describe('The response text. Plain text, reasonable length.'),
+        response: z
+          .string()
+          .describe(
+            'The response as HTML with the allowed tags, or plain text when the instructions forbid formatting. Reasonable length.',
+          ),
       }),
       func: undefined,
     });

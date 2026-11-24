@@ -13,14 +13,17 @@ import type {
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import {
+  AIMessage,
   DynamicStructuredTool,
   HumanMessage,
   SystemMessage,
+  ToolMessage,
   isMcpAuthError,
 } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import {
+  McpCredentialsRefusedError,
   McpToolCallLimitError,
   McpToolInvocationError,
   McpToolNotFoundError,
@@ -35,6 +38,14 @@ import StepExecutionFormatters from './summary/step-execution-formatters';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MAX_TOOL_CALLS = 10;
+
+const EMPTY_TOOL_RESULT = 'The tool returned no content.';
+
+// Matched by name: the tool may come from another copy of ai-proxy than the one imported here.
+const toInvocationError = (toolName: string, cause: unknown) =>
+  cause instanceof Error && cause.name === 'AIToolCredentialsRefusedError'
+    ? new McpCredentialsRefusedError(toolName, cause)
+    : new McpToolInvocationError(toolName, cause);
 
 const COMPLETE_STEP_TOOL = new DynamicStructuredTool({
   name: 'complete-step',
@@ -284,7 +295,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       return await tool.base.invoke(target.input);
     } catch (cause) {
       if (!this.reloadWithFreshAuth || !isMcpAuthError(cause)) {
-        throw new McpToolInvocationError(target.name, cause);
+        throw toInvocationError(target.name, cause);
       }
 
       let refreshedTools: RemoteTool[];
@@ -320,7 +331,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
           throw new OAuthReauthRequiredError(this.context.stepDefinition.mcpServerId);
         }
 
-        throw new McpToolInvocationError(target.name, retryCause);
+        throw toInvocationError(target.name, retryCause);
       }
     }
   }
@@ -333,7 +344,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(MCP_TASK_SYSTEM_PROMPT),
-      new HumanMessage(this.buildRequest(toolCalls)),
+      new HumanMessage(this.buildRequest()),
+      ...McpStepExecutor.replayToolCalls(toolCalls),
     ];
 
     const { toolName, args } = await this.invokeWithTools(messages, [
@@ -351,15 +363,23 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     return { name: toolName, sourceId: selectedTool.sourceId, input: args };
   }
 
-  private buildRequest(toolCalls: McpExecutedToolCall[]): string {
-    const request = `**Request**: ${
-      this.context.stepDefinition.prompt ?? 'Execute the relevant tool.'
-    }`;
-    if (!toolCalls.length) return request;
+  private buildRequest(): string {
+    return `**Request**: ${this.context.stepDefinition.prompt ?? 'Execute the relevant tool.'}`;
+  }
 
-    return `${request}\n\n**Tool calls already made in this step** (oldest first):\n${StepExecutionFormatters.formatMcpToolCalls(
-      toolCalls,
-    )}`;
+  // Listed as text under the request, gpt-6-luna read the request last and called the same tool
+  // again until the call limit. Replayed as the model's own tool calls, each one reads as answered.
+  private static replayToolCalls(toolCalls: McpExecutedToolCall[]): Array<AIMessage | ToolMessage> {
+    return toolCalls.flatMap(({ name, input, result }, index) => {
+      const id = `call_${index}`;
+      const text = StepExecutionFormatters.formatToolResult(result);
+
+      return [
+        new AIMessage({ content: '', tool_calls: [{ id, name, args: input, type: 'tool_call' }] }),
+        // A blank result reads as nothing; the sentence tells the model the call ran and returned nothing.
+        new ToolMessage({ tool_call_id: id, content: text.trim() ? text : EMPTY_TOOL_RESULT }),
+      ];
+    });
   }
 
   // Tools are pre-scoped to step.mcpServerId upstream. An empty list means either no config

@@ -762,6 +762,30 @@ describe('ChartRoute', () => {
         );
       });
 
+      describe('when the aggregation return no data', () => {
+        test('should return an empty list as value', async () => {
+          jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([]);
+
+          const chart = new Chart(services, options, dataSource, 'books');
+          const context = createMockContext({
+            requestBody: {
+              type: 'Line',
+              aggregator: 'Count',
+              sourceCollectionName: 'books',
+              groupByFieldName: 'publication',
+              timeRange: 'Week',
+            },
+            ...defaultContext,
+          });
+
+          await chart.handleChart(context);
+
+          expect(context.response.body).toMatchObject({
+            data: { attributes: { value: [] }, type: 'stats' },
+          });
+        });
+      });
+
       describe('when using weekly format', () => {
         describe('when the year has 53 iso weeks', () => {
           test('it should format the label properly', async () => {

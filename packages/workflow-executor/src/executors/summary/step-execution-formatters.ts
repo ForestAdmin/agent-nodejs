@@ -20,6 +20,8 @@ function formatToolResult(result: unknown): string {
 }
 
 export default class StepExecutionFormatters {
+  static formatToolResult = formatToolResult;
+
   // Returns null when no custom format is defined for the step type or when execution data
   // doesn't satisfy formatter preconditions — caller falls back to generic Input:/Output:.
   static format(execution: StepExecutionData): string | null {

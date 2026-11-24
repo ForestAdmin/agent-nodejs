@@ -93,6 +93,13 @@ export const ApprovalRequestReviewSchema = z
   .strict();
 export type ApprovalRequestReview = z.infer<typeof ApprovalRequestReviewSchema>;
 
+// A Sub-workflow step run once per record reached one End per record: none of them is its End.
+export const SubWorkflowEndSchema = z.union([
+  z.object({ stepId: z.string().min(1), endStepId: z.string().min(1) }).strict(),
+  z.object({ stepId: z.string().min(1), perRecord: z.literal(true) }).strict(),
+]);
+export type SubWorkflowEnd = z.infer<typeof SubWorkflowEndSchema>;
+
 export const AvailableStepExecutionSchema = z
   .object({
     runId: z.string().min(1),
@@ -109,6 +116,7 @@ export const AvailableStepExecutionSchema = z
     // fires on a mapper bug.
     timezone: z.string().refine(IANAZone.isValidZone),
     callScope: CallScopeSchema.optional(),
+    subWorkflowEnds: z.array(SubWorkflowEndSchema).optional(),
     // The step still carries the error of its last report: a success or a pause clears it.
     carriesError: z.literal(true).optional(),
     // Absent from an orchestrator that predates it; the run's activity logs then carry no workflow.

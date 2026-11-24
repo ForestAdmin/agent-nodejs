@@ -6,6 +6,7 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 import type { McpStepDefinition } from '../../src/types/validated/step-definition';
 
+import { AIToolCredentialsRefusedError } from '@forestadmin/ai-proxy/src/errors';
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { OAuthReauthRequiredError, RunStorePortError, StepStateError } from '../../src/errors';
@@ -115,10 +116,29 @@ function makeEndlessModel(toolName: string, toolArgs: Record<string, unknown>) {
   return { model: model as unknown as ExecutionContext['model'], invoke };
 }
 
-function requestSentOnDecision(modelInvoke: jest.Mock, decision: number): string {
-  const messages = modelInvoke.mock.calls[decision][0] as Array<{ content: string }>;
+type SentMessage = {
+  getType: () => string;
+  content: unknown;
+  tool_calls?: Array<{ id?: string; name: string; args: unknown }>;
+  tool_call_id?: string;
+};
 
-  return messages[messages.length - 1].content;
+// The request and every message after it, as the AI received them on that decision.
+function conversationSentOnDecision(modelInvoke: jest.Mock, decision: number) {
+  const messages = modelInvoke.mock.calls[decision][0] as SentMessage[];
+  const request = messages.findIndex(message => message.getType() === 'human');
+
+  return messages.slice(request).map(message => {
+    if (message.getType() === 'ai') {
+      return { ai: message.tool_calls?.map(({ id, name, args }) => ({ id, name, args })) };
+    }
+
+    if (message.getType() === 'tool') {
+      return { tool: { id: message.tool_call_id, content: message.content } };
+    }
+
+    return { [message.getType()]: message.content };
+  });
 }
 
 function makeActivityLogPort() {
@@ -281,11 +301,21 @@ describe('McpStepExecutor', () => {
       expect(searchInvoke).toHaveBeenCalledWith({ query: 'targets' });
       expect(getInvoke).toHaveBeenCalledWith({ pageId: 'p1' });
       expect(modelInvoke).toHaveBeenCalledTimes(3);
-      expect(requestSentOnDecision(modelInvoke, 0)).not.toContain('search_pages');
-      expect(requestSentOnDecision(modelInvoke, 1)).toContain('search_pages');
-      expect(requestSentOnDecision(modelInvoke, 1)).toContain('{"query":"targets"}');
-      expect(requestSentOnDecision(modelInvoke, 1)).toContain('{"pageId":"p1"}');
-      expect(requestSentOnDecision(modelInvoke, 2)).toContain('Quarterly target: 42');
+      expect(conversationSentOnDecision(modelInvoke, 0)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+      ]);
+      expect(conversationSentOnDecision(modelInvoke, 1)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+        { ai: [{ id: 'call_0', name: 'search_pages', args: { query: 'targets' } }] },
+        { tool: { id: 'call_0', content: '{"pageId":"p1"}' } },
+      ]);
+      expect(conversationSentOnDecision(modelInvoke, 2)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+        { ai: [{ id: 'call_0', name: 'search_pages', args: { query: 'targets' } }] },
+        { tool: { id: 'call_0', content: '{"pageId":"p1"}' } },
+        { ai: [{ id: 'call_1', name: 'get_page', args: { pageId: 'p1' } }] },
+        { tool: { id: 'call_1', content: 'Quarterly target: 42' } },
+      ]);
       expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
         type: 'mcp',
         stepIndex: 0,
@@ -544,9 +574,67 @@ describe('McpStepExecutor', () => {
         new MockRemoteTool({ name: 'get_page', invoke: jest.fn().mockResolvedValue(longResult) }),
       ]).execute();
 
-      const request = requestSentOnDecision(modelInvoke, 1);
-      expect(request).toContain(`${'a'.repeat(20_000)}\n... [truncated]`);
-      expect(request).not.toContain('TAIL');
+      expect(conversationSentOnDecision(modelInvoke, 1)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+        { ai: [{ id: 'call_0', name: 'get_page', args: {} }] },
+        { tool: { id: 'call_0', content: `${'a'.repeat(20_000)}\n... [truncated]` } },
+      ]);
+    });
+
+    it.each([
+      ['empty', ''],
+      ['only whitespace', ' \n\t'],
+    ])('tells the AI the tool returned nothing when its result is %s', async (_, toolResult) => {
+      const { model, invoke: modelInvoke } = makeMockModel('archive_page', { pageId: 'p1' });
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new McpStepExecutor(context, [
+        new MockRemoteTool({
+          name: 'archive_page',
+          invoke: jest.fn().mockResolvedValue(toolResult),
+        }),
+      ]).execute();
+
+      expect(conversationSentOnDecision(modelInvoke, 1)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+        { ai: [{ id: 'call_0', name: 'archive_page', args: { pageId: 'p1' } }] },
+        { tool: { id: 'call_0', content: 'The tool returned no content.' } },
+      ]);
+    });
+
+    it('runs the same call again when the AI asks to check a result that may have changed', async () => {
+      const statusInvoke = jest
+        .fn()
+        .mockResolvedValueOnce('starting')
+        .mockResolvedValueOnce('running');
+      const { model, invoke: modelInvoke } = makeLoopModel(
+        [
+          ['get_status', { server: 'api-1' }],
+          ['get_status', { server: 'api-1' }],
+        ],
+        'The server is running.',
+      );
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'get_status', invoke: statusInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(statusInvoke).toHaveBeenNthCalledWith(2, { server: 'api-1' });
+      expect(conversationSentOnDecision(modelInvoke, 2)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+        { ai: [{ id: 'call_0', name: 'get_status', args: { server: 'api-1' } }] },
+        { tool: { id: 'call_0', content: 'starting' } },
+        { ai: [{ id: 'call_1', name: 'get_status', args: { server: 'api-1' } }] },
+        { tool: { id: 'call_1', content: 'running' } },
+      ]);
     });
   });
 
@@ -733,8 +821,13 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(getInvoke).toHaveBeenCalledWith({ pageId: 'p1' });
-      expect(requestSentOnDecision(modelInvoke, 0)).toContain('{"pageId":"p1"}');
-      expect(requestSentOnDecision(modelInvoke, 0)).toContain('page body');
+      expect(conversationSentOnDecision(modelInvoke, 0)).toEqual([
+        { human: '**Request**: Send a notification to the user' },
+        { ai: [{ id: 'call_0', name: 'search_pages', args: { query: 'q' } }] },
+        { tool: { id: 'call_0', content: '{"pageId":"p1"}' } },
+        { ai: [{ id: 'call_1', name: 'get_page', args: { pageId: 'p1' } }] },
+        { tool: { id: 'call_1', content: 'page body' } },
+      ]);
       expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
         'run-1',
         expect.objectContaining({
@@ -1459,6 +1552,31 @@ describe('McpStepExecutor', () => {
     });
   });
 
+  describe('when the connector refuses its credentials', () => {
+    it('shows the step the message telling an admin to update them', async () => {
+      const adminMessage =
+        "Zendesk refused the connector's OAuth client. An admin must update the Zendesk connector's credentials.";
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockRejectedValue(new AIToolCredentialsRefusedError(adminMessage)),
+      });
+      const { model } = makeMockModel('send_notification', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [tool]).execute();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        error: adminMessage,
+        errorKind: 'configuration',
+      });
+    });
+  });
+
   describe('selectTool AI errors', () => {
     it('returns error when AI returns a malformed tool call (MalformedToolCallError)', async () => {
       const model = {
@@ -2177,7 +2295,11 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       expect(resumed.stepOutcome.status).toBe('success');
       expect(searchInvoke).toHaveBeenCalledTimes(1);
       expect(getInvoke).toHaveBeenCalledWith({ pageId: 'p1' });
-      expect(requestSentOnDecision(resumedModelInvoke, 0)).toContain('{"pageId":"p1"}');
+      expect(conversationSentOnDecision(resumedModelInvoke, 0)).toEqual([
+        { human: `**Request**: ${stepDefinition.prompt}` },
+        { ai: [{ id: 'call_0', name: 'search_pages', args: { query: 'q' } }] },
+        { tool: { id: 'call_0', content: '{"pageId":"p1"}' } },
+      ]);
       const [finished] = (await store.getStepExecutions('run-1')) as McpStepExecutionData[];
       expect(finished.toolCalls).toEqual([
         executedCall('search_pages', { query: 'q' }, { pageId: 'p1' }),

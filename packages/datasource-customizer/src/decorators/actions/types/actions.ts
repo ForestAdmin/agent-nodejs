@@ -18,6 +18,7 @@ export interface BaseAction<
   scope: Scope;
   description?: string;
   submitButtonLabel?: string;
+  pendingRefreshInterval?: number;
   form?:
     | DynamicForm<Context>
     | ((context: Context) => Promise<DynamicForm<Context>> | DynamicForm<Context>);

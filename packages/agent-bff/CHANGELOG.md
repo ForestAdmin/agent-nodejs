@@ -1,3 +1,33 @@
+## @forestadmin/agent-bff [1.46.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.46.0...@forestadmin/agent-bff@1.46.1) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.5
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.47.0
+
+# @forestadmin/agent-bff [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.45.4...@forestadmin/agent-bff@1.46.0) (2026-11-20)
+
+
+### Features
+
+* **workflow-executor:** let the AI draft Guidance Task answers as rich text ([#2081](https://github.com/ForestAdmin/agent-nodejs/issues/2081)) ([ae05ede](https://github.com/ForestAdmin/agent-nodejs/commit/ae05ede98214c2ee26d3a48609108ffc2456c906))
+
+## @forestadmin/agent-bff [1.45.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.45.3...@forestadmin/agent-bff@1.45.4) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.46.0
+
 ## @forestadmin/agent-bff [1.45.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.45.2...@forestadmin/agent-bff@1.45.3) (2026-11-19)
 
 

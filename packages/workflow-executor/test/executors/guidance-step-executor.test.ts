@@ -228,6 +228,51 @@ describe('GuidanceStepExecutor', () => {
       });
     });
 
+    it('saves an HTML draft unchanged, so the run view shows it formatted', async () => {
+      const runStore = makeMockRunStore();
+      const draft = '<p>Dear <strong>Ms Smith</strong>,</p><ul><li>Refund sent</li></ul>';
+      const { model } = makeMockModel({ response: draft });
+
+      const executor = new GuidanceStepExecutor(
+        makeContext({
+          runStore,
+          model,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.AutomatedWithConfirmation,
+            prompt: 'Write the email to the customer',
+          }),
+        }),
+      );
+      await executor.execute();
+
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'guidance',
+        stepIndex: 0,
+        pendingData: { userInput: draft, aiGenerated: true },
+      });
+    });
+
+    it('asks the AI for HTML limited to the run view tags, and plain text when formatting is forbidden', async () => {
+      const { model, invoke } = makeMockModel({ response: 'answer' });
+
+      const executor = new GuidanceStepExecutor(
+        makeContext({
+          model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.AutomatedWithConfirmation }),
+        }),
+      );
+      await executor.execute();
+
+      const messages = invoke.mock.calls[0][0] as { content: string }[];
+      const allContent = messages.map(m => m.content).join('\n');
+      expect(allContent).toContain('Wrap every paragraph in <p>');
+      expect(allContent).toContain(
+        '<a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>',
+      );
+      expect(allContent).toContain('plain text with no HTML tag at all');
+      expect(allContent).not.toContain('Plain text only');
+    });
+
     it('sends the step prompt and workflow context to the AI', async () => {
       const { model, bindTools, invoke } = makeMockModel({ response: 'answer' });
 

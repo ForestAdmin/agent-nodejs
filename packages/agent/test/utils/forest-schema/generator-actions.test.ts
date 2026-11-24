@@ -31,6 +31,7 @@ describe('SchemaGeneratorActions', () => {
         type: 'single',
         description: 'hello',
         submitButtonLabel: 'here we go',
+        pendingRefreshInterval: undefined,
         hooks: {
           // No form => hooks are disabled
           load: false,
@@ -56,6 +57,24 @@ describe('SchemaGeneratorActions', () => {
       await expect(schemaGeneratorActions.buildSchema(collection, 'Send email')).rejects.toThrow(
         new Error('Submit button label must have less than 50 characters'),
       );
+    });
+  });
+
+  describe('With a pending refresh interval', () => {
+    const buildSchema = (pendingRefreshInterval: number) =>
+      new SchemaGeneratorActions(factories.forestAdminHttpDriverOptions.build()).buildSchema(
+        factories.collection.buildWithAction('Fetch documents', {
+          scope: 'Single',
+          staticForm: false,
+          pendingRefreshInterval,
+        }),
+        'Fetch documents',
+      );
+
+    test('should send it in the schema', async () => {
+      const schema = await buildSchema(10);
+
+      expect(schema.pendingRefreshInterval).toBe(10);
     });
   });
 
@@ -653,6 +672,42 @@ describe('SchemaGeneratorActions', () => {
         ]);
       });
     });
+
+    describe('with a pending field', () => {
+      const buildSchema = async (isPending?: boolean) => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.buildWithAction(
+            'Fetch documents',
+            { scope: 'Single', generateFile: false, staticForm: true },
+            [
+              {
+                id: 'documents',
+                label: 'documents',
+                type: 'String',
+                isPending,
+                watchChanges: false,
+              },
+            ],
+          ),
+        ]);
+        const collection = dataSource.getCollection('books');
+        const form = await collection.getForm(null, 'Fetch documents');
+
+        return SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, form);
+      };
+
+      it('should flag the field as pending', async () => {
+        const schema = await buildSchema(true);
+
+        expect(schema.fields[0]).toEqual(expect.objectContaining({ isPending: true }));
+      });
+
+      it('should leave the serialized apimap unchanged when the field does not use it', async () => {
+        const schema = await buildSchema();
+
+        expect(JSON.stringify(schema)).not.toContain('isPending');
+      });
+    });
   });
 
   describe('with useUnsafeActionEndpoint option', () => {
@@ -682,6 +737,7 @@ describe('SchemaGeneratorActions', () => {
         type: 'single',
         description: 'hello',
         submitButtonLabel: 'here we go',
+        pendingRefreshInterval: undefined,
         hooks: {
           // No form => hooks are disabled
           load: false,

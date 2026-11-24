@@ -1,51 +1,14 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
-const uri = 'mariadb://example:password@localhost:3808/example';
-const sequelize = new Sequelize(uri, { logging: false });
+import { sequelizeAttributes } from './data-model';
+import { sqlUri } from './sql-options';
 
-const card = sequelize.define(
-  'card',
-  {
-    cardNumber: {
-      type: DataTypes.BIGINT,
-      defaultValue: 1111222233334444,
-    },
-    cardType: {
-      type: DataTypes.ENUM('visa', 'mastercard', 'american express'),
-      defaultValue: 'visa',
-    },
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-  },
-  {
-    underscored: true,
-    tableName: 'card',
-    timestamps: false,
-  },
-);
+const sequelize = new Sequelize(sqlUri('mariadb'), { logging: false });
 
-const customer = sequelize.define(
-  'customer',
-  {
-    name: {
-      type: DataTypes.STRING,
-      defaultValue: 'customer#',
-    },
-    firstName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-  },
-  {
-    tableName: 'customer',
-    paranoid: true,
-    timestamps: true,
-  },
-);
-
-card.belongsTo(customer);
-customer.hasMany(card);
+sequelize.define('cards', sequelizeAttributes('cards'), {
+  tableName: 'cards',
+  underscored: true,
+  timestamps: false,
+});
 
 export default sequelize;

@@ -8,10 +8,13 @@ import startFastifyV4 from './frameworks/fastify-v4';
 import startKoa from './frameworks/koa-v2';
 import startNestExpressV8 from './frameworks/nest-express-v8';
 import startNestFastifyV8 from './frameworks/nest-fastify-v8';
+import startMerchantsApi from './merchants-api';
 
 dotenv.config();
 
 export default async () => {
+  startMerchantsApi();
+
   // Create customer apps
   const expressAppV4 = startExpress();
   const koaAppV2 = startKoa();

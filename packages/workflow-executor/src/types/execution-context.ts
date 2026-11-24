@@ -10,13 +10,14 @@ import type {
   CallScope,
   Step,
   StepUser,
+  SubWorkflowEnd,
 } from './validated/execution';
 import type { StepDefinition } from './validated/step-definition';
 import type { StepOutcome } from './validated/step-outcome';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 // Re-export the runtime result types alongside the context they flow with.
-export type { AvailableStepExecution, CallScope, Step, StepUser };
+export type { AvailableStepExecution, CallScope, Step, StepUser, SubWorkflowEnd };
 
 export interface StepExecutionResult {
   stepOutcome: StepOutcome;
@@ -54,6 +55,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   // Set only while the step runs inside a Sub-workflow call.
   readonly callScope?: CallScope;
   readonly approvalRequests?: ReadonlyArray<ApprovalRequestReview>;
+  readonly subWorkflowEnds?: ReadonlyArray<Readonly<SubWorkflowEnd>>;
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutS?: number;
   readonly aiInvokeTimeoutS?: number;
