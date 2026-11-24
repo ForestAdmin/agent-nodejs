@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.41.0...@forestadmin/workflow-executor@1.42.0) (2026-11-24)
+
+
+### Features
+
+* **workflow-executor:** use a sub-workflow's end as a decision condition source ([#2070](https://github.com/ForestAdmin/agent-nodejs/issues/2070)) ([64055fe](https://github.com/ForestAdmin/agent-nodejs/commit/64055fef8eba5369024df29c71ecdfc651fd65be))
+
 # @forestadmin/workflow-executor [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.2...@forestadmin/workflow-executor@1.41.0) (2026-11-20)
 
 
