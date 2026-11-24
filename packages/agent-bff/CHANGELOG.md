@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.46.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.46.1...@forestadmin/agent-bff@1.46.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **agent-bff,agent:** sign access tokens with a dedicated key, flag a timed-out execute as unknown ([#2112](https://github.com/ForestAdmin/agent-nodejs/issues/2112)) ([149a668](https://github.com/ForestAdmin/agent-nodejs/commit/149a6684657334f604048787dfb52ab6a8f4ac72))
+
 ## @forestadmin/agent-bff [1.46.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.46.0...@forestadmin/agent-bff@1.46.1) (2026-11-24)
 
 
