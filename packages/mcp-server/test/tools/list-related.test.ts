@@ -275,6 +275,26 @@ describe('declareListRelatedTool', () => {
       expect(mockRelation).toHaveBeenCalledWith('reports', 42, 'employees');
     });
 
+    it('lists the relation under its own name when the schema cannot be fetched', async () => {
+      const mockList = jest.fn().mockResolvedValue([{ id: 1 }]);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ relation: mockRelation }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+      mockFetchForestSchema.mockRejectedValueOnce(new Error('Forest server unreachable'));
+
+      const result = await registeredToolHandler(
+        { collectionName: 'employees', relationName: 'reports', parentRecordId: 42 },
+        mockExtra,
+      );
+
+      expect(mockRelation).toHaveBeenCalledWith('reports', 42, undefined);
+      expect(result).toEqual({
+        content: [{ type: 'text', text: JSON.stringify({ records: [{ id: 1 }] }) }],
+      });
+    });
+
     it('should call relation with string parentRecordId', async () => {
       const mockList = jest.fn().mockResolvedValue([]);
       const mockRelation = jest.fn().mockReturnValue({ list: mockList });

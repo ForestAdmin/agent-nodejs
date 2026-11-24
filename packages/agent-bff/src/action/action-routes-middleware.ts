@@ -108,7 +108,7 @@ export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
-  forestServerUrl?: string;
+  forestServerUrl: string;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
 
@@ -280,9 +280,7 @@ export default function createActionRoutesMiddleware({
       token,
       actionEndpoints: readModel.getActionEndpoints(),
       activityLog:
-        verb === EXECUTE_VERB && forestServerUrl
-          ? activityLogConfigOf(ctx, forestServerUrl, logger)
-          : undefined,
+        verb === EXECUTE_VERB ? activityLogConfigOf(ctx, forestServerUrl, logger) : undefined,
     });
 
     const params = { collection, actionName, recordIds, timezone: ctx.state.timezone as string };

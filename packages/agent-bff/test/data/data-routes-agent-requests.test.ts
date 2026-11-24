@@ -68,7 +68,14 @@ async function agentRequestOf(route: string, body: object): Promise<AgentRequest
     ctx.state.agentToken = 'agent-jwt';
     await next();
   });
-  app.use(createDataRoutesMiddleware({ store, transport, logger: () => undefined }));
+  app.use(
+    createDataRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
+      store,
+      transport,
+      logger: () => undefined,
+    }),
+  );
 
   const response = await request(app.callback()).post(route).send(body);
 

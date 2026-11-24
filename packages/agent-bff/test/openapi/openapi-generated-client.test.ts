@@ -196,13 +196,20 @@ function buildApp(): Koa {
   app.use(createTimezoneMiddleware({ defaultTimezone: TIMEZONE }));
   app.use(
     createDataRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store,
       transport: transportOf(dataClient),
       logger: noopLogger,
     }),
   );
+  app.use(async (ctx, next) => {
+    ctx.state.authMode = 'api-key';
+    ctx.state.apiKeyIdentity = { renderingId: 1 };
+    await next();
+  });
   app.use(
     createActionRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store,
       transport: createHttpTransport({ agentUrl: ENV.AGENT_URL }),
       logger: noopLogger,

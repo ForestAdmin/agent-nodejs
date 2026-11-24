@@ -1,7 +1,7 @@
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { ActionRequiresApprovalError, isApprovalRequested } from '@forestadmin/agent-client';
+import { isApprovalRequested } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import resolveUploadedFileValues from '../file-uploads/resolve';
@@ -9,11 +9,6 @@ import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
 import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-
-const APPROVAL_NOT_FILED_MESSAGE =
-  'This action requires approval by another user before it runs, but this server could not file ' +
-  'the approval request: its Forest server URL, server token or rendering id is missing. Report ' +
-  'it to your Forest administrator.';
 
 interface ExecuteActionArgument {
   collectionName: string;
@@ -96,10 +91,6 @@ To fill a file field, never inline base64 file content. Call requestActionFileUp
 
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        if (error instanceof ActionRequiresApprovalError) {
-          throw new Error(APPROVAL_NOT_FILED_MESSAGE);
-        }
-
         throw await toToolError(error, { logger });
       }
     },

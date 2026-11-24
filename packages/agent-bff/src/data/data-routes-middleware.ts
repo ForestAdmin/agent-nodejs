@@ -48,7 +48,7 @@ export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
-  forestServerUrl?: string;
+  forestServerUrl: string;
 }
 
 interface RequestHandlerDeps {
@@ -332,9 +332,7 @@ export default function createDataRoutesMiddleware({
         url: transport.url,
         token,
         httpRequester: transport.createRequester(token),
-        ...(operation === 'list' &&
-          forestServerUrl &&
-          readActivityLogConfigOf(ctx, forestServerUrl, logger)),
+        ...(operation === 'list' && readActivityLogConfigOf(ctx, forestServerUrl, logger)),
       }),
       store,
       transport,

@@ -41,11 +41,14 @@ describe('action routes middleware', () => {
     app.use(bodyParser());
     app.use(async (ctx, next) => {
       ctx.state.timezone = TIMEZONE;
+      ctx.state.authMode = 'api-key';
+      ctx.state.apiKeyIdentity = { renderingId: 1 };
       ctx.state.agentToken = 'agent-jwt';
       await next();
     });
     app.use(
       createActionRoutesMiddleware({
+        forestServerUrl: 'https://api.forestadmin.test',
         store: storeOf(readModel),
         transport: createHttpTransport({ agentUrl: 'https://agent.example.com', timeoutMs: 2500 }),
         logger: noopLogger,
@@ -72,11 +75,14 @@ describe('action routes middleware', () => {
     app.use(bodyParser());
     app.use(async (ctx, next) => {
       ctx.state.timezone = TIMEZONE;
+      ctx.state.authMode = 'api-key';
+      ctx.state.apiKeyIdentity = { renderingId: 1 };
       ctx.state.agentToken = ctx.get('x-agent-token');
       await next();
     });
     app.use(
       createActionRoutesMiddleware({
+        forestServerUrl: 'https://api.forestadmin.test',
         store: storeOf(readModel),
         transport: TRANSPORT,
         logger: noopLogger,

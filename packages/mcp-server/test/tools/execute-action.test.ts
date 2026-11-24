@@ -5,8 +5,6 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { ActionRequiresApprovalError } from '@forestadmin/agent-client';
-
 import { UPLOADED_FILE_PREFIX } from '../../src/file-uploads/file-reference';
 import { signUploadHandle } from '../../src/file-uploads/handles';
 import { resolveFileUploads } from '../../src/file-uploads/types';
@@ -434,34 +432,6 @@ describe('declareExecuteActionTool', () => {
               'approval-7.',
           },
         ],
-      });
-    });
-
-    it('should say the approval request could not be filed when the server cannot file it', async () => {
-      const mockAction = jest.fn().mockResolvedValue({
-        execute: jest.fn().mockRejectedValue(new ActionRequiresApprovalError('Needs approval')),
-        setFields: jest.fn(),
-      });
-      mockBuildClientWithActions.mockResolvedValue({
-        rpcClient: { collection: jest.fn().mockReturnValue(collectionRunning(mockAction)) },
-      } as unknown as ReturnType<typeof buildClientWithActions>);
-
-      const result = await registeredToolHandler(
-        { collectionName: 'users', actionName: 'refund', recordIds: [1] },
-        mockExtra,
-      );
-
-      expect(result).toEqual({
-        content: [
-          {
-            type: 'text',
-            text:
-              'This action requires approval by another user before it runs, but this server ' +
-              'could not file the approval request: its Forest server URL, server token or ' +
-              'rendering id is missing. Report it to your Forest administrator.',
-          },
-        ],
-        isError: true,
       });
     });
 

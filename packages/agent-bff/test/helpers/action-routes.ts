@@ -132,11 +132,14 @@ export function buildApp(
   app.use(bodyParser());
   app.use(async (ctx, next) => {
     ctx.state.timezone = timezone;
+    ctx.state.authMode = 'api-key';
+    ctx.state.apiKeyIdentity = { renderingId: 1 };
     if (agentToken !== null) ctx.state.agentToken = agentToken;
     await next();
   });
   app.use(
     createActionRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store,
       transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger,
@@ -159,11 +162,14 @@ export function buildAppWithTerminal(client: AgentActionClient) {
   app.use(bodyParser());
   app.use(async (ctx, next) => {
     ctx.state.timezone = TIMEZONE;
+    ctx.state.authMode = 'api-key';
+    ctx.state.apiKeyIdentity = { renderingId: 1 };
     ctx.state.agentToken = 'agent-token';
     await next();
   });
   app.use(
     createActionRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store: storeOf(readModel),
       transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger: noopLogger,

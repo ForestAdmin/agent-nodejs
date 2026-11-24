@@ -77,6 +77,7 @@ function buildApp(
   });
   app.use(
     createDataRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store,
       transport,
       logger,
@@ -154,6 +155,7 @@ describe('data routes middleware', () => {
       });
       app.use(
         createDataRoutesMiddleware({
+          forestServerUrl: 'https://api.forestadmin.test',
           store: storeOf(usersReadModel),
           transport,
           logger: noopLogger,

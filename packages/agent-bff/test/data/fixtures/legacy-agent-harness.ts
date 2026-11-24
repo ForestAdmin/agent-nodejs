@@ -133,6 +133,7 @@ export function buildLegacyApp(agentUrl: string, { liana }: { liana?: string } =
   });
   app.use(
     createDataRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store,
       transport: createHttpTransport({ agentUrl }),
       logger: noopLogger,

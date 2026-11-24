@@ -71,6 +71,28 @@ function createErrorEnhancer(
   };
 }
 
+async function readListedCollectionName(
+  forestServerClient: ForestServerClient,
+  options: HasManyArgument,
+  logger: Logger,
+): Promise<string | undefined> {
+  try {
+    const reference = getFieldsOfCollection(
+      await fetchForestSchema(forestServerClient),
+      options.collectionName,
+    ).find(field => field.field === options.relationName)?.reference;
+
+    return reference?.split('.').slice(0, -1).join('.');
+  } catch (schemaError) {
+    logger(
+      'Warn',
+      `Listing relation "${options.relationName}" without its target collection: ${schemaError}`,
+    );
+
+    return undefined;
+  }
+}
+
 export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolContext): string {
   const { forestServerClient, logger, collectionNames } = ctx;
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
@@ -103,11 +125,11 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
       const label = `list relation "${options.relationName}"${extraLabel}`;
 
       try {
-        const reference = getFieldsOfCollection(
-          await fetchForestSchema(forestServerClient),
-          options.collectionName,
-        ).find(field => field.field === options.relationName)?.reference;
-        const listedCollectionName = reference?.split('.').slice(0, -1).join('.');
+        const listedCollectionName = await readListedCollectionName(
+          forestServerClient,
+          options,
+          logger,
+        );
         const relation = rpcClient
           .collection(options.collectionName)
           .relation(options.relationName, options.parentRecordId, listedCollectionName);
