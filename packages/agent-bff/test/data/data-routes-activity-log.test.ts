@@ -243,11 +243,13 @@ describe('data routes activity log', () => {
       expect(response.status).toBe(200);
       expect(list).toHaveBeenCalledTimes(1);
       expect(logger).toHaveBeenCalledWith(
-        'Error',
-        "Activity log for 'index' could not be created",
+        'Warn',
+        "Activity log for 'index' could not be created, so the read ran without it",
         expect.objectContaining({ cause: 'Error: the audit store is down' }),
       );
-      expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('Activity log'));
+      expect(
+        logger.mock.calls.filter(([, message]) => String(message).includes('Activity log')),
+      ).toHaveLength(1);
     });
 
     it('should refuse the list when the audit endpoint rejects the identity', async () => {

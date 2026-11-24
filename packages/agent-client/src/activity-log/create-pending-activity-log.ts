@@ -2,6 +2,7 @@ import type {
   ActivityLogContext,
   ActivityLogCredentials,
   ActivityLogEntry,
+  ActivityLogLogger,
   PendingActivityLog,
 } from './types';
 import type {
@@ -50,6 +51,16 @@ function isPresent(value: string | undefined | null): boolean {
  */
 function isTransitionable(activityLog: ActivityLogResponse): boolean {
   return isPresent(activityLog?.id) && isPresent(activityLog?.attributes?.index);
+}
+
+function logUnauditedOperation(
+  logger: ActivityLogLogger,
+  isWrite: boolean,
+  failure: string,
+  context: Record<string, unknown>,
+): void {
+  if (isWrite) logger('Error', `${failure}, so the write was not performed`, context);
+  else logger('Warn', `${failure}, so the read ran without it`, context);
 }
 
 async function createWithRetry(
@@ -127,10 +138,12 @@ export default async function createPendingActivityLog(
   try {
     credentials = await context.credentials();
   } catch (error) {
-    logger('Error', `Activity log for '${action}' has no credentials to be created with`, {
-      ...located,
-      cause: describeCause(error),
-    });
+    logUnauditedOperation(
+      logger,
+      isWrite,
+      `Activity log for '${action}' has no credentials to be created with`,
+      { ...located, cause: describeCause(error) },
+    );
 
     if (isWrite) throw new ActivityLogBlockedError('unavailable', error);
 
@@ -144,10 +157,14 @@ export default async function createPendingActivityLog(
   try {
     activityLog = await writeActivityLog(context, entry, credentials);
   } catch (error) {
-    logger('Error', `Activity log for '${action}' could not be created`, {
-      ...located,
-      cause: describeCause(error),
-    });
+    const failure = `Activity log for '${action}' could not be created`;
+    const failureContext = { ...located, cause: describeCause(error) };
+    const isRefused =
+      hasHttpStatus(error, FORBIDDEN) ||
+      (hasHttpStatus(error, UNAUTHORIZED) && !context.onExpiredCredential);
+
+    if (isRefused) logger('Error', failure, failureContext);
+    else logUnauditedOperation(logger, isWrite, failure, failureContext);
 
     if (hasHttpStatus(error, FORBIDDEN)) throw new ActivityLogBlockedError('notAuthorized', error);
 
@@ -165,10 +182,11 @@ export default async function createPendingActivityLog(
   }
 
   if (!isTransitionable(activityLog)) {
-    logger(
-      'Error',
+    logUnauditedOperation(
+      logger,
+      isWrite,
       `Activity log for '${action}' could not be created: the server answered with no activity ` +
-        'log id or index, so the audit store dropped the write',
+        'log id or index',
       located,
     );
 

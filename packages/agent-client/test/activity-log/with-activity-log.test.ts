@@ -300,15 +300,27 @@ describe('withActivityLogContext', () => {
     const failure = new Error('no token on this request');
     const unresolved = { credentials: async () => Promise.reject(failure) };
 
-    it('should name the collection and the cause', async () => {
+    it('should warn that the read ran without its activity log', async () => {
       const service = fakeService();
       const context = contextOf(service, unresolved);
 
       await withActivityLogContext(context, READ, async () => 'done');
 
       expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        "Activity log for 'index' has no credentials to be created with, so the read ran without it",
+        { collectionName: 'books', cause: 'Error: no token on this request' },
+      );
+    });
+
+    it('should report as an error that the write was not performed', async () => {
+      const context = contextOf(fakeService(), unresolved);
+
+      await withActivityLogContext(context, WRITE, jest.fn()).catch(() => undefined);
+
+      expect(context.logger).toHaveBeenCalledWith(
         'Error',
-        "Activity log for 'index' has no credentials to be created with",
+        "Activity log for 'action' has no credentials to be created with, so the write was not performed",
         { collectionName: 'books', cause: 'Error: no token on this request' },
       );
     });
@@ -335,7 +347,7 @@ describe('withActivityLogContext', () => {
   describe('when the server accepts the creation but returns no id', () => {
     const noId = () => fakeService({ createMcpActivityLog: jest.fn(async () => ({ id: null })) });
 
-    it('should run a read unaudited and say the audit store dropped the write', async () => {
+    it('should run a read unaudited and warn that it ran without its activity log', async () => {
       const service = noId();
       const context = contextOf(service);
 
@@ -344,8 +356,22 @@ describe('withActivityLogContext', () => {
 
       expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
       expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        "Activity log for 'index' could not be created: the server answered with no activity " +
+          'log id or index, so the read ran without it',
+        { renderingId: RENDERING_ID, collectionName: 'books' },
+      );
+    });
+
+    it('should report as an error that the write was not performed', async () => {
+      const context = contextOf(noId());
+
+      await withActivityLogContext(context, WRITE, jest.fn()).catch(() => undefined);
+
+      expect(context.logger).toHaveBeenCalledWith(
         'Error',
-        expect.stringContaining('the audit store dropped the write'),
+        "Activity log for 'action' could not be created: the server answered with no activity " +
+          'log id or index, so the write was not performed',
         { renderingId: RENDERING_ID, collectionName: 'books' },
       );
     });
@@ -416,14 +442,30 @@ describe('withActivityLogContext', () => {
       ).resolves.toBe('done');
     });
 
-    it('should log the cause with the rendering and the collection', async () => {
+    it('should warn that the read ran without its activity log', async () => {
       const context = contextOf(rejectingService(new HttpError('the audit store is down', 500)));
 
       await withActivityLogContext(context, READ, async () => 'done');
 
       expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        "Activity log for 'index' could not be created, so the read ran without it",
+        {
+          renderingId: RENDERING_ID,
+          collectionName: 'books',
+          cause: 'HttpError: the audit store is down',
+        },
+      );
+    });
+
+    it('should report as an error that the write was not performed', async () => {
+      const context = contextOf(rejectingService(new HttpError('the audit store is down', 500)));
+
+      await withActivityLogContext(context, WRITE, jest.fn()).catch(() => undefined);
+
+      expect(context.logger).toHaveBeenCalledWith(
         'Error',
-        "Activity log for 'index' could not be created",
+        "Activity log for 'action' could not be created, so the write was not performed",
         {
           renderingId: RENDERING_ID,
           collectionName: 'books',
@@ -445,6 +487,18 @@ describe('withActivityLogContext', () => {
         ),
       ).rejects.toMatchObject({ reason: 'notAuthorized' });
       expect(operation).not.toHaveBeenCalled();
+    });
+
+    it('should report the refused read as an error', async () => {
+      const context = contextOf(rejectingService(new HttpError('forbidden', 403)));
+
+      await withActivityLogContext(context, READ, jest.fn()).catch(() => undefined);
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' could not be created",
+        { renderingId: RENDERING_ID, collectionName: 'books', cause: 'HttpError: forbidden' },
+      );
     });
 
     it('should keep the cached credential', async () => {
@@ -493,6 +547,18 @@ describe('withActivityLogContext', () => {
         await expect(
           withActivityLogContext(contextOf(expired()), READ, async () => 'done'),
         ).rejects.toMatchObject({ reason: 'notAuthorized' });
+      });
+
+      it('should report the refused read as an error', async () => {
+        const context = contextOf(expired());
+
+        await withActivityLogContext(context, READ, jest.fn()).catch(() => undefined);
+
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          "Activity log for 'index' could not be created",
+          { renderingId: RENDERING_ID, collectionName: 'books', cause: 'HttpError: expired' },
+        );
       });
     });
   });
