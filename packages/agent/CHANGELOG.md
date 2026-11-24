@@ -1,3 +1,24 @@
+# @forestadmin/agent [1.115.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.114.3...@forestadmin/agent@1.115.0) (2026-11-24)
+
+
+### Features
+
+* add SA field form isPending option ([#2086](https://github.com/ForestAdmin/agent-nodejs/issues/2086)) ([f6ba9d5](https://github.com/ForestAdmin/agent-nodejs/commit/f6ba9d52a1c740187c0fa65051cc4cdc63310687))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.75.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.47.0
+* **@forestadmin/mcp-server:** upgraded to 1.29.9
+* **@forestadmin/agent-bff:** upgraded to 1.46.1
+* **@forestadmin/datasource-sql:** upgraded to 1.18.1
+* **@forestadmin/workflow-executor:** upgraded to 1.42.1
+
 ## @forestadmin/agent [1.114.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.114.2...@forestadmin/agent@1.114.3) (2026-11-24)
 
 
