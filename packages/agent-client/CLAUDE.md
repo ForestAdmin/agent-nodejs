@@ -27,7 +27,7 @@ Depends on `@forestadmin/datasource-toolkit` (for `PlainFilter`/`PlainSortClause
 
 Every server-side package reaches an agent through this package only (see the root `CLAUDE.md`).
 
-- A new audit or approval rule goes here, in `activity-log/with-activity-log.ts` or `approval-request-creator.ts`, never in a surface.
+- A new audit or approval rule goes here, in `activity-log/` or `approval-request-creator.ts`, never in a surface. `with-activity-log.ts` runs a call inside its entry and is the public face; `create-pending-activity-log.ts` opens the entry and decides what blocks a write; `mark-activity-log.ts` moves it to its final status.
 - The API stays business-level. A caller passes filters, sort, pagination, fields, search and time zone through `SelectOptions`; only `QuerySerializer` knows the wire parameters.
 - Logging is off unless the caller enables it. `agent-testing` leaves it off.
 
@@ -35,7 +35,7 @@ Every server-side package reaches an agent through this package only (see the ro
 
 - Turn it on: `createRemoteAgentClient({ forestServer, activityLog: { source: ActivityLogSource.X, logger } })`. `activityLog` without `forestServer` throws.
 - Each method writes its own entry: `list` logs `index`, `search` or `filter` from its options, `getOne` logs `index`, a relation `list` logs `listRelatedData` on the parent record, `create` / `update` / `delete` / `associate` / `dissociate` and `executeAction` log a write. `count` and `action()` (form loading) log nothing.
-- A method's last argument (`ActivityLogCallOptions`) renames the entry (`action`, `label`), skips it (`skip`) or runs a `beforeCall` inside it.
+- A method's last argument (`ActivityLogCallOptions`) renames the entry (`action`, `label`) or runs a `beforeCall` inside it.
 - Entries go to the Forest server by collection name, or by collection id and workflow run when `collectionIdOf` is set.
 - A write whose entry cannot be created throws `ActivityLogBlockedError` and does not run. A read runs and the failure is logged. A 401 or 403 from the audit store refuses both, unless `onExpiredCredential` is set, in which case a 401 lets a read run.
 - An action sent for approval: its entry is marked `canceled`, and once the approval request is filed one `createApproval` entry is written and marked `completed`. Failing to write it is logged and changes nothing for the caller.

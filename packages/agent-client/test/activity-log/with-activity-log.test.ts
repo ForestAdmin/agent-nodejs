@@ -744,10 +744,6 @@ describe('resolveEntry', () => {
     });
   });
 
-  it('should open no entry when the call skips it', () => {
-    expect(resolveEntry({ action: 'index', collectionName: 'books' }, { skip: true })).toBeNull();
-  });
-
   it('should open no entry for an operation that has none unless the call names one', () => {
     expect(resolveEntry({ collectionName: 'books' })).toBeNull();
     expect(resolveEntry({ collectionName: 'books' }, { action: 'describeCollection' })).toEqual({

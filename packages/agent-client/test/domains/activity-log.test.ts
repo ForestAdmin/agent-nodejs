@@ -181,15 +181,6 @@ describe('activity logging inside agent-client calls', () => {
     ]);
   });
 
-  it('should let a getOne skip its entry', async () => {
-    const { collection, service, query } = setup();
-
-    await collection.getOne(7, undefined, { activityLog: { skip: true } });
-
-    expect(service.createMcpActivityLog).not.toHaveBeenCalled();
-    expect(query).toHaveBeenCalledTimes(1);
-  });
-
   it.each([
     [
       'create',
