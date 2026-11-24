@@ -423,6 +423,39 @@ describe('toStepDefinition', () => {
       expect(() => toStepDefinition(condition)).toThrow(/optionConditions/);
     });
 
+    it('should throw InvalidStepDefinitionError for a condition source type it does not know', () => {
+      const condition = makeCondition(
+        [
+          { stepId: 's1', buttonText: null, answer: 'Yes' },
+          { stepId: 's2', buttonText: null, answer: 'No' },
+        ],
+        {
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          preRecordedArgs: {
+            optionConditions: [
+              {
+                option: 'Yes',
+                aggregator: 'and',
+                conditions: [
+                  {
+                    sourceType: 'unknown-source',
+                    sourceStepId: 'sub-workflow-1',
+                    fieldName: 'end',
+                    operator: 'equal',
+                    value: 'end-1',
+                  },
+                ],
+              },
+            ],
+            fallbackOption: 'No',
+          },
+        },
+      );
+
+      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition)).toThrow(/sourceType/);
+    });
+
     it('should throw InvalidStepDefinitionError when fewer than 2 options', () => {
       const condition = makeCondition([{ stepId: 's1', buttonText: 'Only' }]);
 

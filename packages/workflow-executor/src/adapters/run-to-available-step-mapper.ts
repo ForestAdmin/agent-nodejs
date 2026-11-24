@@ -30,6 +30,7 @@ import {
   type CallScope,
   type Step,
   type StepUser,
+  type SubWorkflowEnd,
 } from '../types/validated/execution';
 import { WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import {
@@ -138,27 +139,29 @@ function toCallRecordIndex(context: ServerStepHistory['context']): number | unde
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 }
 
+interface Call {
+  stepId: string;
+  stepIndex: number;
+  frameOpenedAt: number;
+  definition: ServerStartSubWorkflow;
+  callRecordIndex?: number;
+  // Every step run inside the call, nested calls included.
+  stepIndexes: number[];
+}
+
+interface CallStackWalk {
+  openCalls: Call[];
+  closedCalls: Array<{ call: Call; endStepId: string }>;
+  // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
+  frameOfStep: Map<number, number>;
+  stepNameOf: Map<number, string>;
+}
+
 // Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
 // the orchestrator reads its own call stack so the two agree on which call is open.
-// excludedStepIndexes: inside calls opened once per record, the steps of every closed call opened
-// once per record of the same Multiple step from the same calling frame for another record: another
-// record's run, at any level of nesting. A call for the same record of the same run of that step
-// stays in, and so does a call pinned to another Multiple step, which held none of these records.
-function toCallScope(
-  history: ServerStepHistory[],
-  pending: ServerStepHistory,
-): { callScope?: CallScope; excludedStepIndexes: number[] } {
-  type Call = {
-    stepIndex: number;
-    frameOpenedAt: number;
-    definition: ServerStartSubWorkflow;
-    callRecordIndex?: number;
-    // Every step run inside the call, nested calls included.
-    stepIndexes: number[];
-  };
+function walkCallStack(history: ServerStepHistory[], pending: ServerStepHistory): CallStackWalk {
   const openCalls: Call[] = [];
-  const closedRecordCalls: Call[] = [];
-  // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
+  const closedCalls: CallStackWalk['closedCalls'] = [];
   const frameOfStep = new Map<number, number>();
   const stepNameOf = new Map<number, string>();
 
@@ -169,6 +172,7 @@ function toCallScope(
 
     if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
       openCalls.push({
+        stepId: entry.stepName,
         stepIndex: entry.stepIndex,
         frameOpenedAt,
         definition: entry.stepDefinition,
@@ -180,7 +184,8 @@ function toCallScope(
 
       if (closed) {
         openCalls.at(-1)?.stepIndexes.push(...closed.stepIndexes);
-        if (closed.callRecordIndex !== undefined) closedRecordCalls.push(closed);
+        // The close step keeps the step key of the End the called workflow reached.
+        closedCalls.push({ call: closed, endStepId: entry.stepName });
       }
     } else {
       frameOfStep.set(entry.stepIndex, frameOpenedAt);
@@ -188,6 +193,57 @@ function toCallScope(
       openCalls.at(-1)?.stepIndexes.push(entry.stepIndex);
     }
   });
+
+  return { openCalls, closedCalls, frameOfStep, stepNameOf };
+}
+
+// Undefined for a step of a called workflow while no call is open, a history with no frame to read.
+function frameOfPending(walk: CallStackWalk, pending: ServerStepHistory): number | undefined {
+  if (!pending.childrenWorkflowId) return ROOT_FRAME;
+
+  return walk.openCalls.at(-1)?.stepIndex;
+}
+
+// Step ids are unique only per workflow, so only the calls the pending step's own workflow made
+// can answer for it: a nested call's End belongs to the step that made it, not to its caller.
+// A navigation entry with no name is dropped rather than failing the whole run's validation.
+// A Sub-workflow step whose latest run was once per record reached one End per record, so it is
+// reported as such rather than by the End of whichever record ran last.
+function toSubWorkflowEnds(
+  walk: CallStackWalk,
+  pending: ServerStepHistory,
+): SubWorkflowEnd[] | undefined {
+  const frame = frameOfPending(walk, pending);
+  const latestEndOf = new Map<string, SubWorkflowEnd>();
+
+  walk.closedCalls
+    .filter(({ call, endStepId }) => call.frameOpenedAt === frame && call.stepId && endStepId)
+    .forEach(({ call, endStepId }) =>
+      latestEndOf.set(
+        call.stepId,
+        call.callRecordIndex !== undefined
+          ? { stepId: call.stepId, perRecord: true }
+          : { stepId: call.stepId, endStepId },
+      ),
+    );
+
+  if (latestEndOf.size === 0) return undefined;
+
+  return [...latestEndOf.values()];
+}
+
+// excludedStepIndexes: inside calls opened once per record, the steps of every closed call opened
+// once per record of the same Multiple step from the same calling frame for another record: another
+// record's run, at any level of nesting. A call for the same record of the same run of that step
+// stays in, and so does a call pinned to another Multiple step, which held none of these records.
+function toCallScope(
+  walk: CallStackWalk,
+  pending: ServerStepHistory,
+): { callScope?: CallScope; excludedStepIndexes: number[] } {
+  const { openCalls, frameOfStep, stepNameOf } = walk;
+  const closedRecordCalls = walk.closedCalls
+    .map(({ call }) => call)
+    .filter(call => call.callRecordIndex !== undefined);
 
   // A root step needs its frame too once a call has run: a closed call repeating a step id would
   // otherwise answer a root pin with its own record.
@@ -332,7 +388,9 @@ export default function toAvailableStepExecution(
   const pending = run.workflowHistory.at(-1) ?? null;
   if (!pending || pending.done) return null;
 
-  const { callScope, excludedStepIndexes } = toCallScope(run.workflowHistory, pending);
+  const callStack = walkCallStack(run.workflowHistory, pending);
+  const { callScope, excludedStepIndexes } = toCallScope(callStack, pending);
+  const subWorkflowEnds = toSubWorkflowEnds(callStack, pending);
   const workflowName = toNonEmptyString(run.workflowName);
 
   const result = {
@@ -359,6 +417,7 @@ export default function toAvailableStepExecution(
     // user, since that one follows the browser.
     timezone: toProjectTimezone(run.timezone),
     ...(callScope && { callScope }),
+    ...(subWorkflowEnds && { subWorkflowEnds }),
     ...(carriesError(pending) && { carriesError: true as const }),
     ...(workflowName && { workflowName }),
   };

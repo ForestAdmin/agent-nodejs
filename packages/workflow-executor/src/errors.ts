@@ -733,6 +733,15 @@ export class MissingConditionQuantifierError extends WorkflowConfigurationError 
   }
 }
 
+export class PerRecordSubWorkflowEndConditionError extends WorkflowConfigurationError {
+  constructor(option: string, sourceStepId: string) {
+    super(
+      `Condition for option "${option}" reads the End of Sub-workflow step "${sourceStepId}", which ran once per record`,
+      `The option "${option}" reads the End of a Sub-workflow step that runs once for each record, so it reached several Ends. A decision cannot read them yet. Reconfigure this decision step.`,
+    );
+  }
+}
+
 export class RecordNotOfferedError extends WorkflowExecutorError {
   constructor(recordId: string) {
     super(

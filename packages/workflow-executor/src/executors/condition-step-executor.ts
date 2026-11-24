@@ -22,6 +22,7 @@ import {
   InvalidStepDefinitionError,
   MalformedToolCallError,
   MissingConditionQuantifierError,
+  PerRecordSubWorkflowEndConditionError,
   StepStateError,
 } from '../errors';
 import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
@@ -63,6 +64,11 @@ function combine(aggregator: 'and' | 'or', verdicts: Array<boolean | null>): boo
 
   return verdicts.includes(null) ? null : !settling;
 }
+
+type ResolvedConditionValue =
+  | { found: true; value: unknown }
+  | { found: 'per-record'; values: Array<{ recordId: string; found: boolean; value?: unknown }> }
+  | { found: false; reason: ConditionNotLoadedReason };
 
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
 
@@ -339,7 +345,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     stepExecutions: StepExecutionData[],
     clock: Clock,
   ): EvaluatedCondition {
-    const resolved = this.resolveConditionValue(condition, stepExecutions);
+    const resolved = this.resolveConditionValue(option, condition, stepExecutions);
 
     if (resolved.found === 'per-record') {
       if (!condition.quantifier) {
@@ -355,6 +361,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (resolved.found === false) {
       this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
         ...this.logCtx,
+        sourceType: condition.sourceType,
         sourceStepId: condition.sourceStepId,
         fieldName: condition.fieldName,
         reason: resolved.reason,
@@ -416,12 +423,31 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
   // are already restricted to the live path, and in a loop the same step id repeats.
   private resolveConditionValue(
+    option: string,
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ):
-    | { found: true; value: unknown }
-    | { found: 'per-record'; values: Array<{ recordId: string; found: boolean; value?: unknown }> }
-    | { found: false; reason: ConditionNotLoadedReason } {
+  ): ResolvedConditionValue {
+    switch (condition.sourceType) {
+      case 'get-data':
+        return this.resolveGetDataValue(condition, stepExecutions);
+
+      case 'sub-workflow':
+        return this.resolveSubWorkflowEndValue(option, condition);
+
+      /* istanbul ignore next — the schema only lets a known source type through */
+      default: {
+        const unknownSourceType: never = condition.sourceType;
+        throw new InvalidStepDefinitionError(
+          `unknown condition source type "${String(unknownSourceType)}"`,
+        );
+      }
+    }
+  }
+
+  private resolveGetDataValue(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): ResolvedConditionValue {
     // Inside a call, only this call's own steps: another call of the workflow repeats the id.
     const sourceStep = findLatestStepInFrame(
       this.context.previousSteps,
@@ -456,6 +482,20 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (!field || !('value' in field)) return { found: false, reason: 'field-not-loaded' };
 
     return { found: true, value: field.value };
+  }
+
+  private resolveSubWorkflowEndValue(
+    option: string,
+    condition: DeterministicCondition,
+  ): ResolvedConditionValue {
+    const call = this.context.subWorkflowEnds?.find(end => end.stepId === condition.sourceStepId);
+    if (!call) return { found: false, reason: 'source-step-not-reached' };
+
+    if ('perRecord' in call) {
+      throw new PerRecordSubWorkflowEndConditionError(option, condition.sourceStepId);
+    }
+
+    return { found: true, value: call.endStepId };
   }
 
   private readUserChoice(
