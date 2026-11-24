@@ -13,6 +13,7 @@ import type {
 
 import {
   ApprovalBranchesMissingError,
+  ApprovalRequestCanceledError,
   ApprovalRequestFailedError,
   ApprovalRequestGoneError,
   ApprovalRequestUntrackedError,
@@ -150,6 +151,7 @@ export default class TriggerActionApprovals {
     }
 
     if (review.status === 'failed') throw new ApprovalRequestFailedError(approvalRequest.id);
+    if (review.status === 'canceled') throw new ApprovalRequestCanceledError(approvalRequest.id);
     if (review.status === undefined) throw new ApprovalRequestGoneError(approvalRequest.id);
 
     return this.pause(approvalRequest, ranAction);

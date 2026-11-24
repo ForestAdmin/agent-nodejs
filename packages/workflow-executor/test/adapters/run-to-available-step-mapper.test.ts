@@ -295,6 +295,7 @@ describe('toAvailableStepExecution', () => {
               approvalRequests: [
                 { id: 12, status: 'rejected', approverId: 3 },
                 { id: 13, status: 'pending', approverId: null },
+                { id: 14, status: 'canceled', approverId: null },
               ],
             },
           }),
@@ -304,6 +305,7 @@ describe('toAvailableStepExecution', () => {
       expect(toAvailableStepExecution(run)?.approvalRequests).toEqual([
         { id: '12', status: 'rejected', approverId: 3 },
         { id: '13', status: 'pending', approverId: null },
+        { id: '14', status: 'canceled', approverId: null },
       ]);
     });
 
