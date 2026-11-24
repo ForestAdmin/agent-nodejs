@@ -12,6 +12,7 @@ export interface RecordActivityLogOptions<T> {
   context?: ActivityLogContext;
   operation: () => Promise<T>;
   isCompletedDespite?: (error: unknown) => boolean;
+  isOutcomeUnknown?: (error: unknown) => boolean;
 }
 
 export interface ActivityLogWriter {

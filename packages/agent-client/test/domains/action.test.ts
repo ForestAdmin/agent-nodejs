@@ -64,6 +64,24 @@ describe('Action', () => {
       expect(result).toEqual({ success: 'Action executed' });
     });
 
+    it('should forward maxTimeAllowed to the request when given', async () => {
+      httpRequester.query.mockResolvedValue({ success: 'Action executed' });
+
+      await action.execute({ maxTimeAllowed: 30_000 });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'post', maxTimeAllowed: 30_000 }),
+      );
+    });
+
+    it('should leave the request timeout alone when maxTimeAllowed is omitted', async () => {
+      httpRequester.query.mockResolvedValue({ success: 'Action executed' });
+
+      await action.execute();
+
+      expect(httpRequester.query.mock.calls[0][0]).not.toHaveProperty('maxTimeAllowed');
+    });
+
     it('should include smart_action_id when actionId is provided', async () => {
       const actionWithId = new Action(
         'users',

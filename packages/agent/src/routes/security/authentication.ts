@@ -6,8 +6,11 @@ import { AuthenticationError, ForbiddenError } from '@forestadmin/forestadmin-cl
 import jsonwebtoken from 'jsonwebtoken';
 import jwt from 'koa-jwt';
 
-import { RouteType } from '../../types';
+import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
+
+/** The token type an agent-bff signs its own access tokens with; agent routes take session tokens. */
+const BFF_ACCESS_TOKEN_TYPE = 'bff_access';
 
 export default class Authentication extends BaseRoute {
   readonly type = RouteType.Authentication;
@@ -25,6 +28,15 @@ export default class Authentication extends BaseRoute {
     );
 
     router.use(jwt({ secret: this.options.authSecret, cookie: 'forest_session_token' }));
+    router.use(Authentication.rejectBffAccessToken);
+  }
+
+  private static async rejectBffAccessToken(context: Context, next: Next): Promise<void> {
+    if (context.state.user?.type === BFF_ACCESS_TOKEN_TYPE) {
+      context.throw(HttpCode.Unauthorized, 'Authentication Error');
+    }
+
+    await next();
   }
 
   private async handleAuthentication(context: Context): Promise<void> {

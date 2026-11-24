@@ -2,10 +2,14 @@ import type { AgentTransport } from './agent-transport';
 
 import { HttpRequester } from '@forestadmin/agent-client';
 
+import { AgentTimeoutError } from './create-agent-http-requester';
 import { streamingUnsupported } from '../http/bff-local-errors';
 
 /** A sentinel that never reaches the network: `query` answers before any socket is opened. */
 export const IN_PROCESS_AGENT_URL = 'http://in-process.agent';
+
+/** The `code` a dispatcher sets on the rejection of a dispatch that ran out of time. */
+export const AGENT_DISPATCH_TIMEOUT_CODE = 'AGENT_DISPATCH_TIMEOUT';
 
 export interface AgentDispatchRequest {
   method: 'get' | 'post' | 'put' | 'delete';
@@ -31,9 +35,16 @@ export interface AgentDispatcher {
    * Bounding the call is the implementor's duty: there is no socket to abort, so nothing here can
    * cut a hung agent handler loose. When `timeoutMs` is absent the deployment configured none —
    * apply the 10s ceiling `HttpRequester.query` always has rather than waiting forever. A dispatch
-   * that fails, times out included, must reject.
+   * that fails, times out included, must reject; a timeout rejects with an `Error` whose `code` is
+   * `AGENT_DISPATCH_TIMEOUT_CODE`, so the caller hears a timeout (504) rather than a failure (503).
    */
   request(request: AgentDispatchRequest): Promise<AgentDispatchResponse>;
+}
+
+function isDispatchTimeout(error: unknown): error is Error {
+  return (
+    error instanceof Error && (error as { code?: unknown }).code === AGENT_DISPATCH_TIMEOUT_CODE
+  );
 }
 
 /**
@@ -99,13 +110,16 @@ class InProcessRequester extends HttpRequester {
 
   /**
    * A rejection here is the agent throwing or the dispatch itself failing — never a network hop,
-   * since there is none. Rethrown with the shape an agent 5xx has, so `mapAgentError` logs the real
-   * cause and answers `agent_unavailable` instead of sending whoever debugs it to look for a socket.
+   * since there is none. A timeout is rethrown as the `AgentTimeoutError` the HTTP path throws;
+   * anything else with the shape an agent 5xx has, so `mapAgentError` logs the real cause and
+   * answers `agent_unavailable` instead of sending whoever debugs it to look for a socket.
    */
   private async dispatch(request: AgentDispatchRequest): Promise<AgentDispatchResponse> {
     try {
       return await this.dispatcher.request(request);
     } catch (error) {
+      if (isDispatchTimeout(error)) throw new AgentTimeoutError(error.message);
+
       const detail = error instanceof Error ? error.stack ?? error.message : String(error);
 
       throw this.buildError(500, { errors: [{ detail }] });

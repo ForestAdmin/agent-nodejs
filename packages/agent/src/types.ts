@@ -160,12 +160,10 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
  */
 export type BffEmbedOptions = {
   /**
-   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Gates the OAuth
-   * login/refresh flow (mode 1) and, with it, the AI relay.
-   *
-   * It is not an access control. The data routes accept a `bff_access` bearer whether or not this
-   * is set, because that token is verified against the agent's `authSecret` alone. Omitting it
-   * closes the login flow, not the session-bearer path — what protects that path is `authSecret`.
+   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. A key derived from it
+   * signs the `bff_access` tokens. Gates the OAuth login/refresh flow (mode 1) and, with it, the AI
+   * relay: without it, the data routes refuse every `bff_access` bearer. Changing it signs every
+   * user out.
    */
   tokenEncryptionKey?: string;
   /**
@@ -182,14 +180,23 @@ export type BffEmbedOptions = {
   /** Fallback IANA timezone for a request that carries none. */
   defaultTimezone?: string;
   /**
-   * How long a call to the agent may take. Defaults to 10s.
+   * How long a call to the agent may take, except an action execute (see `actionTimeoutMs`).
+   * Defaults to 10s.
    *
-   * It bounds how long the BFF waits, and cancels nothing: an action or a write cut off at the
-   * deadline keeps running inside the agent and still commits, so a client retrying on the timeout
-   * can double the mutation. Raise it rather than relying on a retry for operations that are not
-   * idempotent.
+   * It bounds how long the BFF waits, and cancels nothing: a call cut off at the deadline keeps
+   * running inside the agent. A create, update or delete cut off this way still commits, and its
+   * plain `504 agent_timeout` does not say so, so a client retrying on it can apply the write
+   * twice. Raise it rather than relying on a retry for writes that are not idempotent.
    */
   agentTimeoutMs?: number;
+  /**
+   * How long an action execute may take. Defaults to the larger of `agentTimeoutMs` and 30s; every
+   * other call to the agent keeps `agentTimeoutMs`.
+   *
+   * Past it the BFF answers `504 agent_timeout` with `details.outcome: "unknown"`: the action may
+   * still have run, so the caller must check its outcome before retrying.
+   */
+  actionTimeoutMs?: number;
   /** How long the AI relay waits for the Forest server. Defaults to 120s. */
   aiTimeoutMs?: number;
   /**

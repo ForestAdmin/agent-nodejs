@@ -1,3 +1,4 @@
+import type { BffEmbedOptions } from '../../src/types';
 import type { AgentDispatcher, Bff, BuildBffOptions } from '@forestadmin/agent-bff';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -27,10 +28,14 @@ const INVALID_KEY = 'not-base64!!';
 
 const INVALID_KEY_ERROR = 'must be base64-encoded and exactly 32 bytes (AES-256).';
 
-function buildEmbedded(gateway: boolean, tokenEncryptionKey?: string): EmbeddedBff {
+function buildEmbedded(
+  gateway: boolean,
+  tokenEncryptionKey?: string,
+  embedOptions: BffEmbedOptions = {},
+): EmbeddedBff {
   return new EmbeddedBff(
     factories.forestAdminHttpDriverOptions.build(),
-    { tokenEncryptionKey },
+    { tokenEncryptionKey, ...embedOptions },
     gateway ? { prefix: '/api', name: 'The Gateway API', gateway: true } : { prefix: '/bff' },
   );
 }
@@ -64,6 +69,29 @@ describe('EmbeddedBff config labels', () => {
 
       await expect(embedded.prepare()).rejects.toThrow(
         `Invalid configuration: api.tokenEncryptionKey ${INVALID_KEY_ERROR}`,
+      );
+    });
+
+    it('should name api.actionTimeoutMs on an invalid action timeout', async () => {
+      const embedded = buildEmbedded(true, undefined, { actionTimeoutMs: 0 });
+
+      await expect(embedded.prepare()).rejects.toThrow(
+        'Invalid configuration: api.actionTimeoutMs must be an integer between 1 and 2147483647.',
+      );
+    });
+
+    it('should hand actionTimeoutMs to the BFF config, apart from agentTimeoutMs', async () => {
+      const embedded = buildEmbedded(true, undefined, {
+        agentTimeoutMs: 1000,
+        actionTimeoutMs: 2000,
+      });
+
+      mockBuildBff.mockResolvedValueOnce({ callback: jest.fn(), invalidate: jest.fn() });
+
+      await embedded.start(jest.fn() as unknown as AgentDispatcher);
+
+      expect(mockBuildBff.mock.calls[0][0].config).toEqual(
+        expect.objectContaining({ agentTimeoutMs: 1000, actionTimeoutMs: 2000 }),
       );
     });
 

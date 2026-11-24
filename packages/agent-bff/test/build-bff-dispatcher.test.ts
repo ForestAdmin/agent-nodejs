@@ -3,6 +3,7 @@ import type { AgentDispatchRequest, AgentDispatcher } from '../src/agent/in-proc
 import request from 'supertest';
 
 import buildBff from '../src/build-bff';
+import { ACCESS_TOKEN_KEY, TOKEN_ENCRYPTION_KEY } from './helpers/bff-access';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 import { collection, column } from './read-model/fixtures';
 import { parseConfig } from '../src/config/env-config';
@@ -26,6 +27,7 @@ const EMBEDDED_ENV = {
   FOREST_ENV_SECRET: 'env-secret',
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_APP_URL: 'https://app.forestadmin.com',
+  BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
 } satisfies NodeJS.ProcessEnv;
 
 function sessionToken(): string {
@@ -44,7 +46,7 @@ function sessionToken(): string {
       tags: {},
     },
     renderingId: 1,
-    authSecret: AUTH_SECRET,
+    signingKey: ACCESS_TOKEN_KEY,
     expiresInSeconds: 3600,
   });
 }

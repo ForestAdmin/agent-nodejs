@@ -18,6 +18,7 @@ import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
 import renderOpenApi from '../../src/openapi/render-openapi';
 import version from '../../src/version';
+import { ACCESS_TOKEN_KEY, TOKEN_ENCRYPTION_KEY } from '../helpers/bff-access';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
 const SCHEMA = [
@@ -72,7 +73,7 @@ const VALID_ENV = {
 
 const OAUTH_ENV = {
   ...VALID_ENV,
-  BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+  BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
 } satisfies NodeJS.ProcessEnv;
 
 const AI_QUERY_PATH = '/agent/v1/ai/query';
@@ -787,9 +788,9 @@ describe('dispatchCli --output', () => {
 
 describe('the CLI export and the HTTP route', () => {
   it('should produce the same document, since both use one generator', async () => {
-    const exported = await renderOpenApi(VALID_ENV, noopLogger);
+    const exported = await renderOpenApi(OAUTH_ENV, noopLogger);
 
-    const outcome = await dispatchCli([], VALID_ENV, noopLogger);
+    const outcome = await dispatchCli([], OAUTH_ENV, noopLogger);
 
     expect(outcome.server).toBeDefined();
 
@@ -813,7 +814,7 @@ describe('the CLI export and the HTTP route', () => {
               renderingId: 1,
             },
             renderingId: 1,
-            authSecret: VALID_ENV.FOREST_AUTH_SECRET,
+            signingKey: ACCESS_TOKEN_KEY,
             expiresInSeconds: 900,
           })}`,
         );

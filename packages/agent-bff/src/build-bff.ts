@@ -32,6 +32,7 @@ import createErrorMiddleware from './http/error-middleware';
 import createHealthRoute, { describeHealth } from './http/health-route';
 import createVersionHeaderMiddleware from './http/version-header-middleware';
 import createAuthorizationCodeClaims from './oauth/authorization-code-claims';
+import deriveBffAccessKey from './oauth/bff-access-key';
 import createEnvironmentIdResolver from './oauth/environment-id';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
@@ -170,6 +171,7 @@ export function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | und
 interface OAuthSession {
   sessionTokens: SessionTokenCodec;
   forestServerUrl: string;
+  accessTokenKey: Buffer;
 }
 
 export interface OAuthEdge {
@@ -191,13 +193,13 @@ function buildOAuthMiddlewares(
     return { middlewares: [] };
   }
 
-  const { forestServerUrl, forestEnvSecret, forestAppUrl, forestAuthSecret, tokenEncryptionKey } =
-    oauthConfig;
+  const { forestServerUrl, forestEnvSecret, forestAppUrl, tokenEncryptionKey } = oauthConfig;
 
   const serverClient = new ForestServerClient({ forestServerUrl, envSecret: forestEnvSecret });
   const resolveEnvironmentId = createEnvironmentIdResolver(serverClient);
 
   const now = () => Date.now();
+  const accessTokenKey = deriveBffAccessKey(tokenEncryptionKey);
   const sessionTokens = createSessionTokenCodec(createTokenCipher(tokenEncryptionKey), {
     now,
     sessionTtlSeconds: SESSION_TTL_SECONDS,
@@ -209,7 +211,7 @@ function buildOAuthMiddlewares(
     sessionTokens,
     authorizationCodes: createAuthorizationCodeClaims({ now }),
     forestAppUrl,
-    authSecret: forestAuthSecret,
+    accessTokenKey,
     resolveEnvironmentId,
     logger,
     allowedOAuthClients,
@@ -218,7 +220,7 @@ function buildOAuthMiddlewares(
   return {
     middlewares: [oauthRoutes],
     resolveEnvironmentId,
-    session: { sessionTokens, forestServerUrl },
+    session: { sessionTokens, forestServerUrl, accessTokenKey },
   };
 }
 

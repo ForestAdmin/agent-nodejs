@@ -2,6 +2,7 @@ import type { ConfigLabels } from '../../src/config/env-config';
 
 import {
   DEFAULTS,
+  DEFAULT_ACTION_TIMEOUT_MS,
   DEFAULT_AGENT_TIMEOUT_MS,
   DEFAULT_AI_TIMEOUT_MS,
   DEFAULT_RATE_LIMIT_MAX_REQUESTS,
@@ -389,6 +390,68 @@ describe('parseConfig', () => {
     });
   });
 
+  describe('BFF_ACTION_TIMEOUT_MS', () => {
+    it('should default to 30 seconds when neither timeout is set', () => {
+      expect(parseConfig({ ...VALID_ENV }).actionTimeoutMs).toBe(DEFAULT_ACTION_TIMEOUT_MS);
+      expect(DEFAULT_ACTION_TIMEOUT_MS).toBe(30_000);
+    });
+
+    it('should treat a blank value as unset', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_ACTION_TIMEOUT_MS: '   ' }).actionTimeoutMs).toBe(
+        DEFAULT_ACTION_TIMEOUT_MS,
+      );
+    });
+
+    it('should keep 30 seconds when unset and the agent timeout is shorter', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: '5000' }).actionTimeoutMs).toBe(
+        30_000,
+      );
+    });
+
+    it('should follow a longer agent timeout when unset, so raising it still covers execute', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: '60000' }).actionTimeoutMs).toBe(
+        60_000,
+      );
+    });
+
+    it('should let an explicit value win, even below the agent timeout', () => {
+      const config = parseConfig({
+        ...VALID_ENV,
+        BFF_AGENT_TIMEOUT_MS: '60000',
+        BFF_ACTION_TIMEOUT_MS: '1000',
+      });
+
+      expect(config.actionTimeoutMs).toBe(1000);
+      expect(config.agentTimeoutMs).toBe(60_000);
+    });
+
+    it('should not change the agent timeout', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_ACTION_TIMEOUT_MS: '45000' }).agentTimeoutMs).toBe(
+        DEFAULT_AGENT_TIMEOUT_MS,
+      );
+    });
+
+    it.each([
+      ['zero', '0'],
+      ['negative', '-1'],
+      ['non-numeric', 'soon'],
+      ['fractional', '1.5'],
+      ['past the Node timer ceiling', String(MAX_TIMEOUT_MS + 1)],
+    ])('should throw ConfigurationError for a %s value', (_label, value) => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_ACTION_TIMEOUT_MS: value })).toThrow(
+        'Invalid configuration: BFF_ACTION_TIMEOUT_MS must be an integer between 1 and 2147483647.',
+      );
+    });
+
+    it('should still refuse an invalid agent timeout when the action timeout is explicit', () => {
+      expect(() =>
+        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: 'soon', BFF_ACTION_TIMEOUT_MS: '1000' }),
+      ).toThrow(
+        'Invalid configuration: BFF_AGENT_TIMEOUT_MS must be an integer between 1 and 2147483647.',
+      );
+    });
+  });
+
   describe('BFF_AI_TIMEOUT_MS', () => {
     it('should default to 2 minutes when unset, since an AI generation is slow', () => {
       expect(parseConfig({ ...VALID_ENV }).aiTimeoutMs).toBe(DEFAULT_AI_TIMEOUT_MS);
@@ -625,6 +688,7 @@ describe('parseConfig', () => {
       BFF_ALLOWED_ORIGINS: 'api.allowedOrigins',
       BFF_DEFAULT_TIMEZONE: 'api.defaultTimezone',
       BFF_AGENT_TIMEOUT_MS: 'api.agentTimeoutMs',
+      BFF_ACTION_TIMEOUT_MS: 'api.actionTimeoutMs',
       BFF_AI_TIMEOUT_MS: 'api.aiTimeoutMs',
       BFF_OPENAPI_ENABLED: 'api.openapiEnabled',
     };
@@ -644,6 +708,12 @@ describe('parseConfig', () => {
     it('should name api.agentTimeoutMs on an invalid timeout', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: 'abc' }, LABELS)).toThrow(
         'Invalid configuration: api.agentTimeoutMs must be an integer between 1 and 2147483647.',
+      );
+    });
+
+    it('should name api.actionTimeoutMs on an invalid timeout', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_ACTION_TIMEOUT_MS: 'abc' }, LABELS)).toThrow(
+        'Invalid configuration: api.actionTimeoutMs must be an integer between 1 and 2147483647.',
       );
     });
 

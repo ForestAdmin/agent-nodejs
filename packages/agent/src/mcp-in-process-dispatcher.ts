@@ -8,6 +8,8 @@ import type { RequestListener } from 'http';
 
 import inject, { type InjectOptions, type InjectPayload } from 'light-my-request';
 
+import InProcessDispatchTimeoutError from './in-process-dispatch-timeout-error';
+
 export type InProcessRequest = InProcessDispatchRequest;
 export type InProcessResponse = InProcessDispatchResponse;
 
@@ -71,10 +73,7 @@ export default class InProcessDispatcher implements InProcessAgentDispatcher {
   private async injectWithTimeout(options: InjectOptions, timeoutMs: number) {
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`In-process dispatch timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      );
+      timer = setTimeout(() => reject(new InProcessDispatchTimeoutError(timeoutMs)), timeoutMs);
     });
 
     const injection = inject(this.handler as RequestListener, options);

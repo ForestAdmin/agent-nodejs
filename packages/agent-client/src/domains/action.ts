@@ -104,6 +104,8 @@ export type ActionExecuteOptions = {
   // Posted as a comment on the approval request when the action is approval-gated.
   approvalRequestMessage?: string;
   skipApprovalRequest?: boolean;
+  // Bounds the execute request only, in ms; the requester's default applies when omitted.
+  maxTimeAllowed?: number;
 };
 
 export type ActionExecuteResult =
@@ -150,7 +152,8 @@ export default class Action {
   }
 
   async execute(options: ActionExecuteOptions = {}): Promise<ActionExecuteResult> {
-    const { signedApprovalRequest, approvalRequestMessage, skipApprovalRequest } = options;
+    const { signedApprovalRequest, approvalRequestMessage, skipApprovalRequest, maxTimeAllowed } =
+      options;
     const requestBody = {
       data: {
         attributes: {
@@ -169,6 +172,7 @@ export default class Action {
         method: 'post',
         path: this.actionPath,
         body: requestBody,
+        ...(maxTimeAllowed !== undefined && { maxTimeAllowed }),
       });
     } catch (error) {
       const mapped = toActionError(error);

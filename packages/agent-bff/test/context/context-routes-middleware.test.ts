@@ -1,7 +1,6 @@
 import type { SchemaFetcher } from '../../src/read-model/forest-schema-client';
 import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
 
-import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
@@ -15,6 +14,7 @@ import { tolerateEnvironmentIdFailure } from '../../src/oauth/environment-id';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../src/read-model/read-model-store';
 import SchemaCache, { ONE_DAY_MS } from '../../src/read-model/schema-cache';
+import { ACCESS_TOKEN_KEY, signBffAccess } from '../helpers/bff-access';
 import { makeMetrics, published } from '../read-model/fixtures';
 
 const ROUTE = '/agent/v1/context';
@@ -63,7 +63,7 @@ function makeFullAgentEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger }));
-  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
+  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET, accessTokenKey: ACCESS_TOKEN_KEY }));
   app.use(
     createApiKeyMiddleware({
       authenticator: {
@@ -194,11 +194,7 @@ describe('contextRoutesMiddleware', () => {
 
   describe('when the caller authenticated with an API key through the full edge', () => {
     it('should serve the same contract an OAuth session gets, since the schema is not caller-scoped', async () => {
-      const sessionToken = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', rendering_id: '1', tags: {} },
-        AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' } as jsonwebtoken.SignOptions,
-      );
+      const sessionToken = signBffAccess({ sid: 's1', rendering_id: '1', tags: {} });
 
       const keyResponse = await request(
         makeFullAgentEdge(jest.fn().mockResolvedValue(published(schema))),
