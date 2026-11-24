@@ -1135,6 +1135,44 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(prompt).toContain('- body (String, rich text, required)');
       expect(prompt).toContain('- subject (String)');
       expect(prompt).toContain('A field marked "rich text" takes HTML');
+      expect(prompt).toContain('Any other text field takes plain text');
+    });
+
+    it('turns HTML into text for a plain field and keeps it for a rich text field', async () => {
+      const agentPort = makeMockAgentPort();
+      const fields = [
+        { name: 'body', type: 'String', isRequired: true, isRichText: true },
+        { name: 'note', type: 'String', isRequired: true },
+      ];
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields,
+          canExecute: false,
+          requiredFields: ['body', 'note'],
+          skippedFields: [],
+        })
+        .mockResolvedValueOnce({ fields, canExecute: true, requiredFields: [], skippedFields: [] });
+      const html = '<p>Refund <strong>approved</strong></p>';
+      const mockModel = makeMockModel({ values: { body: html, note: html } }, 'fill_action_form');
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { body: html, note: 'Refund approved' } }),
+        expect.anything(),
+      );
     });
 
     it('lets the AI fill the optional fields a change hook reveals once the required ones are set', async () => {

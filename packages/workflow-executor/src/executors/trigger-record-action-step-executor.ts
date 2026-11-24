@@ -22,6 +22,7 @@ import {
   PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
+import htmlToPlainText from './html-to-plain-text';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -45,7 +46,8 @@ Important rules:
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
 - Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.
 - A field marked "rich text" takes HTML: wrap every paragraph in <p>, and use only <strong>, <em>, <s>, <a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>. Never use markdown.
-- When a rich text field's value comes from a previous step written in HTML, keep its HTML as written.`;
+- When a rich text field's value comes from a previous step written in HTML, keep its HTML as written.
+- Any other text field takes plain text: never write an HTML tag in it. When its value comes from a previous step written in HTML, keep the text and drop the tags.`;
 
 const PLACEHOLDER_VALUE = /^<[\w\s-]+>$/;
 
@@ -76,6 +78,12 @@ function isAmongOptions(field: ActionFormField, value: unknown): boolean {
   return candidates.every(candidate =>
     field.enumValues.some(option => String(option) === String(candidate)),
   );
+}
+
+// A Guidance answer is HTML: copied as is into a text field that is not rich text, its tags would
+// show as text in the form, and be stored with the value when Full AI submits it.
+function isPlainTextField(field: ActionFormField | undefined): boolean {
+  return field?.type === 'String' && !field.isRichText;
 }
 
 interface ActionTarget extends ActionRef {
@@ -331,8 +339,20 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         ([a], [b]) => formOrder.indexOf(a) - formOrder.indexOf(b),
       );
 
-      for (const [field, value] of valuesInFormOrder) {
+      for (const [field, aiValue] of valuesInFormOrder) {
         const formField = form.fields.find(f => f.name === field);
+        const value =
+          isPlainTextField(formField) && typeof aiValue === 'string'
+            ? htmlToPlainText(aiValue)
+            : aiValue;
+
+        if (value !== aiValue) {
+          this.context.logger('Debug', 'AI form-fill: HTML turned into text for a plain field', {
+            ...this.logCtx,
+            field,
+          });
+        }
+
         const filledByAi = Object.prototype.hasOwnProperty.call(accumulator, field);
         // The AI gets one more try on a value the form no longer holds (emptied by the agent, or out of
         // options a hook swapped); without that bound, such a hook would run the loop to the cap.
