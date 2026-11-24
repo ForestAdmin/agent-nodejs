@@ -1,3 +1,18 @@
+# @forestadmin/workflow-executor [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.2...@forestadmin/workflow-executor@1.43.0) (2026-11-24)
+
+
+### Features
+
+* **workflow-executor:** handle action approvals within workflows [PRD-29] ([#2062](https://github.com/ForestAdmin/agent-nodejs/issues/2062)) ([5df3c00](https://github.com/ForestAdmin/agent-nodejs/commit/5df3c00dbd279f26b76d1cc4c3d1ed916ba929cf))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.20.0
+
 ## @forestadmin/workflow-executor [1.42.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.1...@forestadmin/workflow-executor@1.42.2) (2026-11-24)
 
 
