@@ -25,6 +25,8 @@ import {
   UnsupportedStepTypeError,
 } from '../errors';
 import {
+  type ApprovalRequestReview,
+  ApprovalRequestStatusSchema,
   type AvailableStepExecution,
   AvailableStepExecutionSchema,
   type CallScope,
@@ -34,6 +36,7 @@ import {
 } from '../types/validated/execution';
 import { WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import {
+  ApprovalOutcomeSchema,
   ErrorKindSchema,
   ErrorSourceStepIndexSchema,
   stepTypeToOutcomeType,
@@ -91,7 +94,37 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
     return { type: 'mcp', ...baseFromCtx, status } satisfies McpStepOutcome;
   }
 
-  return { type: 'record', ...baseFromCtx, status } satisfies RecordStepOutcome;
+  const selectedOption = ApprovalOutcomeSchema.safeParse(ctx.selectedOption);
+
+  return {
+    type: 'record',
+    ...baseFromCtx,
+    status,
+    ...(selectedOption.success && { selectedOption: selectedOption.data }),
+  } satisfies RecordStepOutcome;
+}
+
+// The server sends the row id as a number; the executor keeps the JSON:API string it was handed.
+// A status outside the known ones is dropped, so the replay reads the request as unknown.
+function toApprovalRequestReviews(context: unknown): ApprovalRequestReview[] | undefined {
+  const refs = (context as { approvalRequests?: unknown } | null | undefined)?.approvalRequests;
+
+  if (!Array.isArray(refs)) return undefined;
+
+  return refs.flatMap((ref): ApprovalRequestReview[] => {
+    const { id, status, approverId } = (ref ?? {}) as Record<string, unknown>;
+
+    if (typeof id !== 'string' && typeof id !== 'number') return [];
+
+    const parsedStatus = ApprovalRequestStatusSchema.safeParse(status);
+    const review: ApprovalRequestReview = { id: String(id) };
+
+    if (parsedStatus.success) review.status = parsedStatus.data;
+    if (typeof approverId === 'number') review.approverId = approverId;
+    if (approverId === null) review.approverId = null;
+
+    return [review];
+  });
 }
 
 function tryMapStep(s: ServerStepHistory): Step | null {
@@ -392,6 +425,7 @@ export default function toAvailableStepExecution(
   const { callScope, excludedStepIndexes } = toCallScope(callStack, pending);
   const subWorkflowEnds = toSubWorkflowEnds(callStack, pending);
   const workflowName = toNonEmptyString(run.workflowName);
+  const approvalRequests = toApprovalRequestReviews(pending.context);
 
   const result = {
     runId: String(run.id),
@@ -420,6 +454,7 @@ export default function toAvailableStepExecution(
     ...(subWorkflowEnds && { subWorkflowEnds }),
     ...(carriesError(pending) && { carriesError: true as const }),
     ...(workflowName && { workflowName }),
+    ...(approvalRequests && { approvalRequests }),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

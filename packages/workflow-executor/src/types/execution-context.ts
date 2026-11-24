@@ -5,6 +5,7 @@ import type { RunStore } from '../ports/run-store';
 import type SchemaResolver from '../schema-resolver';
 import type { RecordRef } from './validated/collection';
 import type {
+  ApprovalRequestReview,
   AvailableStepExecution,
   CallScope,
   Step,
@@ -53,6 +54,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly logger: Logger;
   // Set only while the step runs inside a Sub-workflow call.
   readonly callScope?: CallScope;
+  readonly approvalRequests?: ReadonlyArray<ApprovalRequestReview>;
   readonly subWorkflowEnds?: ReadonlyArray<Readonly<SubWorkflowEnd>>;
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutS?: number;
