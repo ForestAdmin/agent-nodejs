@@ -1,77 +1,58 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
+import { sequelizeAttributes } from './data-model';
 import { sqlUri } from './sql-options';
 
 const sequelizeMsSql = new Sequelize(sqlUri('mssql'), { logging: false });
 
-const dvd = sequelizeMsSql.define(
-  'dvd',
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false,
-    },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    rentalPrice: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-    },
-    storeId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-  },
-  {
-    tableName: 'dvd',
-    underscored: true,
-    timestamps: false,
-  },
+const MODEL_OPTIONS = { underscored: true, timestamps: false };
+
+const chargebacks = sequelizeMsSql.define('chargebacks', sequelizeAttributes('chargebacks'), {
+  tableName: 'chargebacks',
+  ...MODEL_OPTIONS,
+});
+
+const disputeRequests = sequelizeMsSql.define(
+  'dispute_requests',
+  sequelizeAttributes('dispute_requests'),
+  { tableName: 'dispute_requests', ...MODEL_OPTIONS },
 );
 
-const rental = sequelizeMsSql.define(
-  'rental',
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-      allowNull: false,
-    },
-    startDate: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    endDate: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    customerId: DataTypes.INTEGER,
-  },
-  {
-    tableName: 'rental',
-    underscored: true,
-    timestamps: false,
-  },
+const disputeTransactions = sequelizeMsSql.define(
+  'dispute_transactions',
+  sequelizeAttributes('dispute_transactions', ['sepa_dispute_id']),
+  { tableName: 'dispute_transactions', ...MODEL_OPTIONS },
 );
 
-const dvdRental = sequelizeMsSql.define(
-  'dvd_rental',
-  {},
-  {
-    tableName: 'dvd_rental',
-    underscored: true,
-    timestamps: false,
-  },
-);
+chargebacks.belongsTo(disputeRequests, {
+  as: 'dispute_request',
+  foreignKey: 'dispute_request_id',
+  constraints: false,
+});
 
-dvd.belongsToMany(rental, { through: dvdRental });
-rental.belongsToMany(dvd, { through: dvdRental });
-dvdRental.belongsTo(dvd);
-dvdRental.belongsTo(rental);
+disputeRequests.belongsToMany(chargebacks, {
+  as: 'chargebacks',
+  through: { model: disputeTransactions, unique: false },
+  foreignKey: 'dispute_request_id',
+  otherKey: 'chargeback_id',
+  constraints: false,
+});
+chargebacks.belongsToMany(disputeRequests, {
+  as: 'dispute_requests',
+  through: { model: disputeTransactions, unique: false },
+  foreignKey: 'chargeback_id',
+  otherKey: 'dispute_request_id',
+  constraints: false,
+});
+disputeTransactions.belongsTo(disputeRequests, {
+  as: 'dispute_request',
+  foreignKey: 'dispute_request_id',
+  constraints: false,
+});
+disputeTransactions.belongsTo(chargebacks, {
+  as: 'chargeback',
+  foreignKey: 'chargeback_id',
+  constraints: false,
+});
 
 export default sequelizeMsSql;

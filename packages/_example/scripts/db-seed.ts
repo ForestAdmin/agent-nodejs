@@ -1,264 +1,243 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-await-in-loop */
 /* eslint-disable no-console */
-import { faker } from '@faker-js/faker';
-import { Connection, Schema } from 'mongoose';
-import { Sequelize } from 'sequelize';
+import type { DemoField } from '../src/connections/data-model';
+import type { Sequelize } from 'sequelize';
 
-import mongoose from '../src/connections/mongoose';
+import { build } from '@forestadmin/datasource-demo-bank/dist/seed/index';
+import { mkdir, rm, writeFile } from 'fs/promises';
+import { dirname } from 'path';
+
+import { demoFields } from '../src/connections/data-model';
+import mongoose, { DOCUMENT_CHECK_FIELDS } from '../src/connections/mongoose';
 import sequelizeMariaDb from '../src/connections/sequelize-mariadb';
 import sequelizeMsSql from '../src/connections/sequelize-mssql';
 import sequelizeMySql from '../src/connections/sequelize-mysql';
 import sequelizePostgres from '../src/connections/sequelize-postgres';
+import sequelizeSqlite, { SQLITE_STORAGE } from '../src/connections/sequelize-sqlite';
+import { MERCHANTS_FILE } from '../src/merchants-api';
 
-async function createOwnerRecords(connection: Sequelize): Promise<any[]> {
-  const ownerRecords: any[] = [];
+type Row = Record<string, unknown>;
+type Rows = Record<string, Row[]>;
 
-  for (let i = 0; i < 10; i += 1) {
-    ownerRecords.push({ firstName: faker.name.firstName(), lastName: faker.name.lastName() });
-  }
+const SQL_ROWS_PER_INSERT = 500;
+const MONGO_DOCUMENTS_PER_INSERT = 5000;
+const ENTRY_MODES_WITH_A_DEVICE = ['ONLINE', 'MOBILE_WALLET'];
 
-  return connection.model('owner').bulkCreate(ownerRecords);
+const SQL_TABLES: Array<[Sequelize, string[]]> = [
+  [sequelizePostgres, ['customers', 'individuals', 'businesses', 'accounts', 'customer_members']],
+  [sequelizeMySql, ['transactions', 'counterparties']],
+  [sequelizeMsSql, ['chargebacks', 'dispute_requests', 'dispute_transactions']],
+  [sequelizeMariaDb, ['cards']],
+  [sequelizeSqlite, ['alerts', 'investigations', 'sar_reports', 'status_changes']],
+];
+const HISTORY_OF_EXPOSED_TABLES = [
+  'CUSTOMERS',
+  'KYC_CASES',
+  'ALERTS',
+  'INVESTIGATIONS',
+  'SAR_REPORTS',
+  'DISPUTE_REQUESTS',
+  'CHARGEBACKS',
+];
+
+function groupBy(rows: Row[], key: string): Map<unknown, Row[]> {
+  const groups = new Map<unknown, Row[]>();
+  rows.forEach(row => groups.set(row[key], [...(groups.get(row[key]) ?? []), row]));
+
+  return groups;
 }
 
-async function createReviewRecords(connection: Sequelize, storeRecords: any[]): Promise<any[]> {
-  const reviewRecords: any[] = [];
+function withDates(row: Row, fields: DemoField[]): Row {
+  const dated = { ...row };
 
-  for (let i = 0; i < 10; i += 1) {
-    reviewRecords.push({
-      message: faker.lorem.sentence(),
-      title: faker.random.words(3),
-      storeId: faker.datatype.boolean() ? null : faker.helpers.arrayElement(storeRecords).id,
+  fields
+    .filter(field => ['date', 'datetime'].includes(field.type) && row[field.name])
+    .forEach(field => {
+      dated[field.name] = new Date(row[field.name] as string);
     });
-  }
 
-  return connection.model('review').bulkCreate(reviewRecords);
+  return dated;
 }
 
-async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): Promise<any[]> {
-  return connection.model('store').bulkCreate(
-    ownerRecords.reduce((records, ownerRecord) => {
-      for (let i = 0; i < faker.datatype.number({ min: 1, max: 2 }); i += 1) {
-        records.push({ name: faker.company.name(), ownerId: ownerRecord.id });
+async function seedSqlTables(rows: Rows) {
+  for (const [connection, tables] of SQL_TABLES) {
+    await connection.sync({ force: true });
+
+    for (const table of tables) {
+      const model = connection.model(table);
+      const list = rows[table] ?? [];
+
+      for (let i = 0; i < list.length; i += SQL_ROWS_PER_INSERT) {
+        await model.bulkCreate(list.slice(i, i + SQL_ROWS_PER_INSERT), { validate: false });
       }
 
-      return records;
-    }, []),
-  );
-}
-
-async function createSaleRecords(connection: Connection, accounts: { _id }[]): Promise<void> {
-  const records: any[] = [];
-  const thingSchema = new Schema({}, { strict: false });
-  const Sale = connection.model('sale', thingSchema);
-
-  for (let i = 0; i < 100; i += 1) {
-    records.push({
-      saleDate: faker.datatype.datetime(),
-      saleItems: faker.helpers.uniqueArray(
-        () => ({
-          name: faker.commerce.productName(),
-          tags: faker.helpers.arrayElements(
-            ['stationary', 'office', 'general', 'school', 'travel', 'kids', 'general'],
-            faker.datatype.number(3),
-          ),
-          price: faker.datatype.number({ min: 10, max: 100, precision: 0.01 }),
-          quantity: faker.datatype.number({ min: 10, max: 100, precision: 1 }),
-        }),
-        faker.datatype.number(15),
-      ),
-      storeLocation: faker.address.city(),
-      customer: {
-        gender: faker.helpers.arrayElement(['M', 'F', 'N']),
-        age: faker.datatype.number(100),
-        email: faker.internet.email(),
-        satisfaction: faker.datatype.number({ min: 0, max: 5, precision: 0.5 }),
-        // eslint-disable-next-line no-underscore-dangle
-        accountNumber: faker.helpers.arrayElement(accounts.map(account => account._id)),
-      },
-      couponUsed: faker.helpers.arrayElement([true, false]),
-      purchaseMethod: faker.helpers.arrayElement(['Online', 'In-store', 'In-mail', 'Door-to-door']),
-    });
-  }
-
-  await Sale.create(records);
-}
-
-async function createAccountRecords(connection: Connection, storeRecords: any[]) {
-  const records: any[] = [];
-
-  for (let i = 0; i < 30; i += 1) {
-    records.push({
-      firstname: faker.name.firstName(),
-      lastname: faker.name.lastName(),
-      storeId: faker.helpers.arrayElement(storeRecords).id,
-      address: {
-        streetNumber: faker.datatype.number(100),
-        streetName: faker.address.street(),
-        city: faker.address.cityName(),
-        country: faker.address.country(),
-      },
-      bills: faker.helpers.uniqueArray(
-        () => ({
-          title: faker.finance.transactionDescription(),
-          amount: faker.datatype.number({ min: 1, max: 100, precision: 0.01 }),
-          issueDate: faker.datatype.datetime(),
-          items: faker.helpers.uniqueArray(
-            () => ({
-              importance: faker.helpers.arrayElement(['high', 'medium', 'low']),
-              title: faker.finance.transactionDescription(),
-              amount: faker.datatype.number({ min: 1, max: 100, precision: 0.01 }),
-            }),
-            3,
-          ),
-        }),
-        4,
-      ),
-    });
-  }
-
-  return connection.models.account.create(records);
-}
-
-async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
-  let customerRecords: any[] = [];
-
-  for (let i = 0; i < 5000; i += 1) {
-    customerRecords.push({
-      name: faker.name.lastName(),
-      firstName: faker.name.firstName(),
-    });
-  }
-
-  customerRecords = await connection.model('customer').bulkCreate(customerRecords);
-
-  const cardRecords: any[] = [];
-
-  for (let i = 0; i < 5; i += 1) {
-    cardRecords.push({
-      cardNumber: Number(faker.finance.creditCardNumber('################')),
-      cardType: faker.helpers.arrayElement(['visa', 'mastercard', 'american express']),
-      isActive: faker.datatype.boolean(),
-      customerId: customerRecords[i].id,
-    });
-  }
-
-  await connection.model('card').bulkCreate(cardRecords);
-
-  return customerRecords;
-}
-
-async function advancePostgresSequencesPastSeededIds(connection: Sequelize, tables: string[]) {
-  if (connection.getDialect() !== 'postgres') return;
-
-  for (const table of tables) {
-    // eslint-disable-next-line no-await-in-loop
-    await connection.query(
-      `SELECT setval(pg_get_serial_sequence('${table}', 'id'), MAX(id)) FROM ${table}`,
-    );
-  }
-}
-
-async function createDvdRentalsRecords(
-  connection: Sequelize,
-  storeRecords: any[],
-  customerRecords: any[],
-): Promise<void> {
-  let currentRentalRecordId = 0;
-  let currentDvdRecordId = 0;
-  const dvdRecords: any[] = [];
-  const dvdRentalRecords: any[] = [];
-  const rentalRecords: any[] = [];
-  storeRecords.forEach(storeRecord => {
-    const temporaryRentalRecords: any[] = [];
-
-    for (let i = 0; i < faker.datatype.number({ min: 2, max: 5 }); i += 1) {
-      temporaryRentalRecords.push({
-        id: currentRentalRecordId,
-        startDate: faker.date.recent(40),
-        endDate: faker.date.soon(40),
-        customerId: faker.helpers.arrayElement(customerRecords).id,
-      });
-      currentRentalRecordId += 1;
+      console.log(`${table}: ${list.length} rows (${connection.getDialect()})`);
     }
+  }
 
-    temporaryRentalRecords.forEach(rentalRecord => {
-      for (let id = 0; id < faker.datatype.number({ min: 1, max: 3 }); id += 1) {
-        dvdRecords.push({
-          id: currentDvdRecordId,
-          title: faker.random.words(3),
-          rentalPrice: faker.datatype.number({ min: 1, max: 30 }),
-          storeId: storeRecord.id,
-        });
-        dvdRentalRecords.push({ dvdId: currentDvdRecordId, rentalId: rentalRecord.id });
+  await sequelizeMariaDb.query(`
+    CREATE OR REPLACE VIEW active_cards AS
+    SELECT * FROM cards WHERE status = 'ACTIVE'
+  `);
+}
 
-        currentDvdRecordId += 1;
+function kycCaseDocuments(rows: Rows) {
+  const documentFields = demoFields('documents');
+  const documentsByCase = groupBy(rows.documents, 'kyc_case_id');
+  const individuals = new Map(rows.individuals.map(individual => [individual.id, individual]));
+  const membersByCustomer = groupBy(rows.customer_members, 'customer_id');
+
+  const applicantOf = (customerId: unknown) => {
+    const members = membersByCustomer.get(customerId) ?? [];
+    const member = members.find(m => m.is_primary_contact) ?? members[0];
+    const individual = member && individuals.get(member.individual_id);
+
+    return individual
+      ? {
+          first_name: individual.first_name,
+          last_name: individual.last_name,
+          date_of_birth: individual.date_of_birth,
+          nationality: individual.nationality,
+        }
+      : null;
+  };
+
+  const caseDocument = ({ id, ...document }: Row) => {
+    const embedded: Row = { _id: id, check: {} };
+
+    Object.entries(withDates(document, documentFields)).forEach(([field, value]) => {
+      if (DOCUMENT_CHECK_FIELDS[field]) {
+        (embedded.check as Row)[DOCUMENT_CHECK_FIELDS[field]] = value;
+      } else {
+        embedded[field] = value;
       }
     });
 
-    rentalRecords.push(...temporaryRentalRecords);
+    return embedded;
+  };
+
+  return rows.kyc_cases.map(({ id, ...kycCase }) => ({
+    _id: id,
+    ...kycCase,
+    applicant: applicantOf(kycCase.customer_id),
+    documents: (documentsByCase.get(id) ?? []).map(caseDocument),
+  }));
+}
+
+function cardTransactionDocuments(rows: Rows) {
+  const fields = demoFields('card_transactions');
+  const holders = new Map(rows.cards.map(card => [card.id, card.holder_id]));
+  const deviceByIndividual = new Map(
+    [...groupBy(rows.devices, 'individual_id')].map(([individualId, devices]) => [
+      individualId,
+      devices[0],
+    ]),
+  );
+
+  const deviceOf = (cardTransaction: Row) => {
+    if (!ENTRY_MODES_WITH_A_DEVICE.includes(cardTransaction.entry_mode as string)) return null;
+    const device = deviceByIndividual.get(holders.get(cardTransaction.card_id));
+
+    return device
+      ? {
+          id: device.id,
+          individual_id: device.individual_id,
+          platform: device.platform,
+          device_name: device.device_name,
+          app_version: device.app_version,
+          is_trusted: device.is_trusted,
+        }
+      : null;
+  };
+
+  return rows.card_transactions.map(row => {
+    const {
+      id,
+      authorization_code: code,
+      entry_mode: entryMode,
+      is_3ds: is3ds,
+      wallet_type: walletType,
+      authorized_at: authorizedAt,
+      decline_reason: declineReason,
+      ...cardTransaction
+    } = withDates(row, fields);
+
+    return {
+      _id: id as string,
+      ...cardTransaction,
+      authorization: {
+        code,
+        entry_mode: entryMode,
+        is_3ds: is3ds,
+        wallet_type: walletType,
+        authorized_at: authorizedAt,
+        decline_reason: declineReason,
+      },
+      device: deviceOf(row),
+    };
   });
-
-  await Promise.all([
-    connection.model('dvd').bulkCreate(dvdRecords),
-    connection.model('rental').bulkCreate(rentalRecords),
-  ]);
-
-  await connection.model('dvd_rental').bulkCreate(dvdRentalRecords);
-  await advancePostgresSequencesPastSeededIds(connection, ['dvd', 'rental']);
 }
 
-async function clearDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
-  for (const db of sequelizeInstances) {
-    // eslint-disable-next-line no-await-in-loop
-    await db.sync({ force: true });
+async function seedMongo(rows: Rows) {
+  await mongoose.asPromise();
+  await mongoose.dropDatabase();
+
+  const kycCases = kycCaseDocuments(rows);
+  await mongoose.model('kyc_cases').insertMany(kycCases);
+  console.log(`kyc_cases: ${kycCases.length} documents (mongoose)`);
+
+  const cardTransactions = cardTransactionDocuments(rows);
+  const collection = mongoose.db.collection<{ _id: string }>('card_transactions');
+
+  for (let i = 0; i < cardTransactions.length; i += MONGO_DOCUMENTS_PER_INSERT) {
+    await collection.insertMany(cardTransactions.slice(i, i + MONGO_DOCUMENTS_PER_INSERT));
   }
 
-  await mongooseInstance.dropDatabase();
+  console.log(`card_transactions: ${cardTransactions.length} documents (mongo)`);
 }
 
-async function closeDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
-  for (const db of [...sequelizeInstances, mongooseInstance]) {
-    // eslint-disable-next-line no-await-in-loop
-    await db.close();
-  }
+async function seedMerchantsApi(rows: Rows) {
+  const counterparties = new Map(rows.counterparties.map(c => [c.id, c.name]));
+  const merchants = rows.card_merchants.map(merchant => ({
+    ...merchant,
+    name: counterparties.get(merchant.counterparty_id) ?? null,
+  }));
+
+  await writeFile(MERCHANTS_FILE, JSON.stringify(merchants, null, 2));
+  console.log(`card_merchants: ${merchants.length} records (${MERCHANTS_FILE})`);
+}
+
+async function closeConnections() {
+  for (const [connection] of SQL_TABLES) await connection.close();
+  await mongoose.close();
 }
 
 async function seedData() {
-  const sequelizeInstances = [
-    sequelizeMsSql,
-    sequelizeMySql,
-    sequelizePostgres,
-    sequelizeMariaDb,
-    sequelizeMsSql,
-  ];
+  const { rows } = build() as { rows: Rows };
+  rows.status_changes = rows.status_changes.filter(change =>
+    HISTORY_OF_EXPOSED_TABLES.includes(change.record_type as string),
+  );
 
   try {
-    await clearDatabases(mongoose, sequelizeInstances);
-
-    const ownerRecords = await createOwnerRecords(sequelizePostgres);
-    const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
-    const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
-    const accounts = await createAccountRecords(mongoose, storeRecords);
-    await createSaleRecords(mongoose, accounts);
-    await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
-    await createReviewRecords(sequelizePostgres, storeRecords);
-
-    await sequelizeMariaDb.query(`
-      CREATE OR REPLACE VIEW active_cards AS
-      SELECT * FROM card WHERE is_active = TRUE
-    `);
-  } catch (error) {
-    console.error('---------------');
-    console.error('The seed failed');
-    console.error(error);
-    console.error('---------------');
+    await mkdir(dirname(SQLITE_STORAGE), { recursive: true });
+    await rm(SQLITE_STORAGE, { force: true });
+    await seedSqlTables(rows);
+    await seedMongo(rows);
+    await seedMerchantsApi(rows);
   } finally {
-    await closeDatabases(mongoose, sequelizeInstances);
+    await closeConnections();
   }
 }
 
 (async () => {
-  console.log(`Beginning seed...`);
-  await seedData();
-  console.log(`Seed completed! 🌱`);
+  console.log('Beginning seed...');
+
+  try {
+    await seedData();
+    console.log('Seed completed! 🌱');
+  } catch (error) {
+    console.error('The seed failed');
+    console.error(error);
+    process.exitCode = 1;
+  }
 })();

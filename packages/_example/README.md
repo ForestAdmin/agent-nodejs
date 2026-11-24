@@ -63,6 +63,25 @@ This package serves as an example agent for Forest Admin. Its purpose is to demo
     yarn db:seed
     ```
 
+   The data is the back office of a bank, built by `@forestadmin/datasource-demo-bank`: generated
+   from a fixed seed but dated back from the hour you seed, so ids and volumes shift a little from
+   one seed to the next. Run `yarn db:seed` again to bring the dates back to today. The tables are
+   split across the datasources:
+
+   | Datasource | Collections |
+   |---|---|
+   | Postgres (Sequelize) | `customers`, `individuals`, `businesses`, `accounts`, `customer_members` |
+   | MySQL (Sequelize) | `transactions`, `counterparties` |
+   | MSSQL (Sequelize) | `chargebacks`, `dispute_requests`, `dispute_transactions` |
+   | MariaDB (SQL) | `cards`, `active_cards` (a view) |
+   | SQLite (SQL, `assets/db.sqlite`) | `alerts`, `investigations`, `sar_reports` |
+   | MongoDB (Mongoose) | `kyc_cases`, with its applicant and documents |
+   | MongoDB (Mongo, flattened) | `card_transactions`, with its device and authorization |
+   | HTTP API (custom datasource) | `card_merchants` |
+
+   `card_merchants` is served by a small HTTP API the agent starts on `HTTP_PORT_MERCHANTS_API`
+   (3359 by default), from the `assets/card-merchants.json` file the seed writes.
+
 
 ## Running the Agent
 
