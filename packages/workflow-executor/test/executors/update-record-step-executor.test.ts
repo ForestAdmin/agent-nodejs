@@ -1874,6 +1874,12 @@ describe('UpdateRecordStepExecutor', () => {
           isRelationship: false,
           type: { street: 'String' },
         },
+        {
+          fieldName: 'addresses',
+          displayName: 'Addresses',
+          isRelationship: false,
+          type: [{ street: 'String' }],
+        },
       ];
 
       function makePrerecordedContext(
@@ -2180,6 +2186,37 @@ describe('UpdateRecordStepExecutor', () => {
           context.user,
         );
       });
+
+      it.each([[[{ street: 'Main St' }, { street: 'Elm St' }]], [['{"street":"Main St"}']], [[]]])(
+        'writes the embedded documents %p as is',
+        async value => {
+          const { executor, agentPort, context } = makePrerecordedContext('addresses', value);
+
+          await executor.execute();
+
+          expect(agentPort.updateRecord).toHaveBeenCalledWith(
+            { collection: 'customers', id: [42], values: { addresses: value } },
+            context.user,
+          );
+        },
+      );
+
+      it.each([[['not json']], ['{"street":"Main St"}'], [{ street: 'Main St' }]])(
+        'fails as a configuration error naming the field on the embedded documents %p',
+        async value => {
+          const { executor, agentPort, context } = makePrerecordedContext('addresses', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(context.logger).toHaveBeenCalledWith(
+            'Error',
+            expect.stringMatching(/^Invalid pre-recorded value for field "Addresses": /),
+            expect.anything(),
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
 
       it('fails as a configuration error on a Json string that is not valid JSON', async () => {
         const { executor, agentPort } = makePrerecordedContext('metadata', '{not json');
@@ -3361,6 +3398,26 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
+    it('writes AI embedded documents given as JSON strings as is', async () => {
+      const { executor, agentPort } = makeAiContext(
+        {
+          fieldName: 'addresses',
+          displayName: 'Addresses',
+          isRelationship: false,
+          type: [{ street: 'String' }],
+        },
+        ['{"street":"Main St"}'],
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { addresses: ['{"street":"Main St"}'] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
     it('writes an AI Point array as the string the agent takes', async () => {
       const { executor, agentPort } = makeAiContext(
         { fieldName: 'location', displayName: 'Location', isRelationship: false, type: 'Point' },
@@ -3681,6 +3738,26 @@ describe('UpdateRecordStepExecutor', () => {
       ).toThrow();
     });
 
+    it('type [{ ... }] (embedded documents): treats as array of JSON strings', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'addresses',
+          displayName: 'Addresses',
+          isRelationship: false,
+          type: [{ street: 'String' }],
+        },
+      ]);
+
+      expect(
+        schema.parse({
+          input: { fieldName: 'Addresses', value: ['{"street":"Main St"}'], reasoning: 'r' },
+        }).input.value,
+      ).toEqual(['{"street":"Main St"}']);
+      expect(() =>
+        schema.parse({ input: { fieldName: 'Addresses', value: ['not json'], reasoning: 'r' } }),
+      ).toThrow();
+    });
+
     it('root schema is ZodObject (not union) — satisfies OpenAI type:object requirement', async () => {
       const schema = await getToolSchema([
         { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
@@ -3880,6 +3957,12 @@ describe('UpdateRecordStepExecutor', () => {
       type: ['Enum'] as ['Enum'],
       enumValues: ['red', 'green', 'blue'],
     };
+    const embeddedDocumentsField = {
+      fieldName: 'addresses',
+      displayName: 'Addresses',
+      isRelationship: false,
+      type: [{ street: 'String' }],
+    };
 
     it('coerces a native boolean user override', async () => {
       const { executor, agentPort } = makeCoercionContext(booleanField, null, {
@@ -4019,6 +4102,40 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
         'The value entered for "Scores" isn\'t valid for this field. Please review it and try again.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('writes embedded documents a user confirmed as is', async () => {
+      const { executor, agentPort } = makeCoercionContext(embeddedDocumentsField, null, {
+        userConfirmed: true,
+        value: [{ street: 'Main St' }, '{"street":"Elm St"}'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          id: [42],
+          values: { addresses: [{ street: 'Main St' }, '{"street":"Elm St"}'] },
+        },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('fails as an operator error naming the field on an embedded document that is not JSON', async () => {
+      const { executor, agentPort } = makeCoercionContext(embeddedDocumentsField, null, {
+        userConfirmed: true,
+        value: [{ street: 'Main St' }, 'not json'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
+      expect(result.stepOutcome.error).toBe(
+        'The value entered for "Addresses" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });

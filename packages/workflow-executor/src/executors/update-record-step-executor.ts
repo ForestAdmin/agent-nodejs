@@ -217,10 +217,12 @@ function buildZodSchemaForField(
   const jsonSchema = forAiTool ? jsonStringSchema : jsonValueSchema;
 
   if (Array.isArray(type)) {
-    // Nested array (e.g. [['String']]) → treat as opaque JSON.
-    if (Array.isArray(type[0])) return z.array(jsonSchema);
+    const [itemType] = type;
 
-    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues, forAiTool, strict));
+    // Nested array or embedded document (e.g. [['String']], [{ street: 'String' }]) → opaque JSON.
+    if (typeof itemType === 'object' && itemType !== null) return z.array(jsonSchema);
+
+    return z.array(buildZodSchemaForPrimitive(itemType as string, enumValues, forAiTool, strict));
   }
 
   if (typeof type === 'object' && type !== null) {
