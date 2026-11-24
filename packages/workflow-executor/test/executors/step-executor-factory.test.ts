@@ -774,7 +774,7 @@ describe('StepExecutorFactory.create', () => {
       },
     } as unknown as StepContextConfig;
 
-    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const executor = await StepExecutorFactory.create(step, config, jest.fn());
     const result = await executor.execute();
 
     expect(result.stepOutcome).toMatchObject({
