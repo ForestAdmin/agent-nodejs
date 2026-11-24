@@ -56,7 +56,7 @@ const COMPLETE_STEP_TOOL = new DynamicStructuredTool({
     summary: z
       .string()
       .min(1)
-      .describe('Concise human-readable answer: what was done and what was found.'),
+      .describe('Concise human-readable answer in Markdown: what was done and what was found.'),
   }),
   func: undefined,
 });
@@ -68,6 +68,7 @@ Important rules:
 - Call only the tools directly relevant to the request.
 - You can make at most ${MAX_TOOL_CALLS} tool calls.
 - Once the request is fulfilled, or no further tool call can help, call "${COMPLETE_STEP_TOOL.name}" with a concise answer for the user. Be factual and do not include raw JSON or technical identifiers.
+- Format the answer in Markdown, never in HTML. The front renders Markdown and shows HTML as plain text.
 - Final answer is definitive, you won't receive any other input from the user.`;
 
 export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
