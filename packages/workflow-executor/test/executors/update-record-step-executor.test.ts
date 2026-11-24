@@ -3404,6 +3404,28 @@ describe('UpdateRecordStepExecutor inside a Sub-workflow call', () => {
     ]);
   });
 
+  it('keeps a record loaded inside the call as a write target after a revision cloned its step', async () => {
+    // The clone runs inside the call, while its record still carries the original's index.
+    const clonedItemsRef = makeRecordRef({ collectionName: 'items', recordId: [7], stepIndex: 3 });
+    const { model, bindTools } = makeSelectThenUpdateModel('Step 3 - Items #7');
+    const context = makeCallContext([ordersRef, accountsRef, clonedItemsRef], {
+      model,
+      previousSteps: [
+        makeLoadRelatedPreviousStep(1),
+        makeLoadRelatedPreviousStep(2),
+        makeLoadRelatedPreviousStep(5, 3),
+      ],
+    });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual(['Step 1 - Orders #99', 'Step 3 - Items #7']);
+    expect(context.runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ selectedRecordRef: clonedItemsRef }),
+    );
+  });
+
   it("still updates a calling workflow's record pinned by step index", async () => {
     const { model } = makeMockModel({
       input: { fieldName: 'Status', value: 'active', reasoning: 'asked' },
