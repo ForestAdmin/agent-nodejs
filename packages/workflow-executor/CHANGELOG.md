@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.42.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.1...@forestadmin/workflow-executor@1.42.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **workflow-executor:** ask for the MCP step's final answer in markdown ([#2094](https://github.com/ForestAdmin/agent-nodejs/issues/2094)) ([c63d5ee](https://github.com/ForestAdmin/agent-nodejs/commit/c63d5ee13bdda808533727067d6107a5181d8eb3))
+
 ## @forestadmin/workflow-executor [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.0...@forestadmin/workflow-executor@1.42.1) (2026-11-24)
 
 
