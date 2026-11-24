@@ -5,6 +5,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { RecordNotFoundError } from '@forestadmin/agent-client';
+
 import declareUpdateTool from '../../src/tools/update';
 import buildClient from '../../src/utils/agent-caller';
 import withActivityLog from '../../src/utils/with-activity-log';
@@ -324,6 +326,25 @@ describe('declareUpdateTool', () => {
         );
         expect(result).toEqual({
           content: [{ type: 'text', text: expect.stringContaining('Record not found') }],
+          isError: true,
+        });
+      });
+
+      it('returns an error naming the record when it no longer exists', async () => {
+        const mockUpdate = jest.fn().mockRejectedValue(new RecordNotFoundError('users', '999'));
+        const mockCollection = jest.fn().mockReturnValue({ update: mockUpdate });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        const result = await registeredToolHandler(
+          { collectionName: 'users', recordId: 999, attributes: {} },
+          mockExtra,
+        );
+
+        expect(result).toEqual({
+          content: [{ type: 'text', text: 'Record "999" not found in collection "users"' }],
           isError: true,
         });
       });

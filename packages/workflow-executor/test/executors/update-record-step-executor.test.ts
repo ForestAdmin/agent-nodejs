@@ -11,6 +11,7 @@ import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-
 import {
   ActivityLogCreationError,
   AgentPortError,
+  RecordNotFoundError,
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
@@ -1185,6 +1186,36 @@ describe('UpdateRecordStepExecutor', () => {
         'Error',
         'Agent port "updateRecord" failed: DB connection lost',
         expect.objectContaining({ cause: 'DB connection lost' }),
+      );
+    });
+
+    it('fails as an operator error, recording no result, when the record was deleted', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
+        new RecordNotFoundError('customers', [42]),
+      );
+      const runStore = makeMockRunStore();
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
+      expect(result.stepOutcome.error).toBe(
+        'The record no longer exists. It may have been deleted.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
       );
     });
   });

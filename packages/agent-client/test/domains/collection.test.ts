@@ -3,6 +3,7 @@ import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
 import Collection from '../../src/domains/collection';
+import AgentHttpError, { RecordNotFoundError } from '../../src/errors';
 
 jest.mock('../../src/http-requester');
 jest.mock('../../src/action-fields/field-form-states');
@@ -147,7 +148,7 @@ describe('Collection', () => {
     });
 
     it('should handle string id', async () => {
-      httpRequester.query.mockResolvedValue({});
+      httpRequester.query.mockResolvedValue({ id: 'abc-123', name: 'Test' });
 
       await collection.update('abc-123', { name: 'Test' });
 
@@ -161,7 +162,7 @@ describe('Collection', () => {
     });
 
     it('should pipe-encode composite primary keys', async () => {
-      httpRequester.query.mockResolvedValue({});
+      httpRequester.query.mockResolvedValue({ id: 1, name: 'Test' });
 
       await collection.update([1, 'abc'], { name: 'Test' });
 
@@ -172,6 +173,44 @@ describe('Collection', () => {
           data: expect.objectContaining({ id: '1|abc' }),
         }),
       });
+    });
+
+    it.each([
+      ['the Node agent', { jsonapi: { version: '1.0' }, data: null }],
+      ['the Ruby agent', { data: null }],
+      ['an empty body', {}],
+      ['no body', undefined],
+    ])(
+      'rejects with RecordNotFoundError when %s answers without a record',
+      async (_label, body) => {
+        httpRequester.query.mockResolvedValue(body);
+
+        const error = await collection.update([1, 'abc'], { name: 'Test' }).catch(e => e);
+
+        expect(error).toBeInstanceOf(RecordNotFoundError);
+        expect(error).toMatchObject({
+          collectionName: 'users',
+          recordId: '1|abc',
+          message: 'Record "1|abc" not found in collection "users"',
+        });
+      },
+    );
+
+    it('rejects with a 404 AgentHttpError so callers checking for a 404 handle it', async () => {
+      httpRequester.query.mockResolvedValue({ data: null });
+
+      const error = await collection.update(1, { name: 'Test' }).catch(e => e);
+
+      expect(error).toBeInstanceOf(AgentHttpError);
+      expect(error).toMatchObject({ status: 404 });
+    });
+
+    it('returns a record holding a null `data` field alongside its id', async () => {
+      httpRequester.query.mockResolvedValue({ id: 1, data: null });
+
+      const result = await collection.update(1, { data: null });
+
+      expect(result).toEqual({ id: 1, data: null });
     });
   });
 
@@ -207,6 +246,20 @@ describe('Collection', () => {
         expect.objectContaining({ skipDeserialization: true }),
       );
       expect(result).toEqual(body);
+    });
+
+    it('rejects with RecordNotFoundError when the agent answers without a record', async () => {
+      httpRequester.query.mockResolvedValue({ jsonapi: { version: '1.0' }, data: null });
+
+      await expect(collection.getOne(7)).rejects.toThrow(new RecordNotFoundError('users', '7'));
+    });
+
+    it('returns a raw body without a record when skipDeserialization is set', async () => {
+      httpRequester.query.mockResolvedValue({ data: null });
+
+      const result = await collection.getOne(7, undefined, { skipDeserialization: true });
+
+      expect(result).toEqual({ data: null });
     });
   });
 

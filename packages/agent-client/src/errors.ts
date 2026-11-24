@@ -9,6 +9,16 @@ export default class AgentHttpError extends Error {
   }
 }
 
+// The agents answer a by-id read or an update on a missing record with a 200 and no record
+// (`data: null`) instead of a 404. A 404 status keeps callers that already check for one working.
+export class RecordNotFoundError extends AgentHttpError {
+  constructor(readonly collectionName: string, readonly recordId: string) {
+    super(404, undefined);
+    this.name = 'RecordNotFoundError';
+    this.message = `Record "${recordId}" not found in collection "${collectionName}"`;
+  }
+}
+
 // Semantic action errors: agent-client interprets the failure once so callers route on meaning, not
 // status/body. `message` carries the agent's detail when available.
 export class ActionRequiresApprovalError extends Error {

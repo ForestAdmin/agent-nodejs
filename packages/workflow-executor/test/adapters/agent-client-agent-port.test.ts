@@ -368,6 +368,24 @@ describe('AgentClientAgentPort', () => {
 
       expect(result.values).toEqual({ card_number: '4111', is_active: true });
     });
+
+    it('maps a 404 from agent-client to RecordNotFoundError', async () => {
+      mockedIs404Error.mockReturnValue(true);
+      mockCollection.update.mockRejectedValue(new Error('not found'));
+
+      await expect(
+        port.updateRecord({ collection: 'users', id: [999], values: { name: 'Bob' } }, user),
+      ).rejects.toThrow(new RecordNotFoundError('users', [999]));
+    });
+
+    it('rethrows a non-404 error as AgentPortError', async () => {
+      mockedIs404Error.mockReturnValue(false);
+      mockCollection.update.mockRejectedValue(new Error('boom'));
+
+      await expect(
+        port.updateRecord({ collection: 'users', id: [1], values: { name: 'Bob' } }, user),
+      ).rejects.toThrow(AgentPortError);
+    });
   });
 
   describe('getRelatedData', () => {
