@@ -101,12 +101,12 @@ export function clientOf(
 ): AgentActionClient & { loadAction: jest.Mock } {
   return {
     loadAction,
-    executeAction: async ({ beforeCall, fill, ...params }) => {
+    executeAction: async ({ beforeCall, fill, maxTimeAllowed, isOutcomeUnknown, ...params }) => {
       await beforeCall();
       const loaded = await loadAction(params);
       await fill(loaded);
 
-      return loaded.execute();
+      return loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });
     },
   };
 }

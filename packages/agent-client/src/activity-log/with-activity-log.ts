@@ -39,6 +39,7 @@ async function runAudited<T>(
   entry: ActivityLogEntry,
   operation: () => Promise<T>,
   beforeCall?: () => Promise<void>,
+  isOutcomeUnknown?: (error: unknown) => boolean,
 ): Promise<T> {
   const pending = await createPendingActivityLog(context, entry);
 
@@ -56,7 +57,7 @@ async function runAudited<T>(
 
     return result;
   } catch (error) {
-    if (pending) {
+    if (pending && !isOutcomeUnknown?.(error)) {
       markActivityLog(context, pending, isApprovalOutcome(error) ? 'canceled' : 'failed');
     }
 
@@ -73,6 +74,7 @@ export default async function withActivityLogContext<T>(
   entry: ActivityLogEntry | null,
   operation: () => Promise<T>,
   beforeCall?: () => Promise<void>,
+  isOutcomeUnknown?: (error: unknown) => boolean,
 ): Promise<T> {
   if (!context || !entry) {
     if (beforeCall) await beforeCall();
@@ -81,7 +83,7 @@ export default async function withActivityLogContext<T>(
   }
 
   return processDrainer.track(
-    () => runAudited(context, entry, operation, beforeCall),
+    () => runAudited(context, entry, operation, beforeCall, isOutcomeUnknown),
     describeOperation(entry),
   );
 }

@@ -28,7 +28,9 @@ import serializeRecordId from '../record-id';
 export type ExecuteActionOptions = BaseActionContext &
   ActionExecuteOptions & {
     fill?: (action: Action) => Promise<void>;
-    activityLog?: Pick<ActivityLogCallOptions, 'label' | 'beforeCall'>;
+    activityLog?: Pick<ActivityLogCallOptions, 'label' | 'beforeCall'> & {
+      isOutcomeUnknown?: (error: unknown) => boolean;
+    };
   };
 
 function serializeActionIds(context?: BaseActionContext): string[] {
@@ -102,11 +104,18 @@ export default class Collection extends CollectionChart {
     actionName: string,
     options: ExecuteActionOptions = {},
   ): Promise<ActionExecuteResult> {
-    const { fill, activityLog, signedApprovalRequest, approvalRequestMessage, ...context } =
-      options;
+    const {
+      fill,
+      activityLog,
+      signedApprovalRequest,
+      approvalRequestMessage,
+      maxTimeAllowed,
+      ...context
+    } = options;
 
     const collectionName = this.name;
     const recordIds = serializeActionIds(context);
+    let isExecuteSent = false;
 
     const result = await withActivityLogContext(
       this.activityLog,
@@ -119,10 +128,12 @@ export default class Collection extends CollectionChart {
       async () => {
         const action = await this.action(actionName, context);
         if (fill) await fill(action);
+        isExecuteSent = true;
 
-        return action.execute({ signedApprovalRequest, approvalRequestMessage });
+        return action.execute({ signedApprovalRequest, approvalRequestMessage, maxTimeAllowed });
       },
       activityLog?.beforeCall,
+      error => isExecuteSent && Boolean(activityLog?.isOutcomeUnknown?.(error)),
     );
 
     if (isApprovalRequested(result)) {

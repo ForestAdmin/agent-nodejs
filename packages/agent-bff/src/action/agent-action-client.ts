@@ -38,6 +38,8 @@ export interface LoadActionParams {
 
 export interface ExecuteActionParams extends LoadActionParams {
   approvalRequestMessage?: string;
+  maxTimeAllowed?: number;
+  isOutcomeUnknown: (error: unknown) => boolean;
   beforeCall: () => Promise<void>;
   fill: (action: Action) => Promise<void>;
 }
@@ -93,6 +95,8 @@ export default function createAgentActionClient({
       recordIds,
       timezone,
       approvalRequestMessage,
+      maxTimeAllowed,
+      isOutcomeUnknown,
       beforeCall,
       fill,
     }) =>
@@ -100,8 +104,9 @@ export default function createAgentActionClient({
         recordIds,
         timezone,
         approvalRequestMessage,
+        maxTimeAllowed,
         fill,
-        activityLog: { beforeCall },
+        activityLog: { beforeCall, isOutcomeUnknown },
       }),
   };
 }

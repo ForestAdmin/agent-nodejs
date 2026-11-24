@@ -87,7 +87,7 @@ describe('createAgentActionClient', () => {
     });
   });
 
-  it('executes through agent-client with the Forest server connection and the approval message', async () => {
+  it('executes through agent-client with the Forest server connection, the approval message and the timeout', async () => {
     const executeAction = jest.fn(async () => ({ success: 'done' }));
     createRemoteAgentClientMock.mockReturnValue({ collection: jest.fn(() => ({ executeAction })) });
     const activityLog = {
@@ -96,6 +96,7 @@ describe('createAgentActionClient', () => {
     };
     const beforeCall = jest.fn();
     const fill = jest.fn();
+    const isOutcomeUnknown = jest.fn();
 
     await createAgentActionClient({
       transport: transportTo('https://agent.example.com'),
@@ -108,6 +109,8 @@ describe('createAgentActionClient', () => {
       recordIds: ['1'],
       timezone: 'UTC',
       approvalRequestMessage: 'why',
+      maxTimeAllowed: 30_000,
+      isOutcomeUnknown,
       beforeCall,
       fill,
     });
@@ -117,8 +120,9 @@ describe('createAgentActionClient', () => {
       recordIds: ['1'],
       timezone: 'UTC',
       approvalRequestMessage: 'why',
+      maxTimeAllowed: 30_000,
       fill,
-      activityLog: { beforeCall },
+      activityLog: { beforeCall, isOutcomeUnknown },
     });
   });
 });

@@ -12,6 +12,7 @@ import type { Context, Middleware } from 'koa';
 import {
   ActionFormValidationError,
   ActivityLogBlockedError,
+  AgentHttpError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -23,6 +24,7 @@ import { mapActionForm } from './action-form-mapper';
 import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
+import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 import activityLogConfigOf from '../auth/activity-log-context';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
@@ -34,6 +36,7 @@ import {
 import { BffHttpError } from '../http/bff-http-error';
 import {
   actionError,
+  actionOutcomeUnknown,
   approvalRequestFailed,
   invalidRequest,
   unknownAction,
@@ -42,6 +45,19 @@ import {
 const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
 
 const EXECUTE_VERB = 'execute';
+
+/**
+ * Failures after which the execute may have reached the agent and run: a timeout, a connection reset
+ * once the request was sent, or a gateway's 502 or 504 in front of the agent, which the agent itself
+ * never answers. A refused connection or a 503 means the agent was never reached, so it stays a
+ * failure.
+ */
+function mayHaveRun(error: unknown): boolean {
+  if (error instanceof AgentTimeoutError) return true;
+  if (error instanceof AgentHttpError) return error.status === 502 || error.status === 504;
+
+  return (error as { code?: unknown } | null)?.code === 'ECONNRESET';
+}
 
 interface ActionRequestBody {
   recordIds?: unknown;
@@ -110,6 +126,8 @@ export interface ActionRoutesMiddlewareOptions {
   logger: Logger;
   forestServerUrl: string;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
+  /** Bounds the execute call alone; the transport's own timeout applies when omitted. */
+  actionTimeoutMs?: number;
 }
 
 interface FormHandlerArgs {
@@ -192,6 +210,7 @@ interface ExecuteHandlerArgs {
   refusal?: () => never;
   values: Record<string, unknown>;
   logger: Logger;
+  actionTimeoutMs?: number;
 }
 
 async function handleExecute({
@@ -201,16 +220,35 @@ async function handleExecute({
   refusal,
   values,
   logger,
+  actionTimeoutMs,
 }: ExecuteHandlerArgs): Promise<void> {
   let raw: unknown;
+  let isExecuteSent = false;
 
   try {
     raw = await client.executeAction({
       ...params,
+      maxTimeAllowed: actionTimeoutMs,
+      isOutcomeUnknown: mayHaveRun,
       beforeCall: async () => refusal?.(),
-      fill: action => fillValues(action, values, logger),
+      fill: async action => {
+        await fillValues(action, values, logger);
+        isExecuteSent = true;
+      },
     });
   } catch (error) {
+    if (isExecuteSent && mayHaveRun(error)) {
+      const { collection, actionName, recordIds } = params;
+      logger('Warn', 'Action execute got no answer: outcome unknown', {
+        collection,
+        actionName,
+        recordIds,
+        cause: error instanceof Error ? error.message : String(error),
+      });
+
+      throw actionOutcomeUnknown();
+    }
+
     throw toExecuteError(error, logger);
   }
 
@@ -243,6 +281,7 @@ export default function createActionRoutesMiddleware({
   logger,
   forestServerUrl,
   createClient = defaultCreateAgentActionClient,
+  actionTimeoutMs,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
     const match = ACTION_ROUTE.exec(ctx.path);
@@ -310,6 +349,7 @@ export default function createActionRoutesMiddleware({
       refusal: allowed ? undefined : refuseUnknownAction,
       values,
       logger,
+      actionTimeoutMs,
     });
   };
 }

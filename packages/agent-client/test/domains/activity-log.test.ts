@@ -419,6 +419,66 @@ describe('activity logging inside agent-client calls', () => {
       );
     });
 
+    it('should send the execute with the time it is allowed', async () => {
+      const { collection, query } = setup();
+      query.mockResolvedValue({ success: 'done' });
+
+      await collection.executeAction('refund', { maxTimeAllowed: 30_000 });
+
+      expect(query).toHaveBeenCalledWith(expect.objectContaining({ maxTimeAllowed: 30_000 }));
+    });
+
+    describe('when the caller says the execute outcome is unknown', () => {
+      const noAnswer = new Error('Timeout of 30000ms exceeded');
+      const isOutcomeUnknown = (error: unknown) => error === noAnswer;
+
+      it('should leave the entry pending when the execute fails that way', async () => {
+        const { collection, service, query } = setup();
+        query.mockRejectedValue(noAnswer);
+
+        await expect(
+          collection.executeAction('refund', { activityLog: { isOutcomeUnknown } }),
+        ).rejects.toBe(noAnswer);
+        await drainActivityLogs();
+
+        expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
+        expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+      });
+
+      it('should mark the entry failed when filling the form fails that way, since nothing ran', async () => {
+        const { collection, service, query } = setup();
+
+        await expect(
+          collection.executeAction('refund', {
+            fill: async () => {
+              throw noAnswer;
+            },
+            activityLog: { isOutcomeUnknown },
+          }),
+        ).rejects.toBe(noAnswer);
+        await drainActivityLogs();
+
+        expect(query).not.toHaveBeenCalled();
+        expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'failed' }),
+        );
+      });
+
+      it('should mark the entry failed when the execute fails another way', async () => {
+        const { collection, service, query } = setup();
+        query.mockRejectedValue(new Error('connect ECONNREFUSED'));
+
+        await expect(
+          collection.executeAction('refund', { activityLog: { isOutcomeUnknown } }),
+        ).rejects.toThrow('connect ECONNREFUSED');
+        await drainActivityLogs();
+
+        expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'failed' }),
+        );
+      });
+    });
+
     describe('when the action is sent for approval', () => {
       const approvalGated = new AgentHttpError(403, {
         errors: [{ name: 'CustomActionRequiresApprovalError' }],

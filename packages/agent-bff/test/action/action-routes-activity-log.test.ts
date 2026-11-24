@@ -10,6 +10,7 @@ import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
+import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import { TIMEZONE, readModel, storeOf } from '../helpers/action-routes';
 import {
@@ -194,6 +195,31 @@ describe('action routes activity log', () => {
       expect(response.status).toBe(502);
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    describe('when the execute gets no answer', () => {
+      it.each([
+        ['a timeout', new AgentTimeoutError('Timeout of 30000ms exceeded')],
+        ['a connection reset', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+      ])(
+        'should leave the log pending on %s, since the action may still have run',
+        async (_, cause) => {
+          const service = fakeActivityLogsService();
+          const agent = agentAnswering(async () => {
+            throw cause;
+          });
+
+          const response = await request(buildApp({ service, agent }).callback())
+            .post('/agent/v1/users/actions/approve/execute')
+            .send({ recordIds: ['42'] });
+          await drainActivityLogs();
+
+          expect(response.status).toBe(504);
+          expect(response.body.error).toMatchObject({ details: { outcome: 'unknown' } });
+          expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
+          expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+        },
       );
     });
 
