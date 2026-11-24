@@ -1,3 +1,17 @@
+# @forestadmin/datasource-toolkit [1.58.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.57.0...@forestadmin/datasource-toolkit@1.58.0) (2026-11-24)
+
+
+### Features
+
+* add SA field form isPending option ([#2086](https://github.com/ForestAdmin/agent-nodejs/issues/2086)) ([f6ba9d5](https://github.com/ForestAdmin/agent-nodejs/commit/f6ba9d52a1c740187c0fa65051cc4cdc63310687))
+
+# @forestadmin/datasource-toolkit [1.57.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.3...@forestadmin/datasource-toolkit@1.57.0) (2026-11-18)
+
+
+### Features
+
+* **datasource-toolkit:** carry a database list through the datasource schema ([#2083](https://github.com/ForestAdmin/agent-nodejs/issues/2083)) ([5c70615](https://github.com/ForestAdmin/agent-nodejs/commit/5c706158928dc643aaec4f518a2cafe8fd3f963e))
+
 ## @forestadmin/datasource-toolkit [1.56.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.2...@forestadmin/datasource-toolkit@1.56.3) (2026-11-03)
 
 

@@ -1,8 +1,9 @@
 import type { ActivityLogPort, CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepUser } from '../types/execution-context';
+import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
 
-// The activity-log target minus renderingId, which track() stamps centrally.
-export type AuditTarget = Omit<CreateActivityLogArgs, 'renderingId'>;
+// The activity-log target minus what track() stamps centrally.
+export type AuditTarget = Omit<CreateActivityLogArgs, 'renderingId' | 'workflow'>;
 
 export type TrackOptions<T> = {
   operation: () => Promise<T>;
@@ -20,15 +21,19 @@ export default class ActivityLog {
 
   private readonly user: StepUser;
 
-  constructor(activityLogPort: ActivityLogPort, user: StepUser) {
+  private readonly workflow?: ActivityLogWorkflow;
+
+  constructor(activityLogPort: ActivityLogPort, user: StepUser, workflow?: ActivityLogWorkflow) {
     this.activityLogPort = activityLogPort;
     this.user = user;
+    this.workflow = workflow;
   }
 
   async track<T>(target: AuditTarget, { operation, beforeCall }: TrackOptions<T>): Promise<T> {
     const handle = await this.activityLogPort.createPending({
       renderingId: this.user.renderingId,
       ...target,
+      ...(this.workflow && { workflow: this.workflow }),
     });
 
     try {

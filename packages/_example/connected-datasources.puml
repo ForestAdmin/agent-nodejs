@@ -4,101 +4,136 @@
 
 title: DataSources connected with ForestAdmin
 
-class STORE {
+class CUSTOMERS {
   .. Fields ..
-  String name
-  .. Imported ..
-  String ownerFullName
+  String display_name
+  Enum status
 }
 
-class REVIEW {
-  String title
-  String message
-  Number storeId
-}
-
-class OWNER {
+class INDIVIDUALS {
   .. Fields ..
-  String firstName
-  String lastName
+  String first_name
+  String last_name
   .. Computed ..
-  String fullName
+  String full_name
+  .. Validations ..
+  first_name, last_name, email
 }
 
-class ACCOUNT {
+class ACCOUNTS {
   .. Fields ..
-   String firstName
-   String lastName
-   String storeId
-   Object address: {
-   -- Number streetNumber
-   -- String streetName
-   -- String city
-   -- String country
-   },
-   Object bills: [{
-   -- String title
-   -- Number amount
-   -- Date issueDate
-   -- items: [{
-   ---- Enum['high', 'medium', 'low'] importance
-   ---- String title
-   ---- Number amount
-   -- }],
-  }],
-}
-
-class DVD {
-  .. Fields ..
-  String title
-  .. Computed ..
-  Int numberOfRentals
-  .. Renamed ..
-  Int rentalPriceInDollar
+  String iban
+  Number overdraft_limit
   .. Actions ..
-  IncreaseTheRentalPrice()
+  RaiseTheOverdraftLimit()
+  TestDynamicForm()
 }
 
-class RENTALS {
+class TRANSACTIONS {
+  .. Fields ..
+  Number amount
+  String description
+}
+
+class COUNTERPARTIES {
+  .. Fields ..
+  String name
+}
+
+class CARDS {
+  .. Fields ..
+  String last_four_digits
+  Enum status
+  .. Imported ..
+  String holder_full_name
+  .. Removed ..
+  card_token
+  .. Actions ..
+  FreezeCard()
+  UnfreezeCard()
+  CreateNewCard()
+}
+
+class ALERTS {
+  .. Fields ..
+  String reference
+  String status
   .. Computed ..
-  Int numberOfDays
+  Int days_open
   .. Segments ..
-  MoreThan50Days()
+  StaleAlerts()
+  .. Actions ..
+  EscalateAlert()
 }
 
-class CARD {
+class INVESTIGATIONS {
   .. Fields ..
-  BigInt cardNumber
-  Enum cardType
-  Boolean isActive
+  String reference
 }
 
-class CUSTOMER {
+class SAR_REPORTS {
+  .. Fields ..
+  String reference
+}
+
+class CHARGEBACKS {
+  .. Fields ..
+  String reference
+  Number amount
+  .. Computed ..
+  Int linked_transactions
+}
+
+class DISPUTE_REQUESTS {
+  .. Fields ..
+  String reference
+  .. Renamed ..
+  Number disputed_amount
+}
+
+class KYC_CASES {
+  .. Fields ..
+  String reference
+  Enum status
+  .. Actions ..
+  ApproveOrReject()
+  AttachADocument()
+}
+
+class CARD_TRANSACTIONS {
+  .. Fields ..
+  Number original_amount
+  String device@@@individual_id
+  .. Actions ..
+  OpenChargeback()
+}
+
+class CARD_MERCHANTS {
   .. Fields ..
   String name
-  String firstName
+  Enum category
 }
 
-class POST {
-  .. Fields ..
-  String title
-  String body
-}
-
-class COMMENT {
-  .. Fields ..
-  String name
-  String email
-  String body
-}
-
-OWNER "1" -- "*" POST : has
-POST "1" -- "*" COMMENT : has
-STORE "*" -- "1" OWNER : has
-STORE "1" -- "*" DVD : has
-STORE "0-1" -- "*" REVIEW : has
-STORE "1" -- "*" ACCOUNT : has
-DVD "*" -- "*" RENTALS : has
-CUSTOMER "1" -- "*" CARD : has
-CUSTOMER "1" -- "*" RENTALS : has
+ACCOUNTS "*" -- "1" CUSTOMERS : has
+CUSTOMERS "*" -- "*" INDIVIDUALS : members
+CARDS "*" -- "1" ACCOUNTS : has
+CARDS "*" -- "1" CUSTOMERS : has
+CARDS "*" -- "1" INDIVIDUALS : holder
+TRANSACTIONS "*" -- "1" ACCOUNTS : has
+TRANSACTIONS "*" -- "1" COUNTERPARTIES : has
+ALERTS "*" -- "1" CUSTOMERS : has
+ALERTS "*" -- "0-1" INVESTIGATIONS : has
+INVESTIGATIONS "*" -- "1" CUSTOMERS : has
+INVESTIGATIONS "*" -- "0-1" KYC_CASES : origin
+SAR_REPORTS "*" -- "1" INVESTIGATIONS : has
+CHARGEBACKS "*" -- "1" CUSTOMERS : has
+CHARGEBACKS "*" -- "0-1" CARD_TRANSACTIONS : has
+CHARGEBACKS "*" -- "*" DISPUTE_REQUESTS : dispute_transactions
+DISPUTE_REQUESTS "*" -- "1" CUSTOMERS : has
+KYC_CASES "*" -- "1" CUSTOMERS : has
+CARD_TRANSACTIONS "*" -- "1" CARDS : has
+CARD_TRANSACTIONS "*" -- "1" TRANSACTIONS : has
+CARD_TRANSACTIONS "*" -- "1" CARD_MERCHANTS : merchant
+CARD_TRANSACTIONS "*" -- "0-1" INDIVIDUALS : device_owner
+CARD_MERCHANTS "*" -- "1" COUNTERPARTIES : has
 @enduml

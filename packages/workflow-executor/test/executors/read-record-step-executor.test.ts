@@ -10,6 +10,7 @@ import type { ReadRecordStepDefinition } from '../../src/types/validated/step-de
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
+import CallRecordRunStore from '../../src/executors/call-record-run-store';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -101,6 +102,7 @@ function makeMockWorkflowPort(
     hasRunAccess: jest.fn().mockResolvedValue(true),
     reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
     releaseRun: jest.fn().mockResolvedValue(undefined),
+    renewRunLock: jest.fn().mockResolvedValue({ status: 'renewed', lockedAt: 'renewed-lock' }),
   };
 }
 
@@ -1273,6 +1275,24 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
+    it('says the pinned source loads several records when it ran once per record', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([{ type: 'load-related-record', stepIndex: 1, iterations: [] }]),
+      });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: 'load-1' } }),
+      });
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain('several');
+    });
+
     it('runs zero AI rounds when both selectedRecordStepId and fieldNames are pre-recorded', async () => {
       const relatedRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
       const mockModel = makeMockModel({ fieldNames: [] });
@@ -1627,6 +1647,210 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({ id: 1 }),
       );
       expect(result.stepOutcome.status).toBe('success');
+    });
+
+    describe('a call opened once per record of a Multiple step', () => {
+      const uboRef = (id: number) =>
+        makeRecordRef({ collectionName: 'ubos', recordId: [id], stepIndex: 1 });
+      const multipleExecution = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        executionResult: {
+          relation: { name: 'ubos', displayName: 'UBOs' },
+          records: [uboRef(1), uboRef(2), uboRef(3)],
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const ubosWorkflowPort = () =>
+        makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          ubos: makeCollectionSchema({
+            collectionName: 'ubos',
+            collectionDisplayName: 'UBOs',
+            fields: [{ fieldName: 'share', displayName: 'Share', isRelationship: false }],
+          }),
+          orders: makeCollectionSchema({
+            collectionName: 'orders',
+            collectionDisplayName: 'Orders',
+            fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
+          }),
+        });
+      const callContext = (overrides: Parameters<typeof makeContext>[0] = {}) =>
+        makeCalledContext(
+          { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'ubos' },
+          {
+            runStore: makeMockRunStore({
+              getStepExecutions: jest.fn().mockResolvedValue([multipleExecution]),
+            }),
+            previousSteps: [makePinnedSourceStep('Load UBOs')],
+            workflowPort: ubosWorkflowPort(),
+            stepDefinition: makeWorkflowStartStep(['share']),
+            ...overrides,
+          },
+        );
+
+      // The factory narrows the run store to the call's record, so the pin reads that record alone.
+      it("resolves workflow-start to the call's record of the Multiple step", async () => {
+        const agentPort = makeMockAgentPort({ ubos: { values: { share: 30 } } });
+        const runStore = new CallRecordRunStore(
+          makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([multipleExecution]) }),
+          uboRef(2),
+          2,
+        );
+
+        const result = await new ReadRecordStepExecutor(
+          callContext({ agentPort, runStore }),
+        ).execute();
+
+        expect(agentPort.getRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ collection: 'ubos', id: [2], fields: ['share'] }),
+          expect.objectContaining({ id: 1 }),
+        );
+        expect(result.stepOutcome.status).toBe('success');
+      });
+
+      it('still refuses a call on a Multiple step opened once for all its records', async () => {
+        const result = await new ReadRecordStepExecutor(callContext()).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'error',
+          errorKind: 'call-site',
+          error:
+            'The Sub-workflow step that called this workflow takes its record from "Load UBOs", ' +
+            'which loads several records. Set its record to a step that loads one.',
+        });
+      });
+
+      // With no record loaded the orchestrator opens one call without an index.
+      it('says the Multiple step loaded no record for the Sub-workflow to run for', async () => {
+        const multipleStep = makePinnedSourceStep('Load UBOs');
+        const emptyExecution = {
+          type: 'load-related-record',
+          stepIndex: 1,
+          executionParams: { name: 'ubos', displayName: 'UBOs' },
+          executionResult: { skipped: true },
+          selectedRecordRef: makeRecordRef(),
+        };
+
+        const result = await new ReadRecordStepExecutor(
+          callContext({
+            runStore: makeMockRunStore({
+              getStepExecutions: jest.fn().mockResolvedValue([emptyExecution]),
+            }),
+            previousSteps: [
+              {
+                ...multipleStep,
+                stepDefinition: {
+                  ...multipleStep.stepDefinition,
+                  preRecordedArgs: { multiple: true },
+                },
+              } as Step,
+            ],
+          }),
+        ).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'error',
+          errorKind: 'empty-source',
+          errorSourceStepIndex: 1,
+          error:
+            '"Load UBOs" loaded no UBOs, so the Sub-workflow that runs once for each has none to run for.',
+        });
+      });
+
+      it('refuses a call pinned to a step that runs once per record without being Multiple', async () => {
+        const perRecordExecution = {
+          type: 'load-related-record',
+          stepIndex: 1,
+          iterations: [
+            {
+              sourceRecordRef: uboRef(1),
+              attempt: 1,
+              executionResult: {
+                relation: { name: 'address', displayName: 'Address' },
+                record: makeRecordRef({ collectionName: 'ubos', recordId: [10], stepIndex: 1 }),
+              },
+            },
+          ],
+        };
+
+        const result = await new ReadRecordStepExecutor(
+          callContext({
+            runStore: makeMockRunStore({
+              getStepExecutions: jest.fn().mockResolvedValue([perRecordExecution]),
+            }),
+            previousSteps: [makePinnedSourceStep('Load each address')],
+          }),
+        ).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'error',
+          errorKind: 'call-site',
+          error:
+            'The Sub-workflow step that called this workflow takes its record from "Load each address", ' +
+            'which runs once for each record of a Multiple step. Set its record to a step that loads one record.',
+        });
+      });
+
+      // The factory wraps the run store of a step inside a call opened once per record.
+      it("offers the AI the call's record and the calling workflow's single loads, never the other records", async () => {
+        const invoke = jest
+          .fn()
+          .mockResolvedValueOnce({
+            tool_calls: [
+              { name: 'select-record', args: { recordIdentifier: 'Step 1 - UBOs #2' }, id: 'c1' },
+            ],
+          })
+          .mockResolvedValueOnce({
+            tool_calls: [
+              { name: 'read-selected-record-fields', args: { fieldNames: ['Share'] }, id: 'c2' },
+            ],
+          });
+        const bindTools = jest.fn().mockReturnValue({ invoke });
+        const orderLoad: Step = {
+          stepDefinition: {
+            type: StepType.LoadRelatedRecord,
+            executionType: StepExecutionMode.FullyAutomated,
+            prompt: 'Load the order',
+          },
+          stepOutcome: { type: 'record', stepId: 'load-2', stepIndex: 2, status: 'success' },
+        };
+        const orderExecution = {
+          type: 'load-related-record',
+          stepIndex: 2,
+          executionResult: {
+            relation: { name: 'order', displayName: 'Order' },
+            record: makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 2 }),
+          },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const agentPort = makeMockAgentPort({ ubos: { values: { share: 30 } } });
+        const baseStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([multipleExecution, orderExecution]),
+        });
+
+        const result = await new ReadRecordStepExecutor(
+          callContext({
+            agentPort,
+            model: { bindTools } as unknown as ExecutionContext['model'],
+            runStore: new CallRecordRunStore(baseStore, uboRef(2), 2),
+            previousSteps: [makePinnedSourceStep('Load UBOs'), orderLoad],
+            stepDefinition: makeStep({ prompt: "Read the UBO's share" }),
+          }),
+        ).execute();
+
+        const selectTool = bindTools.mock.calls[0][0][0];
+        expect(selectTool.schema.shape.recordIdentifier.options).toEqual([
+          'Step 0 - Customers #42',
+          'Step 1 - UBOs #2',
+          'Step 2 - Orders #99',
+        ]);
+        expect(agentPort.getRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ collection: 'ubos', id: [2], fields: ['share'] }),
+          expect.objectContaining({ id: 1 }),
+        );
+        expect(result.stepOutcome.status).toBe('success');
+      });
     });
 
     // Step ids are unique only per workflow, so a copy, a self-call or a closed sibling must not

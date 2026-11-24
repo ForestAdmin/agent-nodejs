@@ -1,3 +1,35 @@
+## @forestadmin/datasource-mongoose [1.16.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.16.0...@forestadmin/datasource-mongoose@1.16.1) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+
+# @forestadmin/datasource-mongoose [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.15.1...@forestadmin/datasource-mongoose@1.16.0) (2026-11-18)
+
+
+### Features
+
+* **datasource-toolkit:** carry a database list through the datasource schema ([#2083](https://github.com/ForestAdmin/agent-nodejs/issues/2083)) ([5c70615](https://github.com/ForestAdmin/agent-nodejs/commit/5c706158928dc643aaec4f518a2cafe8fd3f963e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.57.0
+
+## @forestadmin/datasource-mongoose [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.15.0...@forestadmin/datasource-mongoose@1.15.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **security:** patch 30 Dependabot alerts ([#2078](https://github.com/ForestAdmin/agent-nodejs/issues/2078)) ([4dc3ddd](https://github.com/ForestAdmin/agent-nodejs/commit/4dc3ddd75629b88d0c5ccf88edad630e49cb6c12))
+
 # @forestadmin/datasource-mongoose [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.8...@forestadmin/datasource-mongoose@1.15.0) (2026-11-06)
 
 

@@ -28,6 +28,7 @@ export {
   ActivityLogResponse,
   ActivityLogAction,
   ActivityLogType,
+  ActivityLogWorkflow,
   CreateActivityLogParams,
   UpdateActivityLogStatusParams,
   McpWorkflow,

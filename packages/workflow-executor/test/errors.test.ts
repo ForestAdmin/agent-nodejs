@@ -8,6 +8,7 @@ import {
   ActionRequiresApprovalError,
   AgentPortError,
   AiModelPortError,
+  CallRecordNotLoadedError,
   FieldNotFoundError,
   FieldTypeMissingError,
   InvalidAiRequestError,
@@ -32,6 +33,7 @@ import {
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
   SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
   StepStateError,
   StepTimeoutError,
   causeMessage,
@@ -355,5 +357,15 @@ describe('errorKind classification', () => {
 
       expect(error.errorSourceStepIndex).toBe(4);
     });
+  });
+});
+
+// Without the source step's title, both name the step plainly rather than leaving a blank.
+describe.each([
+  ['CallRecordNotLoadedError', () => new CallRecordNotLoadedError(), 'each record of a step'],
+  ['SourceRunsOncePerRecordError', () => new SourceRunsOncePerRecordError(), 'record from a step'],
+])('%s without a source step title', (_name, build, named) => {
+  it('names "a step" in its message', () => {
+    expect(build().userMessage).toContain(named);
   });
 });

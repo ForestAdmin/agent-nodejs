@@ -80,6 +80,9 @@ export const CONDITION_OPERATORS = [
 ] as const;
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
 
+export const CONDITION_QUANTIFIERS = ['any', 'every', 'none'] as const;
+export type ConditionQuantifier = (typeof CONDITION_QUANTIFIERS)[number];
+
 const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'present',
   'blank',
@@ -97,13 +100,87 @@ const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'previous_year_to_date',
 ];
 
+export const CONDITION_SOURCE_TYPES = ['get-data', 'sub-workflow'] as const;
+export type ConditionSourceType = (typeof CONDITION_SOURCE_TYPES)[number];
+
+const SUB_WORKFLOW_END_FIELD_NAME = 'end';
+const SUB_WORKFLOW_END_OPERATORS: readonly ConditionOperator[] = [
+  'equal',
+  'not_equal',
+  'in',
+  'not_in',
+];
+const SUB_WORKFLOW_END_LIST_OPERATORS: readonly ConditionOperator[] = ['in', 'not_in'];
+
+const isEndId = (value: unknown): boolean => typeof value === 'string' && value.length > 0;
+
+function checkSubWorkflowEndCondition(
+  condition: {
+    fieldName: string;
+    operator: ConditionOperator;
+    value?: unknown;
+    quantifier?: ConditionQuantifier;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  // A Sub-workflow End is read from a call made once: no record set to quantify over yet.
+  if (condition.quantifier !== undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['quantifier'],
+      message: 'a sub-workflow end takes no quantifier',
+    });
+  }
+
+  if (condition.fieldName !== SUB_WORKFLOW_END_FIELD_NAME) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['fieldName'],
+      message: `a sub-workflow source only exposes the "${SUB_WORKFLOW_END_FIELD_NAME}" field`,
+    });
+  }
+
+  if (!SUB_WORKFLOW_END_OPERATORS.includes(condition.operator)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['operator'],
+      message: `the "${condition.operator}" operator does not apply to a sub-workflow end`,
+    });
+
+    return;
+  }
+
+  if (condition.value === undefined) return;
+
+  const isList = SUB_WORKFLOW_END_LIST_OPERATORS.includes(condition.operator);
+  const validValue = isList
+    ? Array.isArray(condition.value) && condition.value.length > 0 && condition.value.every(isEndId)
+    : isEndId(condition.value);
+
+  if (!validValue) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['value'],
+      message: isList
+        ? `the "${condition.operator}" operator takes a non-empty list of end ids`
+        : `the "${condition.operator}" operator takes an end id`,
+    });
+  }
+}
+
 const DeterministicConditionSchema = z
   .object({
-    /** Stable BPMN id of the upstream Get Data step whose output holds the value. */
+    sourceType: z
+      .enum(CONDITION_SOURCE_TYPES)
+      .nullish()
+      .transform((value): ConditionSourceType => value ?? 'get-data'),
+    /** Stable BPMN id of the upstream step whose output holds the value. */
     sourceStepId: z.string().min(1),
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),
     value: z.unknown().optional(),
+    /** Over which records a per-record source must match: required when it runs once per record. */
+    quantifier: z.enum(CONDITION_QUANTIFIERS).optional(),
   })
   // A value-bearing operator without its value compares against `undefined`: it can never be met,
   // so the step would silently route to the fallback instead of reporting the broken config.
@@ -115,6 +192,8 @@ const DeterministicConditionSchema = z
         message: `value is required for the "${condition.operator}" operator`,
       });
     }
+
+    if (condition.sourceType === 'sub-workflow') checkSubWorkflowEndCondition(condition, ctx);
   });
 export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
 
@@ -126,21 +205,35 @@ export interface DeterministicConditionGroup {
 }
 export type DeterministicConditionNode = DeterministicCondition | DeterministicConditionGroup;
 
-// An empty group would read as "match nothing" (or) or "match everything" (and): rejected, never
-// evaluated. No depth limit here: the orchestrator parser refuses more than 10 levels.
-const DeterministicConditionNodeSchema: z.ZodType<DeterministicConditionNode> = z.lazy(() =>
-  z.union([
-    z.object({
-      aggregator: ConditionAggregatorSchema,
-      conditions: z.array(DeterministicConditionNodeSchema).min(1),
-    }),
-    DeterministicConditionSchema,
-  ]),
-);
+const isGroupShaped = (node: unknown): boolean =>
+  typeof node === 'object' && node !== null && 'aggregator' in node;
+
+// Dispatched on shape rather than through z.union: a union failing on both branches reports a bare
+// "Invalid input", hiding which field of the condition is wrong.
+const DeterministicConditionNodeSchema: z.ZodType<DeterministicConditionNode> = z.lazy(() => {
+  // An empty group would read as "match nothing" (or) or "match everything" (and): rejected, never
+  // evaluated. No depth limit here: the orchestrator parser refuses more than 10 levels.
+  const groupSchema = z.object({
+    aggregator: ConditionAggregatorSchema,
+    conditions: z.array(DeterministicConditionNodeSchema).min(1),
+  });
+
+  return z.unknown().transform((node, ctx): DeterministicConditionNode => {
+    const schema = isGroupShaped(node) ? groupSchema : DeterministicConditionSchema;
+    const result = schema.safeParse(node);
+    if (result.success) return result.data;
+
+    result.error.issues.forEach(({ path, message }) =>
+      ctx.addIssue({ code: 'custom', path, message }),
+    );
+
+    return z.NEVER;
+  });
+});
 
 export const isDeterministicConditionGroup = (
   node: DeterministicConditionNode,
-): node is DeterministicConditionGroup => 'aggregator' in node;
+): node is DeterministicConditionGroup => isGroupShaped(node);
 
 const OptionConditionsSchema = z.object({
   option: z.string().min(1),
@@ -269,6 +362,8 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
       relationName: z.string().optional(),
       /** 1–n relation filter (conditionTree), forwarded verbatim; loosely typed as it's trusted config the agent validates. */
       filters: z.unknown().optional(),
+      /** Loads several records, and the steps sourced from it run once per record. Absent = Single. */
+      multiple: z.boolean().optional(),
     })
     .optional(),
 });

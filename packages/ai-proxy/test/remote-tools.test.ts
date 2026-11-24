@@ -4,6 +4,7 @@ import type { JSONSchema } from '@langchain/core/utils/json_schema';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { RemoteTools } from '../src';
+import { AIToolCredentialsRefusedError } from '../src/errors';
 import ServerRemoteTool from '../src/server-remote-tool';
 
 function createMockTool(
@@ -83,6 +84,15 @@ describe('RemoteTools', () => {
       await expect(() => remoteTools.invokeTool(tool.sanitizedName, [])).rejects.toThrow(
         `Error while calling tool ${tool.base.name}: error`,
       );
+    });
+
+    it('should pass a refused-credentials error through unwrapped', async () => {
+      const refused = new AIToolCredentialsRefusedError('An admin must update the credentials.');
+      const tool = createMockTool();
+      tool.base.invoke = jest.fn().mockRejectedValue(refused);
+      const remoteTools = new RemoteTools([tool]);
+
+      await expect(() => remoteTools.invokeTool(tool.sanitizedName, [])).rejects.toBe(refused);
     });
 
     it('should find tool by sanitized name', async () => {

@@ -386,6 +386,48 @@ describe('UpdateRelationRoute', () => {
         expect(context.response.status).toEqual(HttpCode.NoContent);
         expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'owner');
       });
+
+      test('should only link the new record when the count aggregation returns no row', async () => {
+        const { services, dataSource, options, owners } = setupWithOneToOneRelation();
+
+        const update = new UpdateRelationRoute(services, options, dataSource, 'book', 'owner');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'Europe/Paris' },
+            params: { parentId: '00000000-0000-4000-8000-000000000000' },
+          },
+          requestBody: {
+            data: { id: '11111111-1111-4111-8111-111111111111', type: 'owner' },
+          },
+        });
+
+        (owners.aggregate as jest.Mock).mockResolvedValueOnce([]);
+
+        await update.handleUpdateRelationRoute(context);
+
+        const caller = {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        };
+
+        expect(owners.update).toHaveBeenCalledOnce();
+        expect(owners.update).toHaveBeenCalledWith(
+          caller,
+          new Filter({
+            conditionTree: factories.conditionTreeLeaf.build({
+              operator: 'Equal',
+              value: '11111111-1111-4111-8111-111111111111',
+              field: 'id',
+            }),
+          }),
+          { bookId: '00000000-0000-4000-8000-000000000000' },
+        );
+
+        expect(context.response.status).toEqual(HttpCode.NoContent);
+      });
     });
   });
 });

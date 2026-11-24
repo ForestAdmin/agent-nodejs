@@ -11,10 +11,13 @@ services:
       - POSTGRES_PASSWORD=password
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./scripts/light-mode-databases.sql:/docker-entrypoint-initdb.d/light-mode-databases.sql:ro
 
   mysql:
     image: mysql:oracle
+    profiles: [full]
     container_name: forest_agent_example_mysql
+    command: --performance-schema=OFF --innodb-buffer-pool-size=32M
     ports:
       - '3306:3306'
     environment:
@@ -28,18 +31,22 @@ services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-CU17-ubuntu-22.04
     container_name: forest_agent_example_mssql
+    profiles: [full]
     platform: linux/amd64
     ports:
       - '1433:1433'
     environment:
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
+      # 2 GB is the SQL Server floor: lower values are raised to 2000 MB anyway
+      - MSSQL_MEMORY_LIMIT_MB=2048
     volumes:
       - mssql-data:/var/opt/mssql
 
 # waiting 30secs for mssql to be up and creating the 'example' database 
   sqlcmd:
     image: mcr.microsoft.com/mssql-tools:latest
+    profiles: [full]
     platform: linux/amd64
     stdin_open: true
     environment:
@@ -49,6 +56,7 @@ services:
 
   mariadb:
     image: mariadb:latest
+    profiles: [full]
     container_name: forest_agent_example_mariadb
     ports:
       - '3808:3306'
@@ -69,7 +77,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=password
     volumes:
-      - mongodb-data:/var/lib/mongodb
+      - mongodb-data:/data/db
 
 volumes:
   postgres-data:

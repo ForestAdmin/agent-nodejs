@@ -14,10 +14,14 @@ export type ActionSchema = {
   staticForm?: boolean;
   description?: string;
   submitButtonLabel?: string;
+  pendingRefreshInterval?: number;
 };
+
+export type DataSourceDatabase = { type: string; name: string | null };
 
 export type DataSourceSchema = {
   charts: string[];
+  databases?: DataSourceDatabase[];
 };
 
 export type CollectionSchema = {

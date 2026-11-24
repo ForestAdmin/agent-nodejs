@@ -1,3 +1,143 @@
+## @forestadmin/workflow-executor [1.42.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.1...@forestadmin/workflow-executor@1.42.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **workflow-executor:** ask for the MCP step's final answer in markdown ([#2094](https://github.com/ForestAdmin/agent-nodejs/issues/2094)) ([c63d5ee](https://github.com/ForestAdmin/agent-nodejs/commit/c63d5ee13bdda808533727067d6107a5181d8eb3))
+
+## @forestadmin/workflow-executor [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.0...@forestadmin/workflow-executor@1.42.1) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.5
+* **@forestadmin/ai-proxy:** upgraded to 1.17.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.47.0
+
+# @forestadmin/workflow-executor [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.41.0...@forestadmin/workflow-executor@1.42.0) (2026-11-24)
+
+
+### Features
+
+* **workflow-executor:** use a sub-workflow's end as a decision condition source ([#2070](https://github.com/ForestAdmin/agent-nodejs/issues/2070)) ([64055fe](https://github.com/ForestAdmin/agent-nodejs/commit/64055fef8eba5369024df29c71ecdfc651fd65be))
+
+# @forestadmin/workflow-executor [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.2...@forestadmin/workflow-executor@1.41.0) (2026-11-20)
+
+
+### Features
+
+* **workflow-executor:** let the AI draft Guidance Task answers as rich text ([#2081](https://github.com/ForestAdmin/agent-nodejs/issues/2081)) ([ae05ede](https://github.com/ForestAdmin/agent-nodejs/commit/ae05ede98214c2ee26d3a48609108ffc2456c906))
+
+## @forestadmin/workflow-executor [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.1...@forestadmin/workflow-executor@1.40.2) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.46.0
+
+## @forestadmin/workflow-executor [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.0...@forestadmin/workflow-executor@1.40.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **workflow-executor:** replay an MCP step's tool calls as native tool messages ([#2091](https://github.com/ForestAdmin/agent-nodejs/issues/2091)) ([fb12518](https://github.com/ForestAdmin/agent-nodejs/commit/fb125181a6104c67ce38a8eb1b9b40578d25d778))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.17.1
+
+# @forestadmin/workflow-executor [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.39.0...@forestadmin/workflow-executor@1.40.0) (2026-11-19)
+
+
+### Features
+
+* **ai-proxy:** let the Zendesk connector authenticate with an OAuth client ([#2072](https://github.com/ForestAdmin/agent-nodejs/issues/2072)) ([e530c73](https://github.com/ForestAdmin/agent-nodejs/commit/e530c739110f30f853d73442ccb3f5acd3688ef5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.17.0
+
+# @forestadmin/workflow-executor [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.38.0...@forestadmin/workflow-executor@1.39.0) (2026-11-19)
+
+
+### Features
+
+* **workflow-executor:** tie the executor's activity logs to their workflow run ([#2069](https://github.com/ForestAdmin/agent-nodejs/issues/2069)) ([6b130ed](https://github.com/ForestAdmin/agent-nodejs/commit/6b130ede804b31ee69a83b7f8199f51c2a16785d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.45.0
+
+# @forestadmin/workflow-executor [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.4...@forestadmin/workflow-executor@1.38.0) (2026-11-18)
+
+
+### Features
+
+* **workflow-executor:** run a Sub-workflow once per record of a Multiple step ([#2060](https://github.com/ForestAdmin/agent-nodejs/issues/2060)) ([eabd3e5](https://github.com/ForestAdmin/agent-nodejs/commit/eabd3e597738eef28765764a7af865f51ae20418))
+
+## @forestadmin/workflow-executor [1.37.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.3...@forestadmin/workflow-executor@1.37.4) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.2
+* **@forestadmin/ai-proxy:** upgraded to 1.16.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.44.3
+
+## @forestadmin/workflow-executor [1.37.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.2...@forestadmin/workflow-executor@1.37.3) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.16.0
+
+## @forestadmin/workflow-executor [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.1...@forestadmin/workflow-executor@1.37.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **security:** patch 30 Dependabot alerts ([#2078](https://github.com/ForestAdmin/agent-nodejs/issues/2078)) ([4dc3ddd](https://github.com/ForestAdmin/agent-nodejs/commit/4dc3ddd75629b88d0c5ccf88edad630e49cb6c12))
+
+## @forestadmin/workflow-executor [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.0...@forestadmin/workflow-executor@1.37.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **workflow-executor:** name the related collection when the AI picks a record ([#2061](https://github.com/ForestAdmin/agent-nodejs/issues/2061)) ([47e2c3c](https://github.com/ForestAdmin/agent-nodejs/commit/47e2c3c73701d1038b8acb29d8f88eb03eb80e52))
+
+# @forestadmin/workflow-executor [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.36.0...@forestadmin/workflow-executor@1.37.0) (2026-11-13)
+
+
+### Features
+
+* **workflow-executor:** run steps once per record of a Multiple related-records step ([#2026](https://github.com/ForestAdmin/agent-nodejs/issues/2026)) ([6b078e1](https://github.com/ForestAdmin/agent-nodejs/commit/6b078e171f92244c34017ba86283afd8c389d098))
+
 # @forestadmin/workflow-executor [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.8...@forestadmin/workflow-executor@1.36.0) (2026-11-10)
 
 

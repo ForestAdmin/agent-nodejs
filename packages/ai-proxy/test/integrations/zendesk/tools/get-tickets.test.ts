@@ -1,3 +1,4 @@
+import fetchWithoutRedirect from '../../../../src/integrations/fetch-without-redirect';
 import createGetTicketsTool from '../../../../src/integrations/zendesk/tools/get-tickets';
 
 const mockResponse = { tickets: [{ id: 1 }, { id: 2 }] };
@@ -9,6 +10,8 @@ global.fetch = jest.fn().mockResolvedValue({
 
 describe('createGetTicketsTool', () => {
   const headers = { Authorization: 'Basic abc' };
+  const request = (url: string, init: RequestInit = {}) =>
+    fetchWithoutRedirect(url, { ...init, headers });
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
@@ -21,7 +24,7 @@ describe('createGetTicketsTool', () => {
       json: async () => ({ error: 'Invalid credentials' }),
     });
 
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await expect(tool.invoke({})).rejects.toThrow(
       'Zendesk get tickets failed (401): Invalid credentials',
@@ -29,7 +32,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should fetch tickets with default params', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     const result = await tool.invoke({});
 
@@ -47,7 +50,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should fetch tickets with custom params', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ page: 3, per_page: 10, sort_by: 'updated_at', sort_order: 'asc' });
 
@@ -64,7 +67,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by requester email', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     const result = await tool.invoke({ requester_email: 'user@example.com' });
 
@@ -83,7 +86,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by submitter email', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ submitter_email: 'submitter@example.com' });
 
@@ -94,7 +97,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by cc email', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ cc_email: 'cc@example.com' });
 
@@ -105,7 +108,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by assignee email', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ assignee_email: 'agent@example.com' });
 
@@ -116,7 +119,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by status and priority', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ status: 'open', priority: 'urgent' });
 
@@ -127,7 +130,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by date range', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ created_after: '2024-01-01', created_before: '2024-06-01' });
 
@@ -138,7 +141,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by updated_after', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ updated_after: '2024-03-01' });
 
@@ -149,7 +152,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by solved_after', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ solved_after: '2024-05-01' });
 
@@ -160,7 +163,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by description', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ description: 'login error' });
 
@@ -171,7 +174,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by tags', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ tags: ['vip', 'billing'] });
 
@@ -182,7 +185,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search tickets by subject and keyword', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ subject: 'refund', keyword: 'payment issue' });
 
@@ -193,7 +196,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should combine multiple filters', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({
       requester_email: 'user@example.com',
@@ -210,7 +213,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should not add type:ticket when ticket_type is specified', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ ticket_type: 'incident' });
 
@@ -225,7 +228,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should search by group and brand', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ group: 'support', brand: 'acme' });
 
@@ -236,7 +239,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should quote multi-word filter values', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ group: 'tier 1 support', subject: 'billing issue', brand: 'acme' });
 
@@ -249,7 +252,7 @@ describe('createGetTicketsTool', () => {
   });
 
   it('should skip empty tags array', async () => {
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await tool.invoke({ tags: [], status: 'open' });
 
@@ -267,7 +270,7 @@ describe('createGetTicketsTool', () => {
       json: async () => ({ error: 'Invalid query' }),
     });
 
-    const tool = createGetTicketsTool(headers, baseUrl);
+    const tool = createGetTicketsTool(request, baseUrl);
 
     await expect(tool.invoke({ requester_email: 'user@example.com' })).rejects.toThrow(
       'Zendesk search tickets failed (422): Invalid query',

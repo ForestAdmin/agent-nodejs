@@ -1,26 +1,15 @@
-import type { SequelizeExt } from './type-overrides';
 import type { SequelizeDatasourceOptions } from './types';
-import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
 
 import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 import { QueryTypes } from 'sequelize';
 
 import SequelizeCollection from './collection';
+import { describeDatabase, isEphemeralSqlite } from './utils/database-description';
 
 interface NativeQueryConnection {
   instance: Sequelize;
-}
-
-const EPHEMERAL_SQLITE_STORAGES = [':memory:', ''];
-
-function isEphemeralSqlite(instance: Sequelize): boolean {
-  const { storage, host } = (instance as SequelizeExt).options;
-
-  return (
-    instance.getDialect() === 'sqlite' &&
-    EPHEMERAL_SQLITE_STORAGES.includes(storage ?? (host || ':memory:'))
-  );
 }
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
@@ -49,6 +38,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
 
   async close(): Promise<void> {
     await this.sequelize.close();
+  }
+
+  override get schema(): DataSourceSchema {
+    return { ...super.schema, databases: [describeDatabase(this.sequelize)] };
   }
 
   protected createCollections(models: Sequelize['models'], logger?: Logger) {

@@ -20,6 +20,7 @@ export const GATEWAY_API_CONFIG_LABELS: ConfigLabels = {
   BFF_ALLOWED_ORIGINS: 'api.allowedOrigins',
   BFF_DEFAULT_TIMEZONE: 'api.defaultTimezone',
   BFF_AGENT_TIMEOUT_MS: 'api.agentTimeoutMs',
+  BFF_ACTION_TIMEOUT_MS: 'api.actionTimeoutMs',
   BFF_AI_TIMEOUT_MS: 'api.aiTimeoutMs',
   BFF_OPENAPI_ENABLED: 'api.openapiEnabled',
 };
@@ -108,6 +109,7 @@ export default class EmbeddedBff {
       BFF_ALLOWED_ORIGINS: embedOptions.allowedOrigins?.join(','),
       BFF_DEFAULT_TIMEZONE: embedOptions.defaultTimezone,
       BFF_AGENT_TIMEOUT_MS: embedOptions.agentTimeoutMs?.toString(),
+      BFF_ACTION_TIMEOUT_MS: embedOptions.actionTimeoutMs?.toString(),
       BFF_AI_TIMEOUT_MS: embedOptions.aiTimeoutMs?.toString(),
       // Off unless asked for: the document is not filtered per caller, so mounting a BFF must not
       // publish the name of every exposed collection and field on an already-open port.

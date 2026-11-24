@@ -4,101 +4,129 @@
 
 title: DataSources not connected
 
-class STORE {
-  String name
+class CUSTOMERS {
+  String display_name
+  Enum status
+  Enum risk_rating
 }
-class STORE
+note bottom: TABLE IN POSTGRES
+
+class INDIVIDUALS {
+  String first_name
+  String last_name
+  String email
+}
+note bottom: TABLE IN POSTGRES
+
+class BUSINESSES {
+  String legal_name
+  String registration_number
+}
+note bottom: TABLE IN POSTGRES
+
+class ACCOUNTS {
+  String iban
+  Number balance
+  Number overdraft_limit
+  Virtual masked_iban
+}
+note bottom: TABLE IN POSTGRES
+
+class TRANSACTIONS {
+  Number amount
+  Enum direction
+  String description
+}
 note bottom: TABLE IN MYSQL
 
-class ACCOUNT {
-   String firstName
-   String lastName
-   String storeId
-   Object address: {
-   -- Number streetNumber
-   -- String streetName
-   -- String city
-   -- String country
-   },
-   Object bills: [{
-   -- String title
-   -- Number amount
-   -- Date issueDate
-   -- items: [{
-   ---- Enum['high', 'medium', 'low'] importance
-   ---- String title
-   ---- Number amount
-   -- }],
+class COUNTERPARTIES {
+  String name
+  Enum risk_level
+}
+note bottom: TABLE IN MYSQL
+
+class CHARGEBACKS {
+  String reference
+  Number amount
+  Enum status
+}
+note bottom: TABLE IN MSSQL
+
+class DISPUTE_REQUESTS {
+  String reference
+  Number amount
+  Enum reason
+}
+note bottom: TABLE IN MSSQL
+
+class CARDS {
+  String last_four_digits
+  Enum status
+  Enum network
+}
+note bottom: TABLE IN MARIADB (+ VIEW active_cards)
+
+class ALERTS {
+  String reference
+  String status
+  Date triggered_at
+}
+note bottom: TABLE IN SQLITE
+
+class INVESTIGATIONS {
+  String reference
+  String status
+}
+note bottom: TABLE IN SQLITE
+
+class SAR_REPORTS {
+  String reference
+  String narrative
+}
+note bottom: TABLE IN SQLITE
+
+class KYC_CASES {
+  String reference
+  Enum status
+  Object applicant: {
+  -- String first_name
+  -- String last_name
+  },
+  Object documents: [{
+  -- Enum document_type
+  -- check: {
+  ---- Enum result
+  ---- String verified_by
+  -- },
   }],
 }
-class ACCOUNT
-note bottom: TABLE IN MONGODB
+note bottom: COLLECTION IN MONGODB (MONGOOSE)
 
-class OWNER {
-  String firstName
-  String lastName
+class CARD_TRANSACTIONS {
+  Number original_amount
+  Enum status
+  Object authorization: {
+  -- String code
+  -- Enum entry_mode
+  },
+  Object device: {
+  -- String individual_id
+  -- Enum platform
+  },
 }
-class OWNER
-note bottom: TABLE IN POSTGRES
+note bottom: COLLECTION IN MONGODB
 
-class REVIEW {
-    String title
-    String message
-    Number storeId
-}
-class REVIEW
-note bottom: TABLE IN POSTGRES
-
-
-class ADDRESS {
-  String zipCode
-  String address
-}
-class ADDRESS
-note bottom: TABLE IN LIVE (memory)
-
-class DVD {
-  String title
-  Int rentalPrice
-}
-class DVD
-note bottom: TABLE IN MSSQL
-
-class RENTALS {
-  Date startDate
-  Date endDate
-}
-class RENTALS
-note bottom: TABLE IN MSSQL
-
-class CARD {
-  BigInt cardNumber
-  Enum cardType
-  Boolean isActive
-}
-note bottom: TABLE IN MARIADB
-
-class CUSTOMER {
+class CARD_MERCHANTS {
   String name
-  String firstName
+  String mcc_code
+  Enum category
 }
-note bottom: TABLE IN MARIADB
+note bottom: REST API (IN-PROCESS)
 
-class POST {
-  String title
-  String body
-}
-note bottom: REST API TYPICODE
-
-class COMMENT {
-  String name
-  String email
-  String body
-}
-note bottom: REST API TYPICODE
-
-POST "1" -- "*" COMMENT : has
-DVD "*" -- "*" RENTALS : has
-CUSTOMER "1" -- "*" CARD : has
+ACCOUNTS "*" -- "1" CUSTOMERS : has
+CUSTOMERS "*" -- "*" INDIVIDUALS : customer_members
+CUSTOMERS "0-1" -- "1" BUSINESSES : has
+TRANSACTIONS "*" -- "1" COUNTERPARTIES : has
+DISPUTE_REQUESTS "*" -- "*" CHARGEBACKS : dispute_transactions
 
 @enduml

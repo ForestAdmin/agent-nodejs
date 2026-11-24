@@ -264,6 +264,48 @@ describe('LangChainAdapter', () => {
       ]);
     });
 
+    it('should report cache-write tokens alone when the provider reports no cache read', () => {
+      const aiMessage = new AIMessage({
+        content: 'Hello',
+        usage_metadata: {
+          input_tokens: 1500,
+          output_tokens: 2,
+          total_tokens: 1502,
+          input_token_details: { cache_creation: 1024 },
+        },
+      });
+
+      const response = LangChainAdapter.convertResponse(aiMessage, 'gpt-6-luna');
+
+      expect(response.usage).toEqual({
+        prompt_tokens: 1500,
+        completion_tokens: 2,
+        total_tokens: 1502,
+        prompt_tokens_details: { cache_write_tokens: 1024 },
+      });
+    });
+
+    it('should keep zero cache counts, as Anthropic reports them when nothing was cached', () => {
+      const aiMessage = new AIMessage({
+        content: 'Hello',
+        usage_metadata: {
+          input_tokens: 10,
+          output_tokens: 2,
+          total_tokens: 12,
+          input_token_details: { cache_read: 0, cache_creation: 0 },
+        },
+      });
+
+      const response = LangChainAdapter.convertResponse(aiMessage, 'claude-3-5-sonnet-latest');
+
+      expect(response.usage).toEqual({
+        prompt_tokens: 10,
+        completion_tokens: 2,
+        total_tokens: 12,
+        prompt_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+      });
+    });
+
     it('should not add token details when the provider reports none', () => {
       const response = LangChainAdapter.convertResponse(
         new AIMessage({

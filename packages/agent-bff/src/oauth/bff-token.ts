@@ -10,7 +10,7 @@ export interface IssueBffAccessTokenParams {
   serverAccess: string;
   user: UserInfo;
   renderingId: number;
-  authSecret: string;
+  signingKey: Buffer;
   expiresInSeconds: number;
 }
 
@@ -34,7 +34,7 @@ export function issueBffAccessToken({
   serverAccess,
   user,
   renderingId,
-  authSecret,
+  signingKey,
   expiresInSeconds,
 }: IssueBffAccessTokenParams): string {
   const payload: BffAccessTokenPayload = {
@@ -52,7 +52,7 @@ export function issueBffAccessToken({
     tags: user.tags ?? {},
   };
 
-  return jsonwebtoken.sign(payload, authSecret, {
+  return jsonwebtoken.sign(payload, signingKey, {
     algorithm: 'HS256',
     expiresIn: Math.min(expiresInSeconds, BFF_ACCESS_TOKEN_MAX_EXPIRES_IN),
   });

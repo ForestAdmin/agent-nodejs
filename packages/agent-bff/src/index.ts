@@ -14,6 +14,7 @@ export type { OutputOption } from './cli-output';
 export { default as buildBff } from './build-bff';
 export {
   default as createInProcessTransport,
+  AGENT_DISPATCH_TIMEOUT_CODE,
   IN_PROCESS_AGENT_URL,
 } from './agent/in-process-transport';
 export type {
@@ -42,6 +43,7 @@ export type { AuthorizationCodeClaims } from './oauth/authorization-code-claims'
 export { default as createTokenCipher } from './oauth/token-cipher';
 export { default as resolveServerAccess } from './oauth/server-access';
 export { issueBffAccessToken, BFF_ACCESS_TOKEN_TYPE } from './oauth/bff-token';
+export { default as deriveBffAccessKey } from './oauth/bff-access-key';
 export type { BffAccessTokenPayload } from './oauth/bff-token';
 export { createPkcePair } from './oauth/pkce';
 export { OAuthRequestError } from './oauth/oauth-error';

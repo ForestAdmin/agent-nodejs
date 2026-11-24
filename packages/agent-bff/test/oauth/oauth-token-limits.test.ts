@@ -14,6 +14,7 @@ import createOAuthRoutes from '../../src/oauth/oauth-routes';
 import createSessionTokenCodec from '../../src/oauth/session-token';
 import createTokenCipher from '../../src/oauth/token-cipher';
 import createFixedWindowLimiter from '../../src/rate-limit/fixed-window-limiter';
+import { ACCESS_TOKEN_KEY } from '../helpers/bff-access';
 
 const KEY = Buffer.alloc(32, 7).toString('base64');
 const CLIENT_A = 'client-a';
@@ -80,7 +81,7 @@ function buildApp(allowedOAuthClients?: string[], refreshLimiter?: FixedWindowLi
         maxPending: PENDING_CODES_CAP,
       }),
       forestAppUrl: 'https://app.forestadmin.com',
-      authSecret: 'auth-secret',
+      accessTokenKey: ACCESS_TOKEN_KEY,
       resolveEnvironmentId: async () => 99,
       logger: () => undefined,
       allowedOAuthClients,

@@ -3,6 +3,7 @@ import type { Server } from 'http';
 import type supertest from 'supertest';
 
 import { version as bffVersion, buildBff, parseConfig } from '@forestadmin/agent-bff';
+import { hkdfSync } from 'crypto';
 import express from 'express';
 import jsonwebtoken from 'jsonwebtoken';
 import { tmpdir } from 'os';
@@ -18,6 +19,17 @@ const agentVersion: string = jest.requireActual('../../package.json').version;
 
 const AUTH_SECRET = 'test-auth-secret-32-chars-min!!!';
 const ENV_SECRET = '0'.repeat(64);
+const TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 4).toString('base64');
+/** The key the BFF derives from `TOKEN_ENCRYPTION_KEY` to sign its access tokens. */
+const ACCESS_TOKEN_KEY = Buffer.from(
+  hkdfSync(
+    'sha256',
+    new Uint8Array(Buffer.from(TOKEN_ENCRYPTION_KEY, 'base64')),
+    new Uint8Array(0),
+    'forest-bff:bff_access:v1',
+    32,
+  ),
+);
 const BOOT_TIMEOUT_MS = 30_000;
 const ALLOWED_ORIGIN = 'https://my-app.com';
 const FOREIGN_ORIGIN = 'https://not-my-app.com';
@@ -95,7 +107,7 @@ function sessionToken(): string {
       permission_level: 'admin',
       tags: {},
     },
-    AUTH_SECRET,
+    ACCESS_TOKEN_KEY,
     { expiresIn: '1h' },
   );
 }
@@ -316,7 +328,7 @@ describe('embedded BFF', () => {
     agent = new Agent(agentOptions('embedded'))
       .addDataSource(async () => new SearchDataSource())
       .addDataSource(async () => new RecordContractDataSource())
-      .addBff({ allowedOrigins: [ALLOWED_ORIGIN] });
+      .addBff({ allowedOrigins: [ALLOWED_ORIGIN], tokenEncryptionKey: TOKEN_ENCRYPTION_KEY });
 
     app = express();
     agent.mountOnExpress(app);
@@ -350,8 +362,8 @@ describe('embedded BFF', () => {
       expect(response.body).toMatchObject({
         status: 'ok',
         configured: {
-          oauth: false,
-          ai: false,
+          oauth: true,
+          ai: true,
           cors: true,
           openapi: false,
           filterOperators: true,
@@ -425,6 +437,7 @@ describe('embedded BFF', () => {
           FOREST_SERVER_URL: 'https://api.forestadmin.com',
           FOREST_APP_URL: 'https://app.forestadmin.com',
           AGENT_URL: `http://127.0.0.1:${port}`,
+          BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
           BFF_OPENAPI_ENABLED: 'false',
         }),
         logger: () => undefined,
@@ -468,7 +481,10 @@ describe('embedded BFF', () => {
     async function hostWithPermissiveCorsInFront() {
       const hosted = new Agent(agentOptions('host-cors'))
         .addDataSource(async () => new SearchDataSource())
-        .addBff({ allowedOrigins: ['https://my-app.com'] });
+        .addBff({
+          allowedOrigins: ['https://my-app.com'],
+          tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+        });
       const hostApp = express();
       hostApp.use(permissiveHostCors());
       hosted.mountOnExpress(hostApp);
@@ -535,7 +551,11 @@ describe('embedded BFF', () => {
     async function hostWithSubPath() {
       const hosted = new Agent(agentOptions('sub-path'))
         .addDataSource(async () => new SearchDataSource())
-        .addBff({ allowedOrigins: ['https://my-app.com'], openapiEnabled: true });
+        .addBff({
+          allowedOrigins: ['https://my-app.com'],
+          openapiEnabled: true,
+          tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+        });
       const mounted = express();
       hosted.mountOnExpress(mounted);
       const hostApp = express();
@@ -639,7 +659,7 @@ describe('embedded BFF', () => {
     }
 
     async function startAgentOn(hostApp: express.Express, mountFirst: boolean) {
-      const orderAgent = createOrderAgent({});
+      const orderAgent = createOrderAgent({ tokenEncryptionKey: TOKEN_ENCRYPTION_KEY });
 
       if (mountFirst) orderAgent.mountOnExpress(hostApp);
       hostApp.use(express.json());

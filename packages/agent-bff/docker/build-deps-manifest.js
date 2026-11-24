@@ -32,9 +32,9 @@ const WORKSPACE_PACKAGES = [
 // file — it is a plain object, not a manifest — so an unrelated release will stall on it unless
 // someone is looking.
 const OTEL_DEPENDENCIES = {
-  '@opentelemetry/sdk-node': '0.221.0',
-  '@opentelemetry/auto-instrumentations-node': '0.79.0',
-  '@opentelemetry/exporter-trace-otlp-http': '0.221.0',
+  '@opentelemetry/sdk-node': '0.222.0',
+  '@opentelemetry/auto-instrumentations-node': '0.80.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.222.0',
 };
 
 // Security pins for transitive deps whose parents never ship a patched range.

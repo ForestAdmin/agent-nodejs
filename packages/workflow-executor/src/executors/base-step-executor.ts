@@ -5,7 +5,7 @@ import type {
 } from '../types/execution-context';
 import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
 import type { Step } from '../types/validated/execution';
-import type { StepDefinition } from '../types/validated/step-definition';
+import type { StepDefinition, StepType } from '../types/validated/step-definition';
 import type { ErrorKind, StepStatus } from '../types/validated/step-outcome';
 import type {
   BaseMessage,
@@ -27,9 +27,46 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
   isAiConfigurationError,
+  toErrorOutcome,
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
+
+// The latest step of that type with that id, because a loop repeats ids, and only inside the frame
+// when one is given, since step ids are unique only per workflow and every call repeats them.
+export function findLatestStepInFrame(
+  previousSteps: readonly Step[],
+  type: StepType,
+  stepId: string,
+  frameStepIndexes?: number[],
+): Step | undefined {
+  return previousSteps
+    .filter(
+      step =>
+        step.stepDefinition.type === type &&
+        step.stepOutcome.stepId === stepId &&
+        (frameStepIndexes === undefined || frameStepIndexes.includes(step.stepOutcome.stepIndex)),
+    )
+    .at(-1);
+}
+
+// A step the executor ran has its execution at its own stepIndex. A revision clone never ran, so
+// it inherits the record of the step it copied (originalStepIndex).
+export function findStepExecution(
+  step: Step,
+  executions: StepExecutionData[],
+): StepExecutionData | undefined {
+  const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
+  if (own) return own;
+
+  // An errored clone persists nothing, so inheriting the copied record would resurface the
+  // superseded original's — only fall back when the clone didn't run-and-fail.
+  if (step.originalStepIndex !== undefined && step.stepOutcome.status !== 'error') {
+    return executions.find(e => e.stepIndex === step.originalStepIndex);
+  }
+
+  return undefined;
+}
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
@@ -106,16 +143,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   // Both catch branches below route through here, so neither can drop the classification. The
-  // factory's own catch (step-executor-factory.ts) builds its outcome separately and does not.
+  // factory's own catch (step-executor-factory.ts) builds its outcome separately and keeps the kind.
   private buildErrorOutcome(error: WorkflowExecutorError): StepExecutionResult {
-    return this.buildOutcomeResult({
-      status: 'error',
-      error: error.userMessage,
-      ...(error.errorKind !== undefined && { errorKind: error.errorKind }),
-      ...(error.errorSourceStepIndex !== undefined && {
-        errorSourceStepIndex: error.errorSourceStepIndex,
-      }),
-    });
+    return this.buildOutcomeResult({ status: 'error', ...toErrorOutcome(error) });
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
@@ -257,6 +287,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       lines.push(`Step title: "${stepDefinition.title}"`);
     }
 
+    if (this.context.perRecordLabel) {
+      lines.push(`This step runs once per record. This run is for ${this.context.perRecordLabel}.`);
+    }
+
     return new SystemMessage(lines.join('\n'));
   }
 
@@ -283,16 +317,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     step: Step,
     executions: StepExecutionData[],
   ): StepExecutionData | undefined {
-    const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
-    if (own) return own;
-
-    // An errored clone persists nothing, so inheriting the copied record would resurface the
-    // superseded original's — only fall back when the clone didn't run-and-fail.
-    if (step.originalStepIndex !== undefined && step.stepOutcome.status !== 'error') {
-      return executions.find(e => e.stepIndex === step.originalStepIndex);
-    }
-
-    return undefined;
+    return findStepExecution(step, executions);
   }
 
   private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {

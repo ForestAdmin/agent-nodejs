@@ -1,7 +1,8 @@
+import type { ZendeskRequest } from '../utils';
+
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 const searchFiltersSchema = z.object({
@@ -99,7 +100,7 @@ function buildSearchQuery(filters: SearchFilters): string | null {
 }
 
 export default function createGetTicketsTool(
-  headers: Record<string, string>,
+  request: ZendeskRequest,
   baseUrl: string,
 ): DynamicStructuredTool {
   return new DynamicStructuredTool({
@@ -130,9 +131,7 @@ export default function createGetTicketsTool(
           sort_order: sortOrder,
         });
 
-        const response = await fetchWithoutRedirect(`${baseUrl}/search.json?${params}`, {
-          headers,
-        });
+        const response = await request(`${baseUrl}/search.json?${params}`);
         await assertResponseOk(response, 'search tickets');
 
         return JSON.stringify(await response.json());
@@ -145,7 +144,7 @@ export default function createGetTicketsTool(
         sort_order: sortOrder,
       });
 
-      const response = await fetchWithoutRedirect(`${baseUrl}/tickets.json?${params}`, { headers });
+      const response = await request(`${baseUrl}/tickets.json?${params}`);
       await assertResponseOk(response, 'get tickets');
 
       return JSON.stringify(await response.json());

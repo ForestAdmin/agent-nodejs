@@ -40,6 +40,39 @@ describe('CompositeDataSource', () => {
       expect(compositeDataSource.schema.charts).toEqual(['chart1', 'chart2', 'chart3', 'chart4']);
     });
 
+    it('should concatenate the databases from all the data sources, in order', () => {
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(
+        factories.dataSource.build({
+          schema: { charts: [], databases: [{ type: 'postgres', name: 'one' }] },
+        }),
+      );
+      compositeDataSource.addDataSource(
+        factories.dataSource.build({
+          schema: { charts: [], databases: [{ type: 'mysql', name: 'two' }] },
+        }),
+      );
+
+      expect(compositeDataSource.schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'one' },
+        { type: 'mysql', name: 'two' },
+      ]);
+    });
+
+    it('should add nothing for a data source without databases', () => {
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(
+        factories.dataSource.build({
+          schema: { charts: [], databases: [{ type: 'postgres', name: 'one' }] },
+        }),
+      );
+      compositeDataSource.addDataSource(factories.dataSource.build());
+
+      expect(compositeDataSource.schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'one' },
+      ]);
+    });
+
     it('should throw with collection name conflict', () => {
       const aDataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({ name: 'collection1' }),

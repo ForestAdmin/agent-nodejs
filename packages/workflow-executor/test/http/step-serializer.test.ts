@@ -132,4 +132,76 @@ describe('serializeStepForWire', () => {
 
     expect(serializeStepForWire(step)).toBe(step);
   });
+
+  describe('a Multiple step and a step running once per record', () => {
+    it('serializes every record a Multiple step loaded and the records the AI picked', () => {
+      const step = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        pendingData: {
+          availableFields: [{ name: 'ubos', displayName: 'UBOs' }],
+          suggestedField: { name: 'ubos', displayName: 'UBOs' },
+          availableRecordIds: [{ recordId: ['a', 1], referenceFieldValue: 'A' }],
+          suggestedRecords: [{ recordId: ['a', 1], referenceFieldValue: 'A' }],
+          hasMoreRecords: true,
+        },
+        selectedRecordRef: makeRecordRef([7]),
+        executionResult: {
+          relation: { name: 'ubos', displayName: 'UBOs' },
+          records: [makeRecordRef(['a', 1], 1), makeRecordRef([2], 1)],
+        },
+      } as unknown as StepExecutionData;
+
+      const result = serializeStepForWire(step) as {
+        pendingData: { suggestedRecords: Array<{ recordId: unknown }>; hasMoreRecords: boolean };
+        executionResult: { records: Array<{ recordId: unknown }> };
+      };
+
+      expect(result.pendingData.suggestedRecords.map(r => r.recordId)).toStrictEqual(['a|1']);
+      expect(result.pendingData.hasMoreRecords).toBe(true);
+      expect(result.executionResult.records.map(r => r.recordId)).toStrictEqual(['a|1', '2']);
+    });
+
+    it("serializes each iteration's records the way the step's own fields would be", () => {
+      const step = {
+        type: 'load-related-record',
+        stepIndex: 2,
+        iterations: [
+          {
+            sourceRecordRef: makeRecordRef(['u', 1], 1),
+            selectedRecordRef: makeRecordRef(['u', 1], 1),
+            attempt: 1,
+            pendingData: {
+              availableFields: [],
+              suggestedField: { name: 'address', displayName: 'Address' },
+              availableRecordIds: [{ recordId: ['ad', 9], referenceFieldValue: null }],
+              suggestedRecord: { recordId: ['ad', 9], referenceFieldValue: null },
+            },
+            executionResult: {
+              relation: { name: 'address', displayName: 'Address' },
+              record: makeRecordRef(['ad', 9], 2),
+            },
+          },
+          { sourceRecordRef: makeRecordRef([2], 1), attempt: 1 },
+        ],
+      } as unknown as StepExecutionData;
+
+      const result = serializeStepForWire(step) as {
+        iterations: Array<Record<string, { recordId?: unknown } & Record<string, unknown>>>;
+      };
+
+      expect(result.iterations[0].sourceRecordRef.recordId).toBe('u|1');
+      expect(result.iterations[0].selectedRecordRef.recordId).toBe('u|1');
+      expect((result.iterations[0].executionResult.record as { recordId: unknown }).recordId).toBe(
+        'ad|9',
+      );
+      expect(
+        (result.iterations[0].pendingData.suggestedRecord as { recordId: unknown }).recordId,
+      ).toBe('ad|9');
+      expect(result.iterations[1]).toStrictEqual({
+        sourceRecordRef: { collectionName: 'orders', recordId: '2', stepIndex: 1 },
+        attempt: 1,
+      });
+    });
+  });
 });

@@ -35,7 +35,8 @@ configure, and no secrets to keep in sync — `authSecret`, `envSecret`, the For
 logger are inherited.
 
 Everything `addBff()` takes is a feature it switches on: `tokenEncryptionKey` enables OAuth (and
-with it the AI relay), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs
+with it the AI relay; a key derived from it signs the browser access tokens, so without it every
+bearer on `/bff/agent` answers `401`), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs
 (off by default when embedded). `GET /bff/health` reports which of them are on, under `configured`.
 
 **Mount the agent before any body parser of your own** — a parser that runs first consumes the
@@ -51,10 +52,13 @@ Mounting under a sub-path of your own works: `app.use('/api', mounted)` serves t
 `/api/bff`, and the prefix is derived per request, so the OpenAPI `servers` entry and the docs page
 carry `/api/bff` too.
 
-**`agentTimeoutMs` bounds the wait, not the work.** When a call to the agent exceeds it the BFF
-answers with an error, but nothing is cancelled: the in-process request runs to completion. An
-action cut at the timeout still applies its mutation, so a client that retries applies it twice.
-Size the timeout above your slowest action, and make actions idempotent if you intend to retry them.
+**`agentTimeoutMs` and `actionTimeoutMs` bound the wait, not the work.** When a call to the agent
+exceeds its timeout the BFF answers `504 agent_timeout`, but nothing is cancelled: the in-process
+request runs to completion. An action execute waits `actionTimeoutMs` (by default the larger of
+`agentTimeoutMs` and 30 s), and when it is cut the 504 carries `details.outcome: "unknown"`: the
+action may still apply its mutation, so a client that retries can apply it twice. Size
+`actionTimeoutMs` above your slowest action, check the outcome before retrying, and make actions
+idempotent if you intend to retry them.
 
 **`addBff()` cannot be combined with `mountAiMcpServer({ basePath: '/bff' })`** — the MCP server
 would claim `/bff/oauth` and `/bff/mcp`. Whichever you call second throws on the spot, at the

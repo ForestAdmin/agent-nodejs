@@ -1,3 +1,40 @@
+## @forestadmin/datasource-mongo [1.6.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.20...@forestadmin/datasource-mongo@1.6.21) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.16.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+
+## @forestadmin/datasource-mongo [1.6.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.19...@forestadmin/datasource-mongo@1.6.20) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.16.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.57.0
+
+## @forestadmin/datasource-mongo [1.6.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.18...@forestadmin/datasource-mongo@1.6.19) (2026-11-17)
+
+
+### Bug Fixes
+
+* **security:** patch 30 Dependabot alerts ([#2078](https://github.com/ForestAdmin/agent-nodejs/issues/2078)) ([4dc3ddd](https://github.com/ForestAdmin/agent-nodejs/commit/4dc3ddd75629b88d0c5ccf88edad630e49cb6c12))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.15.1
+
 ## @forestadmin/datasource-mongo [1.6.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.17...@forestadmin/datasource-mongo@1.6.18) (2026-11-03)
 
 

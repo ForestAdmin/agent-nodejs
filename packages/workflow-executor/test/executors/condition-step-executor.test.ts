@@ -7,6 +7,7 @@ import type { FieldReadResult, StepExecutionData } from '../../src/types/step-ex
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { ConditionStepDefinition } from '../../src/types/validated/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
+import type { z } from 'zod';
 
 import { RunStorePortError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
@@ -14,7 +15,11 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
-import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+import {
+  ConditionStepDefinitionSchema,
+  StepExecutionMode,
+  StepType,
+} from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
@@ -26,15 +31,17 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
   };
 }
 
-type ConditionPreRecordedArgs = NonNullable<ConditionStepDefinition['preRecordedArgs']>;
+type ConditionPreRecordedArgs = NonNullable<
+  z.input<typeof ConditionStepDefinitionSchema>['preRecordedArgs']
+>;
 
 // Published with aiDecision stripped, so a deterministic gateway arrives as manual: the args make it deterministic, not the mode.
 function makeDeterministicStep(
   preRecordedArgs: ConditionPreRecordedArgs,
   executionType: ConditionStepDefinition['executionType'] = StepExecutionMode.Manual,
 ): ConditionStepDefinition {
-  return makeStep({
-    executionType,
+  return ConditionStepDefinitionSchema.parse({
+    ...makeStep({ executionType }),
     options: [
       ...preRecordedArgs.optionConditions.map(o => o.option),
       preRecordedArgs.fallbackOption,
@@ -608,6 +615,45 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
+    it('reads a Get Data step when the condition names get-data as its sourceType', async () => {
+      const explicitArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'get-data',
+                sourceStepId: 'get-1',
+                fieldName: 'amount',
+                operator: 'greater_than',
+                value: 100,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(explicitArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              { option: 'High', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+            ],
+            usedFallback: false,
+          }),
+        }),
+      );
+    });
+
     it('does not evaluate options after the first match, even if they would also match', async () => {
       const bothMatch: ConditionPreRecordedArgs = {
         optionConditions: [
@@ -819,6 +865,28 @@ describe('ConditionStepExecutor', () => {
           reason: 'source-step-not-reached',
         }),
       );
+    });
+
+    // A Sub-workflow run once per record calls the same workflow again, repeating its step ids.
+    describe('inside a Sub-workflow call', () => {
+      const fallbackOf = async (currentFrameStepIndexes: number[]) => {
+        const { context } = makeDeterministicContext(
+          amountArgs,
+          [{ name: 'amount', displayName: 'Amount', value: 150 }],
+          { callScope: { currentFrameStepIndexes } },
+        );
+        const result = await new ConditionStepExecutor(context).execute();
+
+        return (result.stepOutcome as ConditionStepOutcome).selectedOption;
+      };
+
+      it("reads the Get Data step of the call's own run", async () => {
+        expect(await fallbackOf([1])).toBe('High');
+      });
+
+      it("counts a Get Data step of another call's run as not reached", async () => {
+        expect(await fallbackOf([])).toBe(amountArgs.fallbackOption);
+      });
     });
 
     // Build-time validation cannot catch this one: the Get Data step may let the AI pick its
@@ -1467,6 +1535,212 @@ describe('ConditionStepExecutor', () => {
     });
   });
 
+  describe('deterministic evaluation of a Sub-workflow End', () => {
+    function endArgs(
+      operator: 'equal' | 'not_equal' | 'in' | 'not_in',
+      value: string | string[],
+    ): ConditionPreRecordedArgs {
+      return {
+        optionConditions: [
+          {
+            option: 'Approved path',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'sub-workflow',
+                sourceStepId: 'call-1',
+                fieldName: 'end',
+                operator,
+                value,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+    }
+
+    function makeEndContext(
+      preRecordedArgs: ConditionPreRecordedArgs,
+      subWorkflowEnds: ExecutionContext['subWorkflowEnds'],
+    ) {
+      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeDeterministicStep(preRecordedArgs),
+        subWorkflowEnds,
+      });
+
+      return { context, runStore };
+    }
+
+    const approvedCall = [{ stepId: 'call-1', endStepId: 'end-approved' }];
+
+    it.each([
+      ['equal', 'end-approved', 'Approved path'],
+      ['equal', 'end-rejected', 'Other'],
+      ['not_equal', 'end-rejected', 'Approved path'],
+      ['not_equal', 'end-approved', 'Other'],
+      ['in', ['end-rejected', 'end-approved'], 'Approved path'],
+      ['in', ['end-rejected', 'end-cancelled'], 'Other'],
+      ['not_in', ['end-rejected', 'end-cancelled'], 'Approved path'],
+      ['not_in', ['end-rejected', 'end-approved'], 'Other'],
+    ] as const)(
+      'with %s %j on a call that reached end-approved, selects %s',
+      async (operator, value, expectedOption) => {
+        const { context } = makeEndContext(
+          endArgs(operator, value as string | string[]),
+          approvedCall,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe(expectedOption);
+      },
+    );
+
+    it('reads only the End of the Sub-workflow step the condition names', async () => {
+      const { context } = makeEndContext(endArgs('equal', 'end-approved'), [
+        { stepId: 'call-2', endStepId: 'end-approved' },
+        { stepId: 'call-1', endStepId: 'end-rejected' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+    });
+
+    it('fails as a configuration error when the Sub-workflow step ran once per record', async () => {
+      const { context, runStore } = makeEndContext(endArgs('equal', 'end-approved'), [
+        { stepId: 'call-1', perRecord: true },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        errorKind: 'configuration',
+        error:
+          'The option "Approved path" reads the End of a Sub-workflow step that runs once for each record, so it reached several Ends. A decision cannot read them yet. Reconfigure this decision step.',
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no call returned at all', undefined],
+      [
+        'only another Sub-workflow step returned',
+        [{ stepId: 'call-2', endStepId: 'end-approved' }],
+      ],
+    ])('counts the condition as not met, and says so, when %s', async (_label, subWorkflowEnds) => {
+      const { context, runStore } = makeEndContext(
+        endArgs('not_equal', 'end-rejected'),
+        subWorkflowEnds,
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'Approved path',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'source-step-not-reached' }],
+              },
+            ],
+            usedFallback: true,
+          }),
+        }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({
+          sourceType: 'sub-workflow',
+          sourceStepId: 'call-1',
+          reason: 'source-step-not-reached',
+        }),
+      );
+    });
+
+    it('evaluates an End condition nested in a group next to a Get Data one, tracing each', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            makeReadRecordExecution(1, [{ name: 'amount', displayName: 'Amount', value: 50 }]),
+          ]),
+      });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeGetDataStep('get-1', 1)],
+        subWorkflowEnds: approvedCall,
+        stepDefinition: makeDeterministicStep({
+          optionConditions: [
+            {
+              option: 'Approved path',
+              aggregator: 'and',
+              conditions: [
+                {
+                  aggregator: 'or',
+                  conditions: [
+                    {
+                      sourceStepId: 'get-1',
+                      fieldName: 'amount',
+                      operator: 'greater_than',
+                      value: 100,
+                    },
+                    {
+                      sourceType: 'sub-workflow',
+                      sourceStepId: 'call-1',
+                      fieldName: 'end',
+                      operator: 'equal',
+                      value: 'end-approved',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          fallbackOption: 'Other',
+        }),
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Approved path');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'Approved path',
+                outcome: 'matched',
+                conditions: [
+                  {
+                    index: 0,
+                    met: true,
+                    conditions: [
+                      { index: 0, met: false },
+                      { index: 1, met: true },
+                    ],
+                  },
+                ],
+              },
+            ],
+            usedFallback: false,
+          }),
+        }),
+      );
+    });
+  });
+
   describe('executionType=Manual', () => {
     it('returns awaiting-input without preRecordedArgs, no AI and no save, when no incomingPendingData', async () => {
       const mockModel = makeMockModel();
@@ -1529,6 +1803,530 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('quantified conditions over records', () => {
+    const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 1 });
+    type Read =
+      | { id: number; pep?: boolean }
+      | { id: number; skipped: true }
+      | { id: number; failed: true };
+
+    function perRecordRead(stepIndex: number, reads: Read[]): StepExecutionData {
+      return {
+        type: 'read-record',
+        stepIndex,
+        iterations: reads.map(read => {
+          const base = { sourceRecordRef: ubo(read.id), attempt: 1, finishedAt: 't' };
+          if ('skipped' in read) return { ...base, executionResult: { skipped: true } };
+          if ('failed' in read) return { ...base, error: 'boom' };
+
+          return {
+            ...base,
+            selectedRecordRef: ubo(read.id),
+            executionParams: { fields: [{ name: 'pep', displayName: 'PEP' }] },
+            executionResult: {
+              fields:
+                read.pep === undefined
+                  ? [{ name: 'pep', displayName: 'PEP', error: 'Field not found: pep' }]
+                  : [{ name: 'pep', displayName: 'PEP', value: read.pep }],
+            },
+          };
+        }),
+      } as unknown as StepExecutionData;
+    }
+
+    const quantified = (quantifier?: 'any' | 'every' | 'none'): ConditionPreRecordedArgs => ({
+      optionConditions: [
+        {
+          option: 'Escalate',
+          aggregator: 'and',
+          conditions: [
+            {
+              sourceStepId: 'get-ubos',
+              fieldName: 'pep',
+              operator: 'equal',
+              value: true,
+              ...(quantifier && { quantifier }),
+            },
+          ],
+        },
+      ],
+      fallbackOption: 'Approve',
+    });
+
+    function contextFor(
+      preRecordedArgs: ConditionPreRecordedArgs,
+      executions: StepExecutionData[],
+      overrides: Partial<ExecutionContext<ConditionStepDefinition>> = {},
+    ) {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue(executions),
+      });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeDeterministicStep(preRecordedArgs),
+        previousSteps: [makeGetDataStep('get-ubos', 2)],
+        ...overrides,
+      });
+
+      return { context, runStore };
+    }
+
+    it.each([
+      [
+        'any',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: true },
+          { id: 3, pep: false },
+        ],
+        'Escalate',
+        1,
+      ],
+      [
+        'any',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: false },
+        ],
+        'Approve',
+        0,
+      ],
+      [
+        'every',
+        [
+          { id: 1, pep: true },
+          { id: 2, pep: true },
+        ],
+        'Escalate',
+        2,
+      ],
+      [
+        'every',
+        [
+          { id: 1, pep: true },
+          { id: 2, pep: false },
+        ],
+        'Approve',
+        1,
+      ],
+      [
+        'none',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: false },
+        ],
+        'Escalate',
+        0,
+      ],
+      [
+        'none',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: true },
+        ],
+        'Approve',
+        1,
+      ],
+    ] as const)(
+      'matches "%s" over the records read: %j → %s',
+      async (quantifier, reads, expectedOption, matched) => {
+        const { context, runStore } = contextFor(quantified(quantifier), [
+          perRecordRead(2, [...reads]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'success',
+          selectedOption: expectedOption,
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                expect.objectContaining({
+                  conditions: [
+                    expect.objectContaining({ records: { matched, evaluated: reads.length } }),
+                  ],
+                }),
+              ],
+            }),
+          }),
+        );
+      },
+    );
+
+    it.each([
+      ['skipped', { id: 2, skipped: true } as Read],
+      ['failed', { id: 2, failed: true } as Read],
+      ['read without that field', { id: 2 } as Read],
+    ])(
+      'decides nothing and pauses, naming the record, when a record was %s',
+      async (_label, unchecked) => {
+        const { context, runStore } = contextFor(quantified('any'), [
+          perRecordRead(2, [{ id: 1, pep: false }, unchecked, { id: 3, pep: false }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        expect(result.stepOutcome).not.toHaveProperty('selectedOption');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+        expect(saved.executionParams.evaluations[0].conditions[0]).toMatchObject({ met: null });
+        expect(saved).not.toHaveProperty('executionResult');
+      },
+    );
+
+    it.each([
+      ['any', { id: 1, pep: true }, 'Escalate', 1],
+      ['every', { id: 1, pep: false }, 'Approve', 0],
+      ['none', { id: 1, pep: true }, 'Approve', 1],
+    ] as const)(
+      'decides "%s" past a record without a value when the records read already settle it: %j → %s',
+      async (quantifier, read, expectedOption, matched) => {
+        const { context, runStore } = contextFor(quantified(quantifier), [
+          perRecordRead(2, [read, { id: 2, skipped: true }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'success',
+          selectedOption: expectedOption,
+        });
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams).not.toHaveProperty('unchecked');
+        expect(saved.executionParams.evaluations[0].conditions[0].records).toStrictEqual({
+          matched,
+          evaluated: 1,
+          unchecked: ['2'],
+        });
+      },
+    );
+
+    it.each([
+      ['every', { id: 1, pep: true }],
+      ['none', { id: 1, pep: false }],
+    ] as const)(
+      'pauses on "%s" when the record without a value could still change it: %j',
+      async (quantifier, read) => {
+        const { context, runStore } = contextFor(quantified(quantifier), [
+          perRecordRead(2, [read, { id: 2, skipped: true }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+      },
+    );
+
+    describe('when one condition of an option cannot be decided', () => {
+      const pep = (quantifier: 'any' | 'every', value: boolean) => ({
+        sourceStepId: 'get-ubos',
+        fieldName: 'pep',
+        operator: 'equal' as const,
+        value,
+        quantifier,
+      });
+      // One UBO is not a PEP and the other was skipped: "any UBO is a PEP" cannot be decided.
+      const reads = [
+        perRecordRead(2, [
+          { id: 1, pep: false },
+          { id: 2, skipped: true },
+        ]),
+      ];
+
+      it('decides an "and" option another of its conditions already fails', async () => {
+        const { context } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'and',
+                conditions: [pep('any', true), pep('every', true)],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Approve' });
+      });
+
+      it('decides an "or" option another of its conditions already meets', async () => {
+        const { context } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'or',
+                conditions: [pep('any', true), pep('any', false)],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      });
+
+      it('pauses rather than take a later option the undecided one comes before', async () => {
+        const { context, runStore } = contextFor(
+          {
+            optionConditions: [
+              { option: 'Escalate', aggregator: 'and', conditions: [pep('any', true)] },
+              { option: 'Review', aggregator: 'and', conditions: [pep('any', false)] },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+        expect(
+          saved.executionParams.evaluations.map((e: { outcome: string }) => e.outcome),
+        ).toStrictEqual(['not-matched', 'not-evaluated']);
+      });
+
+      it('pauses when the undecided condition sits in a group its option still depends on', async () => {
+        const { context, runStore } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'and',
+                conditions: [
+                  pep('any', false),
+                  { aggregator: 'or', conditions: [pep('any', true), pep('every', true)] },
+                ],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+        expect(saved.executionParams.evaluations[0].conditions[1]).toMatchObject({
+          met: false,
+          conditions: [
+            { index: 0, met: null },
+            { index: 1, met: false },
+          ],
+        });
+      });
+
+      it('decides an option whose group another of its conditions already meets', async () => {
+        const { context } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'and',
+                conditions: [
+                  { aggregator: 'or', conditions: [pep('any', true), pep('any', false)] },
+                ],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      });
+    });
+
+    it.each([
+      ['an option the step does not offer', { selectedOption: 'Nope' }],
+      ['a malformed answer', { option: 'Escalate' }],
+    ])('refuses %s to a paused decision, saving nothing', async (_label, incomingPendingData) => {
+      const paused = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [],
+          unchecked: ['2'],
+          evaluatedAt: '2026-10-20T10:00:00.000Z',
+          timezone: 'UTC',
+        },
+      } as unknown as StepExecutionData;
+      const { context, runStore } = contextFor(quantified('any'), [paused], {
+        incomingPendingData,
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('warns that an option submitted to a decision nobody paused is ignored', async () => {
+      const { context } = contextFor(
+        quantified('any'),
+        [perRecordRead(2, [{ id: 1, pep: true }])],
+        { incomingPendingData: { selectedOption: 'Review' } },
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Ignoring a submitted option: this decision is evaluated from its conditions',
+        expect.objectContaining({ stepIndex: 0 }),
+      );
+    });
+
+    it("completes a paused decision with the operator's choice of branch", async () => {
+      const paused = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [],
+          unchecked: ['2'],
+          evaluatedAt: '2026-10-20T10:00:00.000Z',
+          timezone: 'UTC',
+        },
+      } as unknown as StepExecutionData;
+      const { context, runStore } = contextFor(
+        quantified('any'),
+        [
+          paused,
+          perRecordRead(2, [
+            { id: 1, pep: false },
+            { id: 2, skipped: true },
+          ]),
+        ],
+        { incomingPendingData: { selectedOption: 'Escalate' } },
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [],
+          unchecked: ['2'],
+          evaluatedAt: '2026-10-20T10:00:00.000Z',
+          timezone: 'UTC',
+          selectedOption: 'Escalate',
+          usedFallback: false,
+          selectedBy: 'operator',
+        },
+        executionResult: { answer: 'Escalate' },
+      });
+    });
+
+    it("keeps the operator's choice when a completed decision is dispatched again", async () => {
+      const completed = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [],
+          unchecked: ['2'],
+          evaluatedAt: 't',
+          timezone: 'UTC',
+          selectedOption: 'Escalate',
+          usedFallback: false,
+          selectedBy: 'operator',
+        },
+        executionResult: { answer: 'Escalate' },
+      } as unknown as StepExecutionData;
+      const { context, runStore } = contextFor(quantified('any'), [
+        completed,
+        perRecordRead(2, [
+          { id: 1, pep: false },
+          { id: 2, skipped: true },
+        ]),
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('stays paused when a paused decision is dispatched again without a choice', async () => {
+      const paused = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: { evaluations: [], unchecked: ['2'], evaluatedAt: 't', timezone: 'UTC' },
+      } as unknown as StepExecutionData;
+      const { context, runStore } = contextFor(quantified('any'), [
+        paused,
+        perRecordRead(2, [
+          { id: 1, pep: true },
+          { id: 2, pep: true },
+        ]),
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails as a configuration error when a condition reads per-record data without a quantifier', async () => {
+      const { context } = contextFor(quantified(), [perRecordRead(2, [{ id: 1, pep: true }])]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'error', errorKind: 'configuration' });
+    });
+
+    it.each([
+      [true, 'Approve'],
+      [false, 'Escalate'],
+    ])(
+      'matches "none" over the one value of a single-record source read as %s → %s',
+      async (pep, expectedOption) => {
+        const { context } = contextFor(quantified('none'), [
+          makeReadRecordExecution(2, [{ name: 'pep', displayName: 'PEP', value: pep }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'success',
+          selectedOption: expectedOption,
+        });
+      },
+    );
+
+    it('evaluates a quantifier over the one value of a single-record source', async () => {
+      const { context } = contextFor(quantified('every'), [
+        makeReadRecordExecution(2, [{ name: 'pep', displayName: 'PEP', value: true }]),
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
     });
   });
 });

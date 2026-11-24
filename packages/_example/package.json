@@ -4,9 +4,9 @@
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
-    "@faker-js/faker": "^7.6.0",
     "@forestadmin/agent": "*",
     "@forestadmin/agent-bff": "*",
+    "@forestadmin/datasource-demo-bank": "*",
     "@forestadmin/datasource-dummy": "*",
     "@forestadmin/datasource-mongo": "*",
     "@forestadmin/datasource-mongoose": "*",
@@ -25,7 +25,7 @@
     "fastify4": "npm:fastify@^4.29.0",
     "koa": "^3.0.1",
     "mariadb": "^3.0.2",
-    "mongoose": "8.24.1",
+    "mongoose": "8.24.7",
     "mysql2": "^3.0.1",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",
@@ -40,9 +40,10 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
-    "start": "node --enable-source-maps --async-stack-traces -r ts-node/register src/serve.ts",
-    "start:watch": "node --enable-source-maps --async-stack-traces -r ts-node/register --watch src/serve.ts",
-    "start:watch:inspect": "node --enable-source-maps --async-stack-traces -r ts-node/register --watch --inspect src/serve.ts",
+    "start": "node --enable-source-maps --async-stack-traces --import tsx src/serve.ts",
+    "start:typecheck": "node --enable-source-maps --async-stack-traces -r ts-node/register src/serve.ts",
+    "start:watch": "node --enable-source-maps --async-stack-traces --import tsx --watch src/serve.ts",
+    "start:watch:inspect": "node --enable-source-maps --async-stack-traces --import tsx --watch --inspect src/serve.ts",
     "test": "jest",
     "db:seed": "ts-node scripts/db-seed.ts",
     "start:with-executor": "concurrently --kill-others --names 'agent,executor' \"yarn start\" \"bash -c 'set -a && source .env && AGENT_URL=\\$EXECUTOR_AGENT_URL && DATABASE_URL=\\$EXECUTOR_DATABASE_URL && DATABASE_SSL=false && until curl -s \\$EXECUTOR_AGENT_URL >/dev/null 2>&1; do sleep 1; done && tsx watch ../workflow-executor/src/cli.ts --pretty'\"",
@@ -63,6 +64,7 @@
     "concurrently": "^9.0.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

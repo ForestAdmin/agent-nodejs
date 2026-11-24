@@ -253,9 +253,10 @@ describe.each(['', '/ai'])('the embedded Gateway on basePath "%s"', basePath => 
       /^https:\/\/app\.forestadmin\.com\/oauth\/authorize\?/,
     );
     expect(exchange.status).toBe(200);
-    expect(jsonwebtoken.verify(exchange.body.access_token, AUTH_SECRET)).toMatchObject({
-      type: 'bff_access',
-    });
+    expect(jsonwebtoken.decode(exchange.body.access_token)).toMatchObject({ type: 'bff_access' });
+    expect(() => jsonwebtoken.verify(exchange.body.access_token, AUTH_SECRET)).toThrow(
+      jsonwebtoken.JsonWebTokenError,
+    );
     expect(refresh.status).toBe(200);
     expect(refresh.body.refresh_token).not.toBe(exchange.body.refresh_token);
   });
@@ -375,7 +376,7 @@ describe.each(['', '/ai'])('the embedded Gateway allowlist on basePath "%s"', ba
         expect(authorize.headers.location).toMatch(
           /^https:\/\/app\.forestadmin\.com\/oauth\/authorize\?/,
         );
-        expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({ type: 'bff_access' });
+        expect(jsonwebtoken.decode(token)).toMatchObject({ type: 'bff_access' });
       });
     },
     BOOT_TIMEOUT_MS,

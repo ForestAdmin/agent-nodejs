@@ -1,3 +1,33 @@
+# @forestadmin/datasource-customizer [1.75.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.74.0...@forestadmin/datasource-customizer@1.75.0) (2026-11-24)
+
+
+### Features
+
+* add SA field form isPending option ([#2086](https://github.com/ForestAdmin/agent-nodejs/issues/2086)) ([f6ba9d5](https://github.com/ForestAdmin/agent-nodejs/commit/f6ba9d52a1c740187c0fa65051cc4cdc63310687))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.58.0
+
+# @forestadmin/datasource-customizer [1.74.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.73.3...@forestadmin/datasource-customizer@1.74.0) (2026-11-18)
+
+
+### Features
+
+* **datasource-toolkit:** carry a database list through the datasource schema ([#2083](https://github.com/ForestAdmin/agent-nodejs/issues/2083)) ([5c70615](https://github.com/ForestAdmin/agent-nodejs/commit/5c706158928dc643aaec4f518a2cafe8fd3f963e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.57.0
+
 ## @forestadmin/datasource-customizer [1.73.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.73.2...@forestadmin/datasource-customizer@1.73.3) (2026-11-03)
 
 

@@ -64,6 +64,9 @@ export const RecordStepOutcomeSchema = z
     type: z.literal('record'),
     status: RecordStepStatusSchema,
     approvalRequest: z.object({ id: z.string() }).optional(),
+    // How many records a Multiple Load Related Record step loaded, when it loaded any: the
+    // orchestrator opens one Sub-workflow call per record from it.
+    loadedRecordCount: z.number().int().positive().optional(),
   })
   .strict();
 export type RecordStepOutcome = z.infer<typeof RecordStepOutcomeSchema>;

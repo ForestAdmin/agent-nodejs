@@ -9,22 +9,21 @@ import createUpdateTicketTool from './tools/update-ticket';
 import { getZendeskConfig } from './utils';
 import ServerRemoteTool from '../../server-remote-tool';
 
-export interface ZendeskConfig {
-  subdomain: string;
-  email: string;
-  apiToken: string;
-}
+export type ZendeskConfig = { subdomain: string } & (
+  | { email: string; apiToken: string }
+  | { clientId: string; clientSecret: string }
+);
 
 export default function getZendeskTools(config: ZendeskConfig, mcpServerId?: string): RemoteTool[] {
-  const { baseUrl, headers } = getZendeskConfig(config);
+  const { baseUrl, request } = getZendeskConfig(config);
 
   return [
-    createGetTicketsTool(headers, baseUrl),
-    createGetTicketTool(headers, baseUrl),
-    createGetTicketCommentsTool(headers, baseUrl),
-    createCreateTicketTool(headers, baseUrl),
-    createCreateTicketCommentTool(headers, baseUrl),
-    createUpdateTicketTool(headers, baseUrl),
+    createGetTicketsTool(request, baseUrl),
+    createGetTicketTool(request, baseUrl),
+    createGetTicketCommentsTool(request, baseUrl),
+    createCreateTicketTool(request, baseUrl),
+    createCreateTicketCommentTool(request, baseUrl),
+    createUpdateTicketTool(request, baseUrl),
   ].map(
     tool =>
       new ServerRemoteTool({

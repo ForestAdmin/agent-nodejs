@@ -143,6 +143,7 @@ function buildAgentRouteMiddlewares(
   transport: AgentTransport | undefined,
   logger: Logger,
   permissionsCache: PermissionsCache,
+  actionTimeoutMs: number,
 ): AgentRouteEdge {
   if (!bundle) {
     logger(
@@ -180,7 +181,7 @@ function buildAgentRouteMiddlewares(
     middlewares: [
       permissionsMiddleware,
       createDataRoutesMiddleware({ store, transport, logger, activityLogs }),
-      createActionRoutesMiddleware({ store, transport, logger, activityLogs }),
+      createActionRoutesMiddleware({ store, transport, logger, activityLogs, actionTimeoutMs }),
     ],
     activityLogs,
   };
@@ -245,10 +246,19 @@ export function buildAgentMiddlewares(
   const bundle = resolveReadModelBundle(config, logger, metrics);
   const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
-  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache);
+  const routeEdge = buildAgentRouteMiddlewares(
+    bundle,
+    transport,
+    logger,
+    permissionsCache,
+    config.actionTimeoutMs,
+  );
 
   const chain: Middleware[] = [
-    createAuthModeMiddleware({ authSecret: forestAuthSecret }),
+    createAuthModeMiddleware({
+      authSecret: forestAuthSecret,
+      accessTokenKey: oauth.session?.accessTokenKey,
+    }),
     apiKeyStep,
     // After both auth middlewares: the resolver it lands reads what they put on the context.
     createForestServerTokenMiddleware({ session: oauth.session, logger }),
