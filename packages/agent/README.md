@@ -35,7 +35,8 @@ configure, and no secrets to keep in sync — `authSecret`, `envSecret`, the For
 logger are inherited.
 
 Everything `addBff()` takes is a feature it switches on: `tokenEncryptionKey` enables OAuth (and
-with it the AI relay), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs
+with it the AI relay; a key derived from it signs the browser access tokens, so without it every
+bearer on `/bff/agent` answers `401`), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs
 (off by default when embedded). `GET /bff/health` reports which of them are on, under `configured`.
 
 **Mount the agent before any body parser of your own** — a parser that runs first consumes the
