@@ -11,21 +11,30 @@ describe('toToolError', () => {
   });
 
   describe('when the operation was blocked by its activity log', () => {
-    it('should keep the server reason when it is meant to be read', async () => {
-      const cause = new HttpError('collectionModelName is required', 400);
-
+    it.each([
+      ['a server failure', new HttpError('Forest is in maintenance for a few minutes.', 503)],
+      ['a rejected request', new HttpError('collectionModelName is required', 400)],
+    ])('should say the operation was not performed, with the reason of %s', async (_, cause) => {
       await expect(
         toToolError(new ActivityLogBlockedError('unavailable', cause), { logger }),
-      ).resolves.toBe(cause);
+      ).resolves.toEqual(
+        new Error(
+          `The activity log could not be written, so the operation was not performed: ${cause.message}`,
+        ),
+      );
     });
 
     it.each([
       ['a 401 rejection', new HttpError('Unauthorized', 401)],
       ['a 403 rejection', new ForbiddenError('Forbidden')],
-    ])('should propagate %s as is', async (_label, cause) => {
+    ])('should say the operation was not performed, with %s', async (_label, cause) => {
       await expect(
         toToolError(new ActivityLogBlockedError('notAuthorized', cause), { logger }),
-      ).resolves.toBe(cause);
+      ).resolves.toEqual(
+        new Error(
+          `The activity log could not be written, so the operation was not performed: ${cause.message}`,
+        ),
+      );
     });
 
     it.each([

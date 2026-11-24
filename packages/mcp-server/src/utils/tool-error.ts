@@ -1,4 +1,5 @@
 import type { Logger } from '../server';
+import type { HttpError } from '@forestadmin/forestadmin-client';
 
 import { ActivityLogBlockedError } from '@forestadmin/agent-client';
 
@@ -15,6 +16,9 @@ export const AUDIT_UNAVAILABLE_MESSAGE =
   'This is a temporary server-side failure — retry later, and report it to your Forest ' +
   'administrator if it persists.';
 
+const BLOCKED_OPERATION_MESSAGE =
+  'The activity log could not be written, so the operation was not performed';
+
 const DROPPED_AUDIT_MESSAGE =
   'Failed to create activity log: the server returned no activity log id. ' +
   'Blocking the operation to preserve the audit trail.';
@@ -25,7 +29,7 @@ function blockedOperationError(error: ActivityLogBlockedError): unknown {
   if (error.reason === 'dropped') return new Error(DROPPED_AUDIT_MESSAGE);
   if (carriesTransportDetail(error.cause)) return new Error(AUDIT_UNAVAILABLE_MESSAGE);
 
-  return error.cause;
+  return new Error(`${BLOCKED_OPERATION_MESSAGE}: ${(error.cause as HttpError).message}`);
 }
 
 /**
