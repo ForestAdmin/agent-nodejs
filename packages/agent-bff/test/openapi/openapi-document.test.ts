@@ -1056,6 +1056,7 @@ describe('the documented action responses', () => {
     const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
 
     expect(execute['503'].description).toContain('(type approval_request_failed)');
+    expect(execute['503'].description).toContain('filed but came back without its id');
   });
 
   it('should splice the untrusted-html note into a well-formed sentence', () => {

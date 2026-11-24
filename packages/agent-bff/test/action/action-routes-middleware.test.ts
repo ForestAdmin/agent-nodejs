@@ -857,7 +857,7 @@ describe('action execute', () => {
     );
   });
 
-  it('answers 503 approval_request_failed when the filed request came back without an id', async () => {
+  it('answers 503 approval_request_failed saying the request was filed when it came back without an id', async () => {
     const executeAction = jest.fn(async () => ({ approvalRequested: true }));
 
     const response = await request(execApp(approvalClient(executeAction)).callback())
@@ -865,7 +865,13 @@ describe('action execute', () => {
       .send({ recordIds: ['42'] });
 
     expect(response.status).toBe(503);
-    expect(response.body.error.type).toBe('approval_request_failed');
+    expect(response.body.error).toEqual({
+      type: 'approval_request_failed',
+      status: 503,
+      message:
+        'The approval request was filed, but the Forest server returned no id for it, so the ' +
+        'action was not run. Retrying would file a second request.',
+    });
   });
 
   it('bounds the execute call with the configured action timeout', async () => {

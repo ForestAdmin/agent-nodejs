@@ -217,7 +217,10 @@ async function handleExecute({
   if (isApprovalRequested(raw) && !raw.approvalRequest) {
     logger('Error', 'The Forest server filed an approval request but returned no id for it');
 
-    throw approvalRequestFailed();
+    throw approvalRequestFailed(
+      'The approval request was filed, but the Forest server returned no id for it, so the ' +
+        'action was not run. Retrying would file a second request.',
+    );
   }
 
   const { status, body } = mapActionExecuteResult(raw, logger);
