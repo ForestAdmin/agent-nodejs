@@ -73,7 +73,9 @@ function makeMockAgentPort(): AgentPort {
 
 // Like agent-client: files the approval request unless the query asks to skip it.
 function mockAgentFilingUnlessSkipped(agentPort: AgentPort): void {
-  (agentPort.executeAction as jest.Mock).mockImplementation(async query => {
+  (agentPort.executeAction as jest.Mock).mockImplementation(async (query, _caller, audit) => {
+    await audit?.call?.beforeCall?.();
+
     if (query.skipApprovalRequest) {
       throw new ActionRequiresApprovalError('send-welcome-email', [7]);
     }
@@ -417,6 +419,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
       // Non-blocking: the run continues (success), not awaiting-input.
       expect(result.stepOutcome).toEqual(
@@ -2226,6 +2229,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ skipApprovalRequest: true }),
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
         'run-1',
@@ -2265,6 +2269,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
       expect(result.stepOutcome).toEqual(
         expect.objectContaining({
@@ -3688,6 +3693,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
       expect(result.stepOutcome).toEqual({
         type: 'record',
@@ -4298,6 +4304,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           skipApprovalRequest: true,
         },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
       expect(result.stepOutcome).toEqual(
         expect.objectContaining({

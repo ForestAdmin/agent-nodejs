@@ -109,6 +109,7 @@ export default class Collection extends CollectionChart {
       activityLog,
       signedApprovalRequest,
       approvalRequestMessage,
+      skipApprovalRequest,
       maxTimeAllowed,
       ...context
     } = options;
@@ -130,7 +131,12 @@ export default class Collection extends CollectionChart {
         if (fill) await fill(action);
         isExecuteSent = true;
 
-        return action.execute({ signedApprovalRequest, approvalRequestMessage, maxTimeAllowed });
+        return action.execute({
+          signedApprovalRequest,
+          approvalRequestMessage,
+          skipApprovalRequest,
+          maxTimeAllowed,
+        });
       },
       activityLog?.beforeCall,
       error => isExecuteSent && Boolean(activityLog?.isOutcomeUnknown?.(error)),

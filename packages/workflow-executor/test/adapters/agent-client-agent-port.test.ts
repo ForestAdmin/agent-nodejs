@@ -1207,10 +1207,13 @@ describe('AgentClientAgentPort', () => {
         { user },
       );
 
-      expect(mockAction.execute).toHaveBeenCalledWith({
-        approvalRequestMessage: 'AI reasoning',
-        skipApprovalRequest: true,
-      });
+      expect(mockCollection.executeAction).toHaveBeenCalledWith(
+        'sendEmail',
+        expect.objectContaining({
+          approvalRequestMessage: 'AI reasoning',
+          skipApprovalRequest: true,
+        }),
+      );
     });
 
     it('wires the forestServer connection into agent-client when a server token is supplied', async () => {

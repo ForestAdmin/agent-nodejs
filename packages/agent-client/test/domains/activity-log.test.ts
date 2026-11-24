@@ -516,6 +516,21 @@ describe('activity logging inside agent-client calls', () => {
         return { collection, service, entries, logger, createApprovalRequest };
       }
 
+      it('should file no request and write no createApproval entry when the caller skips it', async () => {
+        const { collection, service, entries, createApprovalRequest } = setupApproval();
+
+        await expect(
+          collection.executeAction('refund', { recordIds: [1], skipApprovalRequest: true }),
+        ).rejects.toBeInstanceOf(ActionRequiresApprovalError);
+        await drainActivityLogs();
+
+        expect(createApprovalRequest).not.toHaveBeenCalled();
+        expect(entries().map(({ action }) => action)).toEqual(['action']);
+        expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'canceled' }),
+        );
+      });
+
       it('should cancel the action entry and write a completed createApproval entry', async () => {
         const { collection, service, entries } = setupApproval();
 
