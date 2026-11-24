@@ -1,3 +1,13 @@
+## @forestadmin/gateway [1.2.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.2.6...@forestadmin/gateway@1.2.7) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.46.2
+
 ## @forestadmin/gateway [1.2.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.2.5...@forestadmin/gateway@1.2.6) (2026-11-24)
 
 
