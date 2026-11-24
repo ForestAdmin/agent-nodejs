@@ -1,6 +1,10 @@
 import type express from 'express';
 
-import { createSessionTokenCodec, createTokenCipher } from '@forestadmin/agent-bff';
+import {
+  createSessionTokenCodec,
+  createTokenCipher,
+  deriveBffAccessKey,
+} from '@forestadmin/agent-bff';
 import expressApp from 'express';
 import { readFileSync } from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
@@ -79,7 +83,7 @@ function sessionToken(): string {
       permission_level: 'admin',
       tags: {},
     },
-    AUTH_SECRET,
+    deriveBffAccessKey(TOKEN_ENCRYPTION_KEY),
     { expiresIn: '1h' },
   );
 }
