@@ -42,6 +42,7 @@ export type { AuthorizationCodeClaims } from './oauth/authorization-code-claims'
 export { default as createTokenCipher } from './oauth/token-cipher';
 export { default as resolveServerAccess } from './oauth/server-access';
 export { issueBffAccessToken, BFF_ACCESS_TOKEN_TYPE } from './oauth/bff-token';
+export { default as deriveBffAccessKey } from './oauth/bff-access-key';
 export type { BffAccessTokenPayload } from './oauth/bff-token';
 export { createPkcePair } from './oauth/pkce';
 export { OAuthRequestError } from './oauth/oauth-error';

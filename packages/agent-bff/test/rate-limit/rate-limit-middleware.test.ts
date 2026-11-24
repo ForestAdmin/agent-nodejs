@@ -1,6 +1,5 @@
 import type { ApiKeyAuthenticator } from '../../src/api-key/api-key-authenticator';
 
-import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
@@ -8,6 +7,7 @@ import createApiKeyMiddleware, { BFF_KEY_HEADER } from '../../src/api-key/api-ke
 import createAuthModeMiddleware from '../../src/auth/auth-mode-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import createRateLimitMiddleware from '../../src/rate-limit/rate-limit-middleware';
+import { ACCESS_TOKEN_KEY, signBffAccess } from '../helpers/bff-access';
 
 const AUTH_SECRET = 'secret';
 const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
@@ -30,11 +30,7 @@ function identity(userId: number, renderingId = 1) {
 }
 
 function bearerToken(id = 1, renderingId = '1') {
-  return jsonwebtoken.sign(
-    { type: 'bff_access', sid: 's1', id, rendering_id: renderingId, tags: {} },
-    AUTH_SECRET,
-    { algorithm: 'HS256', expiresIn: '15m' },
-  );
+  return signBffAccess({ sid: 's1', id, rendering_id: renderingId, tags: {} });
 }
 
 function buildEdge(
@@ -47,7 +43,7 @@ function buildEdge(
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: () => undefined }));
-  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
+  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET, accessTokenKey: ACCESS_TOKEN_KEY }));
   app.use(
     createApiKeyMiddleware({
       authenticator: { authenticate, invalidate: () => undefined },

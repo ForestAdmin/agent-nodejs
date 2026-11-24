@@ -9,6 +9,7 @@ import runCli from '../../src/cli-core';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import createOpenApiRoutes, { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
 import ReadModel from '../../src/read-model/read-model';
+import { ACCESS_TOKEN_KEY, TOKEN_ENCRYPTION_KEY } from '../helpers/bff-access';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch } from '../helpers/fetch-stub';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
@@ -55,6 +56,11 @@ const VALID_ENV = {
   HTTP_PORT: '0',
 } satisfies NodeJS.ProcessEnv;
 
+const SESSION_ENV = {
+  ...VALID_ENV,
+  BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
+} satisfies NodeJS.ProcessEnv;
+
 const noopLogger: Logger = () => undefined;
 
 const API_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
@@ -98,7 +104,7 @@ function sessionToken(): string {
       renderingId: 1,
     },
     renderingId: 1,
-    authSecret: VALID_ENV.FOREST_AUTH_SECRET,
+    signingKey: ACCESS_TOKEN_KEY,
     expiresInSeconds: 900,
   });
 }
@@ -167,8 +173,8 @@ describe('GET /agent/openapi.json', () => {
       stubEnvironmentIdFetch();
 
       const oauthEnv = {
-        ...VALID_ENV,
-        BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+        ...SESSION_ENV,
+        BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
       } satisfies NodeJS.ProcessEnv;
 
       await withServer(oauthEnv, async server => {
@@ -183,7 +189,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when no credentials are sent', () => {
     it('should return 401 and never the document, since the route sits behind the agent gate', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback).get(OPENAPI_PATH);
 
         expect(response.status).toBe(401);
@@ -197,7 +203,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when a valid session token is sent', () => {
     it('should serve a document unfolded from the deployment schema', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -206,6 +212,7 @@ describe('GET /agent/openapi.json', () => {
         expect(response.body.openapi).toBe('3.1.0');
         expect(Object.keys(response.body.paths).sort()).toEqual([
           '/agent/openapi.json',
+          '/agent/v1/ai/query',
           '/agent/v1/context',
           '/agent/v1/orders/count',
           '/agent/v1/orders/list',
@@ -221,7 +228,7 @@ describe('GET /agent/openapi.json', () => {
     });
 
     it('should enumerate the collection fields, which is what the unfolding is for', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -233,7 +240,7 @@ describe('GET /agent/openapi.json', () => {
     });
 
     it('should ask the agent for capabilities once per collection, not once per path', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -243,7 +250,7 @@ describe('GET /agent/openapi.json', () => {
     });
 
     it('should serve the root-relative server when BFF_PUBLIC_URL is unset', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -253,7 +260,7 @@ describe('GET /agent/openapi.json', () => {
     });
 
     it('should publish BFF_PUBLIC_URL as the server of the unfolded document', async () => {
-      const env = { ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/' };
+      const env = { ...SESSION_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/' };
 
       await withServer(env, async server => {
         const response = await request(server.callback)
@@ -265,7 +272,7 @@ describe('GET /agent/openapi.json', () => {
     });
 
     it('should forbid caching, matching the no-store the api key path already sets', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -283,7 +290,7 @@ describe('GET /agent/openapi.json', () => {
     it('should serve the same unfolded document as a session caller, since the mode only changes the gate', async () => {
       mockApiKeyResolve();
 
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const withKey = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('X-Forest-Bff-Key', API_KEY);
@@ -293,7 +300,7 @@ describe('GET /agent/openapi.json', () => {
 
         expect(withKey.status).toBe(200);
         expect(withKey.body.openapi).toBe('3.1.0');
-        expect(Object.keys(withKey.body.paths)).toHaveLength(11);
+        expect(Object.keys(withKey.body.paths)).toHaveLength(12);
         expect(Object.keys(withKey.body.paths).sort()).toEqual(
           Object.keys(withSession.body.paths).sort(),
         );
@@ -303,7 +310,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when the document is requested at the root instead of under /agent', () => {
     it('should return 404, since only the /agent path is mounted', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback).get('/openapi.json');
 
         expect(response.status).toBe(404);
@@ -314,13 +321,13 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when the agent url is absent, so data endpoints fall back to the stub', () => {
     it('should serve the generic document, since there is nothing to unfold against', async () => {
-      await withServer({ ...VALID_ENV, AGENT_URL: undefined }, async server => {
+      await withServer({ ...SESSION_ENV, AGENT_URL: undefined }, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
 
         expect(response.status).toBe(200);
-        expect(Object.keys(response.body.paths)).toHaveLength(9);
+        expect(Object.keys(response.body.paths)).toHaveLength(10);
         expect(response.body.info.description).toContain('Paths are generic');
         expect(fetchSchema).not.toHaveBeenCalled();
       });
@@ -331,7 +338,7 @@ describe('GET /agent/openapi.json', () => {
     it('should answer 503 rather than a generic document that looks complete', async () => {
       fetchSchema.mockRejectedValue(new Error('forest server is down'));
 
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -350,7 +357,7 @@ describe('GET /agent/openapi.json', () => {
         return CAPABILITIES;
       });
 
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -368,7 +375,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when the auth secret is absent, so the whole agent edge is disabled', () => {
     it('should not serve the document, since an ungated document leaks the API surface', async () => {
-      await withServer({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }, async server => {
+      await withServer({ ...SESSION_ENV, FOREST_AUTH_SECRET: undefined }, async server => {
         const response = await request(server.callback).get(OPENAPI_PATH);
 
         expect(response.status).toBe(404);
@@ -379,7 +386,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when the document is requested twice', () => {
     it('should return the byte-identical document, built once per schema generation', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const token = sessionToken();
         const first = await request(server.callback)
           .get(OPENAPI_PATH)
@@ -398,7 +405,7 @@ describe('GET /agent/openapi.json', () => {
     it('should not memoize the degraded document, which would outlive the outage by a day', async () => {
       fetchCapabilities.mockRejectedValue(new Error('agent is down'));
 
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const token = sessionToken();
         const get = () =>
           request(server.callback).get(OPENAPI_PATH).set('Authorization', `Bearer ${token}`);
@@ -415,7 +422,7 @@ describe('GET /agent/openapi.json', () => {
       fetchCapabilities.mockRejectedValueOnce(new Error('agent is down'));
       fetchCapabilities.mockRejectedValueOnce(new Error('agent is down'));
 
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const token = sessionToken();
         const get = () =>
           request(server.callback).get(OPENAPI_PATH).set('Authorization', `Bearer ${token}`);
@@ -516,7 +523,7 @@ describe('GET /agent/openapi.json', () => {
       ['a parent-dir segment', '/agent/x/../openapi.json'],
       ['a doubled leading slash', '//agent/openapi.json'],
     ])('should not serve the document to an unauthenticated caller using %s', async (_, path) => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback).get(path);
 
         expect(response.status).toBeGreaterThanOrEqual(400);
@@ -527,7 +534,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when an authenticated caller uses a non-canonical path', () => {
     it('should serve the document only on the exact path', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const authorized = request(server.callback)
           .get('/agent/openapi.json/')
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -539,7 +546,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when the document is requested with HEAD', () => {
     it('should answer 200 without a body, since HEAD carries no payload', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .head(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
@@ -552,7 +559,7 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when a method other than GET or HEAD is used', () => {
     it('should fall through without serving the document', async () => {
-      await withServer(VALID_ENV, async server => {
+      await withServer(SESSION_ENV, async server => {
         const response = await request(server.callback)
           .post(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`)
@@ -601,7 +608,7 @@ describe('GET /agent/openapi.json', () => {
   });
 
   describe('when BFF_OPENAPI_ENABLED is false', () => {
-    const disabledEnv = { ...VALID_ENV, BFF_OPENAPI_ENABLED: 'false' };
+    const disabledEnv = { ...SESSION_ENV, BFF_OPENAPI_ENABLED: 'false' };
 
     afterEach(() => {
       jest.restoreAllMocks();
@@ -659,7 +666,7 @@ describe('GET /agent/openapi.json', () => {
       };
 
       const disabled = await postDocumentPath(disabledEnv);
-      const enabled = await postDocumentPath(VALID_ENV);
+      const enabled = await postDocumentPath(SESSION_ENV);
 
       expect(disabled).toEqual(enabled);
       expect(disabled.type).not.toBe('openapi_disabled');

@@ -21,6 +21,7 @@ describe('package index', () => {
       expect(bff.resolveServerAccess).toBeDefined();
       expect(bff.issueBffAccessToken).toBeDefined();
       expect(bff.BFF_ACCESS_TOKEN_TYPE).toBeDefined();
+      expect(bff.deriveBffAccessKey).toBeDefined();
       expect(bff.createPkcePair).toBeDefined();
       expect(bff.OAuthRequestError).toBeDefined();
       expect(bff.claimsBffPath('/health', { docs: false })).toBe(true);

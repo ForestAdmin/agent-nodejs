@@ -3,11 +3,11 @@ import type { RequestListener } from 'http';
 import type { AddressInfo } from 'net';
 
 import { createServer, request as httpRequest } from 'http';
-import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
 import runCli, { reportFatalError } from '../src/cli-core';
 import { ConfigurationError } from '../src/errors';
+import { TOKEN_ENCRYPTION_KEY, signBffAccess } from './helpers/bff-access';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 
 const VALID_ENV = {
@@ -17,6 +17,11 @@ const VALID_ENV = {
   FOREST_APP_URL: 'https://app.forestadmin.com',
   AGENT_URL: 'https://agent.example.com',
   HTTP_PORT: '0',
+} satisfies NodeJS.ProcessEnv;
+
+const SESSION_ENV = {
+  ...VALID_ENV,
+  BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
 } satisfies NodeJS.ProcessEnv;
 
 const noopLogger: Logger = () => undefined;
@@ -67,11 +72,7 @@ async function countedOversizedBodyStatus(
 }
 
 function sessionToken() {
-  return jsonwebtoken.sign(
-    { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-    VALID_ENV.FOREST_AUTH_SECRET,
-    { algorithm: 'HS256', expiresIn: '15m' },
-  );
+  return signBffAccess({ sid: 's1', id: 1, rendering_id: '1', tags: {} });
 }
 
 describe('runCli', () => {
@@ -111,7 +112,7 @@ describe('runCli', () => {
   describe('when the full OAuth configuration is present', () => {
     const FULL_ENV = {
       ...VALID_ENV,
-      BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+      BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
     } satisfies NodeJS.ProcessEnv;
 
     it('should wire OAuth routes (no disabled warning) and boot', async () => {
@@ -161,7 +162,7 @@ describe('runCli', () => {
   describe('when the AI query route is mounted', () => {
     const OAUTH_ENV = {
       ...VALID_ENV,
-      BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+      BFF_TOKEN_ENCRYPTION_KEY: TOKEN_ENCRYPTION_KEY,
     } satisfies NodeJS.ProcessEnv;
 
     beforeEach(() => {
@@ -455,7 +456,7 @@ describe('runCli', () => {
 
   describe('when the agent edge rate limit is mounted', () => {
     it('should let a configured burst through, then answer 429 with Retry-After', async () => {
-      const server = await runCli({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: '2' }, noopLogger);
+      const server = await runCli({ ...SESSION_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: '2' }, noopLogger);
 
       try {
         const token = sessionToken();
@@ -480,7 +481,7 @@ describe('runCli', () => {
     });
 
     it('should leave a small burst untouched at the default configuration', async () => {
-      const server = await runCli({ ...VALID_ENV }, noopLogger);
+      const server = await runCli({ ...SESSION_ENV }, noopLogger);
 
       try {
         const token = sessionToken();
@@ -565,21 +566,16 @@ describe('runCli', () => {
       }
     });
 
-    it('should let an oauth Bearer request through the guard to timezone resolution', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
+    it('should refuse an oauth Bearer, since the deployment carries no OAuth session', async () => {
       const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
 
       try {
         const response = await request(server.callback)
           .get('/agent/records')
-          .set('Authorization', `Bearer ${token}`);
+          .set('Authorization', `Bearer ${sessionToken()}`);
 
-        expect(response.status).toBe(400);
-        expect(response.body.error.type).toBe('missing_timezone');
+        expect(response.status).toBe(401);
+        expect(response.body.error.type).toBe('unauthorized');
       } finally {
         await server.stop();
       }
@@ -587,7 +583,7 @@ describe('runCli', () => {
 
     it('should reach the context route without a timezone, since it is mounted before that middleware', async () => {
       const token = sessionToken();
-      const server = await runCli(VALID_ENV, noopLogger);
+      const server = await runCli(SESSION_ENV, noopLogger);
 
       try {
         const response = await request(server.callback)
@@ -617,7 +613,7 @@ describe('runCli', () => {
           .send({ messages: [] });
 
         expect(logs).toContain('AI query route disabled: the deployment carries no OAuth session');
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(401);
       } finally {
         await server.stop();
       }
@@ -659,50 +655,19 @@ describe('runCli', () => {
       }
     });
 
-    it('should fall through to the agent stub when the deployment carries no read-model', async () => {
-      const token = sessionToken();
-      const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
-
-      try {
-        const withTimezone = await request(server.callback)
-          .get('/agent/v1/context')
-          .set('Authorization', `Bearer ${token}`)
-          .set('X-Forest-Timezone', 'Europe/Paris');
-        const withoutTimezone = await request(server.callback)
-          .get('/agent/v1/context')
-          .set('Authorization', `Bearer ${token}`);
-
-        expect(withTimezone.status).toBe(501);
-        expect(withTimezone.body.error).toEqual(
-          expect.objectContaining({ type: 'not_implemented', status: 501 }),
-        );
-        expect(withoutTimezone.status).toBe(400);
-        expect(withoutTimezone.body.error).toEqual(
-          expect.objectContaining({ type: 'missing_timezone', status: 400 }),
-        );
-      } finally {
-        await server.stop();
-      }
-    });
-
     it('should carry an oauth Bearer past requireAgentToken on a data route', async () => {
-      const token = jsonwebtoken.sign(
-        {
-          type: 'bff_access',
-          sid: 's1',
-          id: 1,
-          email: 'a@b.c',
-          first_name: 'A',
-          last_name: 'B',
-          team: 'T',
-          rendering_id: '1',
-          permission_level: 'admin',
-          tags: {},
-        },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
-      const server = await runCli(VALID_ENV, noopLogger);
+      const token = signBffAccess({
+        sid: 's1',
+        id: 1,
+        email: 'a@b.c',
+        first_name: 'A',
+        last_name: 'B',
+        team: 'T',
+        rendering_id: '1',
+        permission_level: 'admin',
+        tags: {},
+      });
+      const server = await runCli(SESSION_ENV, noopLogger);
 
       try {
         const response = await request(server.callback)
@@ -723,12 +688,8 @@ describe('runCli', () => {
 
   describe('when AGENT_URL is absent', () => {
     it('should still serve the permissions endpoint instead of the agent stub', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's', id: 1, rendering_id: '7' },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
-      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
+      const token = signBffAccess({ sid: 's', id: 1, rendering_id: '7' });
+      const server = await runCli({ ...SESSION_ENV, AGENT_URL: undefined }, noopLogger);
 
       try {
         const response = await request(server.callback)
@@ -744,12 +705,8 @@ describe('runCli', () => {
     });
 
     it('should still stub the data routes', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's', id: 1, rendering_id: '7' },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
-      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
+      const token = signBffAccess({ sid: 's', id: 1, rendering_id: '7' });
+      const server = await runCli({ ...SESSION_ENV, AGENT_URL: undefined }, noopLogger);
 
       try {
         const response = await request(server.callback)

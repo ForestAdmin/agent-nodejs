@@ -15,6 +15,7 @@ import createForestServerTokenMiddleware, {
 } from '../../src/auth/forest-server-token-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import createAuthorizationCodeClaims from '../../src/oauth/authorization-code-claims';
+import deriveBffAccessKey from '../../src/oauth/bff-access-key';
 import { OAuthExchangeError } from '../../src/oauth/forest-server-client';
 import createOAuthRoutes from '../../src/oauth/oauth-routes';
 import createSessionTokenCodec from '../../src/oauth/session-token';
@@ -22,6 +23,7 @@ import createTokenCipher from '../../src/oauth/token-cipher';
 
 const AUTH_SECRET = 'auth-secret';
 const KEY = Buffer.alloc(32, 6).toString('base64');
+const ROTATED_KEY = Buffer.alloc(32, 9).toString('base64');
 const CLIENT_ID = 'client-123';
 const REDIRECT_URI = 'http://localhost:4567/callback';
 const RENDERING_ID = 17;
@@ -128,10 +130,11 @@ function createIdempotentForestServer(now: () => number) {
   };
 }
 
-function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock) {
+function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock, key = KEY) {
   const now = () => Date.now();
   const logger = () => undefined;
-  const sessionTokens = createSessionTokenCodec(createTokenCipher(KEY), {
+  const accessTokenKey = deriveBffAccessKey(key);
+  const sessionTokens = createSessionTokenCodec(createTokenCipher(key), {
     now,
     sessionTtlSeconds: 24 * 60 * 60,
     logger,
@@ -146,12 +149,12 @@ function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock) {
       sessionTokens,
       authorizationCodes: createAuthorizationCodeClaims({ now }),
       forestAppUrl: 'https://app.forestadmin.com',
-      authSecret: AUTH_SECRET,
+      accessTokenKey,
       resolveEnvironmentId: async () => 99,
       logger,
     }),
   );
-  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
+  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET, accessTokenKey }));
   app.use(createForestServerTokenMiddleware({ session: { sessionTokens }, logger }));
   app.use(
     createAiRoutesMiddleware({
@@ -168,6 +171,13 @@ function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock) {
   });
 
   return app;
+}
+
+/** The same claims, signed with the previous access-token key. */
+function signedWithAuthSecret(accessToken: string): string {
+  const { iat, exp, ...claims } = jsonwebtoken.decode(accessToken) as Record<string, unknown>;
+
+  return jsonwebtoken.sign(claims, AUTH_SECRET, { algorithm: 'HS256', expiresIn: '15m' });
 }
 
 function aiQueryOk(): jest.Mock {
@@ -289,5 +299,41 @@ describe('OAuth sessions across BFF instances sharing the configuration', () => 
     expect(stolen.body.error).toBe('invalid_grant');
     expect(legitimate.status).toBe(400);
     expect(legitimate.body.error).toBe('invalid_grant');
+  });
+
+  it('should ask a client holding an access token signed with the previous key to refresh, then serve the new one on another instance', async () => {
+    const server = createIdempotentForestServer(() => Date.now());
+    const a = createInstance(server.client, aiQueryOk());
+    const b = createInstance(server.client, aiQueryOk());
+    const session = await signIn(a);
+
+    const earlier = await askAi(b, signedWithAuthSecret(session.access_token));
+    const refreshed = await refresh(a, session.refresh_token);
+    const ai = await askAi(b, refreshed.body.access_token);
+    const before = jsonwebtoken.decode(session.access_token) as Record<string, unknown>;
+    const after = jsonwebtoken.decode(refreshed.body.access_token) as Record<string, unknown>;
+
+    expect(earlier.status).toBe(401);
+    expect(earlier.body.error.type).toBe('session_expired');
+    expect(refreshed.status).toBe(200);
+    expect(ai.status).toBe(200);
+    expect(after).toEqual(
+      expect.objectContaining({ sid: before.sid, id: USER.id, email: USER.email }),
+    );
+  });
+
+  it('should sign the user out when the encryption key changes, since both tokens hang off it', async () => {
+    const server = createIdempotentForestServer(() => Date.now());
+    const before = createInstance(server.client, aiQueryOk());
+    const session = await signIn(before);
+
+    const after = createInstance(server.client, aiQueryOk(), ROTATED_KEY);
+    const ai = await askAi(after, session.access_token);
+    const refreshed = await refresh(after, session.refresh_token);
+
+    expect(ai.status).toBe(401);
+    expect(ai.body.error.type).toBe('unauthorized');
+    expect(refreshed.status).toBe(400);
+    expect(refreshed.body.error).toBe('invalid_grant');
   });
 });

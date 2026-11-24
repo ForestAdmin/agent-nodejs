@@ -160,12 +160,10 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
  */
 export type BffEmbedOptions = {
   /**
-   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Gates the OAuth
-   * login/refresh flow (mode 1) and, with it, the AI relay.
-   *
-   * It is not an access control. The data routes accept a `bff_access` bearer whether or not this
-   * is set, because that token is verified against the agent's `authSecret` alone. Omitting it
-   * closes the login flow, not the session-bearer path — what protects that path is `authSecret`.
+   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. A key derived from it
+   * signs the `bff_access` tokens. Gates the OAuth login/refresh flow (mode 1) and, with it, the AI
+   * relay: without it, the data routes refuse every `bff_access` bearer. Changing it signs every
+   * user out.
    */
   tokenEncryptionKey?: string;
   /**
