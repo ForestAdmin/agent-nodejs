@@ -64,6 +64,7 @@ export default class EmbeddedServices {
   private mcpTokenTtl?: TokenTtlOptions;
   private mcpAllowedOAuthClients?: string[];
   private mcpFileUploads?: false | FileUploadsOptions;
+  private mcpApps?: boolean;
 
   /** In-process BFF, created only when addBff() is called. */
   private embeddedBff: EmbeddedBff | null = null;
@@ -120,6 +121,7 @@ export default class EmbeddedServices {
       this.mcpTokenTtl = services.mcp.tokenTtl;
       this.mcpAllowedOAuthClients = options.allowedOAuthClients;
       this.mcpFileUploads = services.mcp.fileUploads;
+      this.mcpApps = services.mcp.apps;
     }
 
     if (services.api) this.host.getInProcessDispatcher();
@@ -138,6 +140,7 @@ export default class EmbeddedServices {
     this.mcpTokenTtl = options?.tokenTtl;
     this.mcpAllowedOAuthClients = options?.allowedOAuthClients;
     this.mcpFileUploads = options?.fileUploads;
+    this.mcpApps = options?.apps;
   }
 
   addBff(options: BffEmbedOptions): void {
@@ -328,6 +331,7 @@ export default class EmbeddedServices {
         tokenTtl: this.mcpTokenTtl,
         allowedOAuthClients: this.mcpAllowedOAuthClients,
         fileUploads: this.mcpFileUploads,
+        apps: this.mcpApps,
         agentDispatcher: this.host.getInProcessDispatcher(),
       });
 

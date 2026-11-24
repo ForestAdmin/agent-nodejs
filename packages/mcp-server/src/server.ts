@@ -2,6 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
+import type { McpApps } from './apps/records-view';
 import type { FileUploadsOptions, ResolvedFileUploads } from './file-uploads/types';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
@@ -25,6 +26,7 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
+import { RECORDS_VIEW_TOOLS, loadMcpApps, registerRecordsView } from './apps/records-view';
 import EphemeralStorage from './file-uploads/ephemeral-storage';
 import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
@@ -182,6 +184,7 @@ export interface ForestMCPServerOptions {
    * lands (SEP-2631).
    */
   fileUploads?: false | FileUploadsOptions;
+  apps?: boolean;
 }
 
 /**
@@ -210,6 +213,7 @@ export default class ForestMCPServer {
   private allowedOAuthClients?: string[];
   private fileUploadsOptions?: FileUploadsOptions;
   private fileUploads?: ResolvedFileUploads;
+  private apps?: McpApps;
   private ephemeralStorage?: EphemeralStorage;
 
   constructor(options?: ForestMCPServerOptions) {
@@ -225,6 +229,7 @@ export default class ForestMCPServer {
     this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
 
     this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
+    this.apps = options?.apps ? loadMcpApps() : undefined;
     // Resolved in buildExpressApp, where the auth secret is known to be set.
     this.fileUploadsOptions = options?.fileUploads || undefined;
 
@@ -282,6 +287,7 @@ export default class ForestMCPServer {
       collectionNames: this.collectionNames,
       agentDispatcher: this.agentDispatcher,
       fileUploads: this.fileUploads,
+      recordsView: Boolean(this.apps),
     };
 
     const allTools: Array<{ name: ToolName; register: () => string }> = [
@@ -314,6 +320,10 @@ export default class ForestMCPServer {
       .map(tool => tool.name);
 
     const toolNames = enabledToolEntries.map(tool => tool.register());
+
+    if (this.apps && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name))) {
+      registerRecordsView(mcpServer, this.apps);
+    }
 
     this.logger(
       'Info',

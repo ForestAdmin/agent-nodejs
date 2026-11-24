@@ -5,6 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { RECORDS_VIEW_DESCRIPTION, RECORDS_VIEW_NOTE } from '../../src/apps/records-view';
 import declareListTool from '../../src/tools/list';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
@@ -1091,6 +1092,47 @@ describe('declareListTool', () => {
 
         expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
         expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');
+      });
+    });
+  });
+
+  describe('with MCP Apps on', () => {
+    const mockExtra = {
+      authInfo: {
+        token: 'test-token',
+        extra: { forestServerToken: 'forest-token', renderingId: '123' },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    beforeEach(() => {
+      declareListTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+        recordsView: true,
+      });
+    });
+
+    it('tells the model that the records are already shown in a table', () => {
+      expect(registeredToolConfig.description).toBe(
+        `Retrieve a list of records from the specified collection. Send schema field names; read each value under its \`recordKey\` when describeCollection publishes one. Never read a field whose \`recordKey\` is null; project a field listing \`sharesRecordKeyWith\` without the fields it lists. ${RECORDS_VIEW_DESCRIPTION}`,
+      );
+    });
+
+    it('returns the records first, then a note not to repeat them', async () => {
+      const mockList = jest.fn().mockResolvedValue([{ id: 1 }]);
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ list: mockList }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      const result = await registeredToolHandler({ collectionName: 'products' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          { type: 'text', text: JSON.stringify({ records: [{ id: 1 }] }) },
+          { type: 'text', text: RECORDS_VIEW_NOTE },
+        ],
       });
     });
   });

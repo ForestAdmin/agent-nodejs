@@ -68,6 +68,20 @@ describe('parseMcpEnv', () => {
     );
   });
 
+  it("turns MCP Apps on with FOREST_MCP_APPS='true'", () => {
+    expect(parseMcpEnv({ FOREST_MCP_APPS: 'true' }).options.apps).toBe(true);
+  });
+
+  it.each([[undefined], ['false']])('leaves MCP Apps off with FOREST_MCP_APPS=%j', value => {
+    expect(parseMcpEnv({ FOREST_MCP_APPS: value }).options).not.toHaveProperty('apps');
+  });
+
+  it.each(['', 'TRUE', '1', 'yes'])('rejects FOREST_MCP_APPS=%j', value => {
+    expect(() => parseMcpEnv({ FOREST_MCP_APPS: value })).toThrow(
+      `Invalid FOREST_MCP_APPS "${value}": use 'true' to turn MCP Apps on. They are off by default.`,
+    );
+  });
+
   it.each([
     ['FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS', 'accessTokenSeconds', '', '0'],
     ['FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS', 'accessTokenSeconds', 'abc', 'NaN'],

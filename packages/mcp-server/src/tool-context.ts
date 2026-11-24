@@ -9,4 +9,5 @@ export interface ToolContext {
   collectionNames: string[];
   agentDispatcher?: InProcessAgentDispatcher;
   fileUploads?: ResolvedFileUploads;
+  recordsView?: boolean;
 }

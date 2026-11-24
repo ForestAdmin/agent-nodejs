@@ -4,6 +4,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
+import { recordsResultContent, recordsToolConfig } from '../apps/records-view';
 import filterSchema from '../schemas/filter';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
@@ -74,6 +75,9 @@ export function createListArgumentShape(collectionNames: string[]) {
   };
 }
 
+const LIST_DESCRIPTION =
+  'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.';
+
 export default function declareListTool(mcpServer: McpServer, ctx: ToolContext): string {
   const { forestServerClient, logger, collectionNames } = ctx;
   const listArgumentShape = createListArgumentShape(collectionNames);
@@ -84,8 +88,7 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a collection',
-      description:
-        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.',
+      ...recordsToolConfig(LIST_DESCRIPTION, ctx.recordsView),
       inputSchema: listArgumentShape,
     },
     async (options: ListArgument, extra) => {
@@ -122,7 +125,7 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
             response = { records };
           }
 
-          return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+          return { content: recordsResultContent(response, ctx.recordsView) };
         },
         errorEnhancer: async errorMessage => {
           // Enhance "Invalid sort" errors with available sortable fields

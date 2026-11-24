@@ -84,6 +84,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
 | `FOREST_MCP_FILE_UPLOADS` | No | - | `false` turns action file uploads off (they are **on** by default, in memory). Any other value than `true`/`false` fails at startup |
 | `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, for a real storage backend. `FOREST_MCP_FILE_UPLOADS=false` wins over it |
+| `FOREST_MCP_APPS` | No | `false` | `true` renders `list` and `listRelated` records in an MCP Apps table. See [Records View](#records-view-mcp-apps) |
 
 #### Example Configuration
 
@@ -187,6 +188,25 @@ The two settings differ in what the user notices:
 - `refreshTokenSeconds` bounds the time between two **interactive logins**: once it elapses, the assistant can no longer refresh and the user signs in through the browser again. It is measured from the login itself, so an active assistant cannot keep extending its session. Refresh tokens issued before you enabled the option carry no login timestamp, so their window is measured from their last refresh instead — one longer session each, then bounded.
 
 The minimum for either value is 60 seconds; anything lower is raised to it. An invalid value (zero, negative, fractional) fails at startup rather than silently leaving the tokens uncapped.
+
+## Records View (MCP Apps)
+
+`apps: true` makes `list` and `listRelated` render their records in an interactive table, through the [MCP Apps](https://modelcontextprotocol.io/seps/1865-mcp-apps-interactive-user-interfaces-for-mcp) extension. It is off by default.
+
+**Turn it on only when every client of this server renders MCP Apps**, such as Claude. With it on, each `list` and `listRelated` result tells the model that the records are already on screen, so the reply stays a short summary instead of repeating the table. A client that does not render MCP Apps shows no table, and its model still receives that sentence.
+
+The server cannot tell the two apart per call: it is stateless, and a client declares MCP Apps support (`io.modelcontextprotocol/ui`) only in `initialize`, which `tools/list` and `tools/call` do not carry. Answering the `initialize` with server `instructions` instead was tried in Claude Desktop, and the model repeated the table anyway. The per-request client capabilities of the 2026-07-28 protocol revision ([SEP-2575](https://modelcontextprotocol.io/seps/2575-stateless-mcp)) remove this limit once the SDK supports it.
+
+```typescript
+// With Forest Agent
+agent.mountAiMcpServer({ apps: true });
+```
+
+```bash
+# Standalone
+export FOREST_MCP_APPS=true
+npx forest-mcp-server
+```
 
 ## Action File Uploads
 

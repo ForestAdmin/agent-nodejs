@@ -8,6 +8,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { createListArgumentShape } from './list';
+import { recordsResultContent, recordsToolConfig } from '../apps/records-view';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
 import registerToolWithLogging from '../utils/tool-with-logging';
@@ -71,6 +72,9 @@ function createErrorEnhancer(
   };
 }
 
+const LIST_RELATED_DESCRIPTION =
+  'Retrieve a list of records from a one-to-many or many-to-many relation. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.';
+
 export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolContext): string {
   const { forestServerClient, logger, collectionNames } = ctx;
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
@@ -81,8 +85,7 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a relation',
-      description:
-        'Retrieve a list of records from a one-to-many or many-to-many relation. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.',
+      ...recordsToolConfig(LIST_RELATED_DESCRIPTION, ctx.recordsView),
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
@@ -128,7 +131,7 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
             response = { records };
           }
 
-          return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+          return { content: recordsResultContent(response, ctx.recordsView) };
         },
         errorEnhancer: createErrorEnhancer(forestServerClient, options, logger),
       });
