@@ -1,3 +1,19 @@
+# @forestadmin/workflow-executor [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.43.0...@forestadmin/workflow-executor@1.44.0) (2026-11-24)
+
+
+### Features
+
+* **agent-client:** move activity logging and approvals into agent-client for every surface ([#2106](https://github.com/ForestAdmin/agent-nodejs/issues/2106)) ([a474f54](https://github.com/ForestAdmin/agent-nodejs/commit/a474f5412cb1453d7b918043dd1d0b90cf54c4e3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.21.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.48.0
+
 # @forestadmin/workflow-executor [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.42.2...@forestadmin/workflow-executor@1.43.0) (2026-11-24)
 
 
