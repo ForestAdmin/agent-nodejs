@@ -14,6 +14,7 @@ export type { OutputOption } from './cli-output';
 export { default as buildBff } from './build-bff';
 export {
   default as createInProcessTransport,
+  AGENT_DISPATCH_TIMEOUT_CODE,
   IN_PROCESS_AGENT_URL,
 } from './agent/in-process-transport';
 export type {

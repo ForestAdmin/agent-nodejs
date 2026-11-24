@@ -22,6 +22,12 @@ export interface WithActivityLogOptions<T> {
    * outcome the BFF answers with an error status.
    */
   isCompletedDespite?: (error: unknown) => boolean;
+  /**
+   * Errors after which the operation may or may not have taken effect. The log gets no transition
+   * and stays `pending`: the server accepts only `completed` or `failed`, and either would be a
+   * claim the BFF cannot make.
+   */
+  isOutcomeUnknown?: (error: unknown) => boolean;
 }
 
 /**
@@ -29,7 +35,17 @@ export interface WithActivityLogOptions<T> {
  * so nothing runs unaudited, and the status transition is fired without `await` afterwards.
  */
 export default async function withActivityLog<T>(options: WithActivityLogOptions<T>): Promise<T> {
-  const { ctx, service, drainer, action, context, logger, operation, isCompletedDespite } = options;
+  const {
+    ctx,
+    service,
+    drainer,
+    action,
+    context,
+    logger,
+    operation,
+    isCompletedDespite,
+    isOutcomeUnknown,
+  } = options;
 
   // No log line of its own when nothing came back: the creator reports the case it hit, with the
   // rendering and the collection this one could not name. A read proceeds unaudited from here.
@@ -42,7 +58,7 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
 
     return result;
   } catch (error) {
-    if (pending) {
+    if (pending && !isOutcomeUnknown?.(error)) {
       const status = isCompletedDespite?.(error) ? COMPLETED : FAILED;
       markActivityLog({ service, drainer, pending, status, logger });
     }

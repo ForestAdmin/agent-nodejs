@@ -3,7 +3,10 @@ import type { AgentDispatcher } from '../../src/agent/in-process-transport';
 import { AgentHttpError, HttpRequester } from '@forestadmin/agent-client';
 import nock from 'nock';
 
-import createInProcessTransport from '../../src/agent/in-process-transport';
+import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
+import createInProcessTransport, {
+  AGENT_DISPATCH_TIMEOUT_CODE,
+} from '../../src/agent/in-process-transport';
 
 const AGENT_URL = 'http://in-process.agent';
 
@@ -157,6 +160,37 @@ describe('createInProcessTransport', () => {
       expect((error.body as { errors: { detail: string }[] }).errors[0].detail).toContain(
         'agent hook exploded',
       );
+    });
+  });
+
+  describe('when the dispatcher times out', () => {
+    it('should throw the AgentTimeoutError the HTTP path throws on a timeout', async () => {
+      const timeout = Object.assign(new Error('In-process dispatch timed out after 50ms'), {
+        code: AGENT_DISPATCH_TIMEOUT_CODE,
+      });
+      const dispatcher = { request: jest.fn().mockRejectedValue(timeout) };
+      const requester = createInProcessTransport({ dispatcher }).createRequester('tok');
+
+      const error = (await requester
+        .query({ method: 'post', path: '/forest/_actions/users/0/slow' })
+        .catch(caught => caught)) as AgentTimeoutError;
+
+      expect(error).toBeInstanceOf(AgentTimeoutError);
+      expect(error.message).toBe('In-process dispatch timed out after 50ms');
+    });
+
+    it('should not take an untagged rejection for a timeout', async () => {
+      const dispatcher = {
+        request: jest.fn().mockRejectedValue(new Error('In-process dispatch timed out after 50ms')),
+      };
+      const requester = createInProcessTransport({ dispatcher }).createRequester('tok');
+
+      const error = (await requester
+        .query({ method: 'get', path: '/forest/users' })
+        .catch(caught => caught)) as AgentHttpError;
+
+      expect(error).toBeInstanceOf(AgentHttpError);
+      expect(error.status).toBe(500);
     });
   });
 

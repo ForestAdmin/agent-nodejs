@@ -110,7 +110,13 @@ export function buildApp(
     agentToken = 'agent-token',
     logger = noopLogger,
     timezone = TIMEZONE,
-  }: { agentToken?: string | null; logger?: Logger; timezone?: string } = {},
+    actionTimeoutMs,
+  }: {
+    agentToken?: string | null;
+    logger?: Logger;
+    timezone?: string;
+    actionTimeoutMs?: number;
+  } = {},
 ) {
   const app = new Koa();
   app.silent = true;
@@ -128,6 +134,7 @@ export function buildApp(
       logger,
       activityLogs: passthroughActivityLogs(),
       createClient: () => client,
+      actionTimeoutMs,
     }),
   );
 

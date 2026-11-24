@@ -13,6 +13,7 @@ import type { Context, Middleware } from 'koa';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
+  AgentHttpError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
@@ -22,6 +23,7 @@ import { mapActionForm } from './action-form-mapper';
 import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
+import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
@@ -33,8 +35,10 @@ import { BffHttpError } from '../http/bff-http-error';
 import {
   ACTION_REQUIRES_APPROVAL_TYPE,
   actionError,
+  actionOutcomeUnknown,
   actionRequiresApproval,
   invalidRequest,
+  isActionOutcomeUnknown,
   unknownAction,
 } from '../http/bff-local-errors';
 
@@ -50,6 +54,19 @@ const EXECUTE_VERB = 'execute';
  */
 function isApprovalRequest(error: unknown): boolean {
   return error instanceof BffHttpError && error.type === ACTION_REQUIRES_APPROVAL_TYPE;
+}
+
+/**
+ * Failures after which the execute may have reached the agent and run: a timeout, a connection reset
+ * once the request was sent, or a gateway's 502 or 504 in front of the agent, which the agent itself
+ * never answers. A refused connection or a 503 means the agent was never reached, so it stays a
+ * failure.
+ */
+function mayHaveRun(error: unknown): boolean {
+  if (error instanceof AgentTimeoutError) return true;
+  if (error instanceof AgentHttpError) return error.status === 502 || error.status === 504;
+
+  return (error as { code?: unknown } | null)?.code === 'ECONNRESET';
 }
 
 interface ActionRequestBody {
@@ -111,6 +128,8 @@ export interface ActionRoutesMiddlewareOptions {
   logger: Logger;
   activityLogs: ActivityLogWriter;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
+  /** Bounds the execute call alone; the transport's own timeout applies when omitted. */
+  actionTimeoutMs?: number;
 }
 
 interface ActionHandlerArgs<TAction extends ActionForm> {
@@ -118,6 +137,12 @@ interface ActionHandlerArgs<TAction extends ActionForm> {
   action: TAction;
   values: Record<string, unknown>;
   logger: Logger;
+}
+
+interface ExecuteHandlerArgs extends ActionHandlerArgs<Action> {
+  actionTimeoutMs?: number;
+  /** Names the pending log an operator has to check when the outcome is unknown. */
+  target: { collection: string; actionName: string; recordIds: string[] };
 }
 
 async function handleForm({
@@ -140,7 +165,9 @@ async function handleExecute({
   action,
   values,
   logger,
-}: ActionHandlerArgs<Action>): Promise<void> {
+  actionTimeoutMs,
+  target,
+}: ExecuteHandlerArgs): Promise<void> {
   try {
     await action.setFields(values);
   } catch (error) {
@@ -159,7 +186,7 @@ async function handleExecute({
   let raw: unknown;
 
   try {
-    raw = await action.execute();
+    raw = await action.execute({ maxTimeAllowed: actionTimeoutMs });
   } catch (error) {
     if (error instanceof ActionRequiresApprovalError) {
       throw actionRequiresApproval(
@@ -185,6 +212,15 @@ async function handleExecute({
       throw actionError(error.message, html === null ? undefined : { html });
     }
 
+    if (mayHaveRun(error)) {
+      logger('Warn', 'Action execute got no answer: outcome unknown', {
+        ...target,
+        cause: error instanceof Error ? error.message : String(error),
+      });
+
+      throw actionOutcomeUnknown();
+    }
+
     throw mapAgentError(error, { logger });
   }
 
@@ -208,6 +244,7 @@ export default function createActionRoutesMiddleware({
   logger,
   activityLogs,
   createClient = defaultCreateAgentActionClient,
+  actionTimeoutMs,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
     const match = ACTION_ROUTE.exec(ctx.path);
@@ -284,12 +321,20 @@ export default function createActionRoutesMiddleware({
         label: `triggered the action "${actionName}"`,
       },
       isCompletedDespite: isApprovalRequest,
+      isOutcomeUnknown: isActionOutcomeUnknown,
       operation: async () => {
         if (!allowed) refuseUnknownAction();
 
         const action = await loadAction();
 
-        await handleExecute({ ctx, action, values, logger });
+        await handleExecute({
+          ctx,
+          action,
+          values,
+          logger,
+          actionTimeoutMs,
+          target: { collection, actionName, recordIds },
+        });
       },
     });
   };
