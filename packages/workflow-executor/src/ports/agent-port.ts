@@ -71,6 +71,8 @@ export type ActionFormField = {
   // Choice-widget values (dropdown/radio/checkboxes); the AI submits `value`, `label` is for humans.
   allowedValues?: { value: string | number | null; label: string }[];
   description?: string;
+  /** Edited with the rich text widget, which takes HTML. */
+  isRichText?: boolean;
 };
 
 export type ActionForm = {

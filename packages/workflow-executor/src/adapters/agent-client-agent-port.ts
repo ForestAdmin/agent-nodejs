@@ -126,6 +126,8 @@ function toAllowedValue(option: unknown): { value: string | number | null; label
 // and timeouts are also 4xx but say nothing about the value, so they must not reach the form fallback.
 const FORM_VALIDATION_STATUSES = [400, 422];
 
+const RICH_TEXT_WIDGET = 'rich text';
+
 // setFields refuses a value two ways: an unknown field, or the change-hook request it makes rejecting
 // it. Anything else is the agent or the caller faltering, and blaming the form would misdirect.
 function isRejectedFormValue(cause: unknown): boolean {
@@ -399,7 +401,9 @@ export default class AgentClientAgentPort implements AgentPort {
       const skippedFields = values ? await act.tryToSetFields(values) : [];
 
       const fields = act.getFields().map((field): ActionFormField => {
-        const description = field.getPlainField()?.description;
+        const plainField = field.getPlainField();
+        const description = plainField?.description;
+        const isRichText = plainField?.widgetEdit?.name === RICH_TEXT_WIDGET;
 
         const base: ActionFormField = {
           name: field.getName(),
@@ -407,6 +411,7 @@ export default class AgentClientAgentPort implements AgentPort {
           value: field.getValue(),
           isRequired: field.isRequired() ?? false,
           ...(description ? { description } : {}),
+          ...(isRichText ? { isRichText } : {}),
         };
 
         if (field.getType() === 'Enum') {

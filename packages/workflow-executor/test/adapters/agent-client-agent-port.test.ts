@@ -1385,13 +1385,17 @@ describe('AgentClientAgentPort', () => {
       required?: boolean;
       description?: string;
       options?: unknown[];
+      widget?: string;
     }) {
       return {
         getName: () => over.name,
         getType: () => over.type ?? 'String',
         getValue: () => over.value,
         isRequired: () => over.required ?? false,
-        getPlainField: () => ({ description: over.description }),
+        getPlainField: () => ({
+          description: over.description,
+          ...(over.widget && { widgetEdit: { name: over.widget, parameters: {} } }),
+        }),
         getMultipleChoiceField: () => ({ getOptions: () => over.options }),
       };
     }
@@ -1500,6 +1504,23 @@ describe('AgentClientAgentPort', () => {
             { value: 'high', label: 'high' },
           ],
         },
+      ]);
+    });
+
+    it('flags the fields edited with the rich text widget', async () => {
+      mockAction.getFields.mockReturnValue([
+        makeField({ name: 'body', widget: 'rich text' }),
+        makeField({ name: 'subject', widget: 'text area editor' }),
+      ]);
+
+      const form = await port.getActionForm(
+        { collection: 'users', action: 'send-email', id: [1] },
+        user,
+      );
+
+      expect(form.fields).toEqual([
+        { name: 'body', type: 'String', value: undefined, isRequired: false, isRichText: true },
+        { name: 'subject', type: 'String', value: undefined, isRequired: false },
       ]);
     });
 

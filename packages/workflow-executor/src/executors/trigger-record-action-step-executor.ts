@@ -43,7 +43,9 @@ Important rules:
 - This applies to required fields too: a required field you leave out is completed by a human reviewer.
 - Never send a placeholder such as "<UNKNOWN>" or "TBD" — leave the field out instead.
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
-- Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
+- Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.
+- A field marked "rich text" takes HTML: wrap every paragraph in <p>, and use only <strong>, <em>, <s>, <a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>. Never use markdown.
+- When a rich text field's value comes from a previous step written in HTML, keep its HTML as written.`;
 
 const PLACEHOLDER_VALUE = /^<[\w\s-]+>$/;
 
@@ -407,7 +409,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const { stepDefinition: step } = this.context;
     const fieldLines = form.fields
       .map(field => {
-        const parts = [`- ${field.name} (${field.type}${field.isRequired ? ', required' : ''})`];
+        const parts = [
+          `- ${field.name} (${field.type}${field.isRichText ? ', rich text' : ''}${
+            field.isRequired ? ', required' : ''
+          })`,
+        ];
         if (field.description) parts.push(`hint: ${field.description}`);
         if (field.enumValues?.length) parts.push(`allowed: ${field.enumValues.join(', ')}`);
 

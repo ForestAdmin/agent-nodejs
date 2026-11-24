@@ -1085,6 +1085,58 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(prompt).toContain('allowed: low, high');
     });
 
+    it('tells the AI which fields take HTML in the fill prompt', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [
+            { name: 'body', type: 'String', isRequired: true, isRichText: true },
+            { name: 'subject', type: 'String', isRequired: false },
+          ],
+          canExecute: false,
+          requiredFields: ['body'],
+          skippedFields: [],
+        })
+        .mockResolvedValueOnce({
+          fields: [
+            {
+              name: 'body',
+              type: 'String',
+              isRequired: true,
+              isRichText: true,
+              value: '<p>Hi</p>',
+            },
+            { name: 'subject', type: 'String', isRequired: false },
+          ],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      const mockModel = makeMockModel({ values: { body: '<p>Hi</p>' } }, 'fill_action_form');
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      const prompt = (mockModel.invoke.mock.calls[0][0] as { content: unknown }[])
+        .map(m => m.content)
+        .filter((c): c is string => typeof c === 'string')
+        .join('\n');
+      expect(prompt).toContain('- body (String, rich text, required)');
+      expect(prompt).toContain('- subject (String)');
+      expect(prompt).toContain('A field marked "rich text" takes HTML');
+    });
+
     it('lets the AI fill the optional fields a change hook reveals once the required ones are set', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock)
