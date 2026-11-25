@@ -4449,6 +4449,7 @@ describe('TriggerRecordActionStepExecutor inside a Sub-workflow call', () => {
         approvalMessage: 'Send a welcome email to the customer',
       },
       expect.objectContaining({ user: expect.objectContaining({ id: 1 }) }),
+      expect.anything(),
     );
   });
 

@@ -2316,6 +2316,7 @@ describe('ReadRecordStepExecutor inside a Sub-workflow call', () => {
     expect(agentPort.getRecord).toHaveBeenCalledWith(
       { collection: 'customers', id: [42], fields: ['email'] },
       expect.objectContaining({ id: 1 }),
+      expect.anything(),
     );
   });
 });
