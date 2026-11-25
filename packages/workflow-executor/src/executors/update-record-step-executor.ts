@@ -432,6 +432,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
           });
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
+    if (preRecordedArgs?.values !== undefined && preRecordedArgs?.fieldNames === undefined) {
+      throw new InvalidPreRecordedArgsError('values were provided without fieldNames');
+    }
+
     if (preRecordedArgs?.fieldNames !== undefined) {
       const fieldNames = [...new Set(preRecordedArgs.fieldNames)];
 

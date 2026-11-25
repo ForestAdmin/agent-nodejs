@@ -12,6 +12,7 @@ import activityLogContext from './activity-log-context';
 import {
   ActivityLogCreationError,
   AgentPortError,
+  InvalidPreRecordedArgsError,
   RecordNotFoundError,
   RunStorePortError,
   StepStateError,
@@ -2416,6 +2417,21 @@ describe('UpdateRecordStepExecutor', () => {
         context.user,
         { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
+    });
+
+    it('fails without writing nor asking the AI when values are set without fieldNames', async () => {
+      const { executor, mockModel, agentPort } = makeMultiFieldContext({
+        values: { status: 'active' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        new InvalidPreRecordedArgsError('values were provided without fieldNames').userMessage,
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('writes a field listed twice only once, and ignores values of unlisted fields', async () => {
