@@ -1156,6 +1156,7 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(callScopeOf(run)).toEqual({
+        startStepIndex: 0,
         currentFrameStepIndexes: [],
         selectedRecordStepId: 'load-1',
         pinnedFrameStepIndexes: [],
@@ -1198,12 +1199,55 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(callScopeOf(run)).toEqual({
+        startStepIndex: 1,
         currentFrameStepIndexes: [],
         selectedRecordStepId: 'load-2',
         pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
         isPinned: true,
       });
+    });
+
+    // What the call loaded itself is every step since its start entry, nested calls included.
+    it('carries the start entry index of the innermost open call', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'parent-1', stepIndex: 0 }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 2 },
+            { calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 3, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.startStepIndex).toBe(2);
+    });
+
+    it('carries the outer call start entry once a call nested in it has closed', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'parent-1', stepIndex: 0 }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'load-x', stepIndex: 2, done: true }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 3 },
+            { calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'load-y', stepIndex: 4, done: true }),
+          makeCloseSubWorkflowHistory({ stepName: 'close-2', stepIndex: 5 }),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 6, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.startStepIndex).toBe(1);
     });
 
     // The inner call pins "workflow start", which in its own frame means the record the outer call
@@ -1224,6 +1268,7 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(callScopeOf(run)).toEqual({
+        startStepIndex: 1,
         currentFrameStepIndexes: [],
         selectedRecordStepId: 'load-1',
         pinnedFrameStepIndexes: [],
@@ -1267,6 +1312,7 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(callScopeOf(run)).toEqual({
+        startStepIndex: 0,
         currentFrameStepIndexes: [],
         calledWorkflowCollectionName: 'orders',
       });
@@ -1392,6 +1438,7 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(callScopeOf(run)).toEqual({
+        startStepIndex: 2,
         currentFrameStepIndexes: [],
         selectedRecordStepId: 'load-2',
         pinnedFrameStepIndexes: [],
@@ -1453,6 +1500,7 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(callScopeOf(run)).toEqual({
+        startStepIndex: 1,
         currentFrameStepIndexes: [],
         selectedRecordStepId: 'load-2',
         pinnedFrameStepIndexes: [],
@@ -1511,7 +1559,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      expect(callScopeOf(run)).toEqual({ currentFrameStepIndexes: [] });
+      expect(callScopeOf(run)).toEqual({ currentFrameStepIndexes: [], startStepIndex: 0 });
     });
 
     it('keeps baseRecordRef on the record the run was launched with inside a call', () => {
@@ -1549,6 +1597,7 @@ describe('toAvailableStepExecution', () => {
         });
 
         expect(callScopeOf(run)).toEqual({
+          startStepIndex: 0,
           currentFrameStepIndexes: [],
           selectedRecordStepId: 'load-ubos',
           pinnedFrameStepIndexes: [],

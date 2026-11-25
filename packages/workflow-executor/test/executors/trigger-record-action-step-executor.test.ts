@@ -4479,3 +4479,107 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 });
+
+// Inside a call pinned to a record, the AI triggers an action only on that record or on one the
+// call loaded: the calling workflow's records are never its target.
+describe('TriggerRecordActionStepExecutor inside a Sub-workflow call', () => {
+  const ordersRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+  const accountsRef = makeRecordRef({ collectionName: 'accounts', recordId: [5], stepIndex: 2 });
+  const itemsRef = makeRecordRef({ collectionName: 'items', recordId: [7], stepIndex: 4 });
+
+  function loadStep(stepIndex: number): Step {
+    return {
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Load',
+      },
+      stepOutcome: { type: 'record', stepId: `load-${stepIndex}`, stepIndex, status: 'success' },
+    };
+  }
+
+  function makeCallContext(loaded: RecordRef[], overrides: Parameters<typeof makeContext>[0]) {
+    return makeContext({
+      stepIndex: 5,
+      callScope: {
+        selectedRecordStepId: 'load-1',
+        pinnedFrameStepIndexes: [1, 2],
+        currentFrameStepIndexes: [4],
+        calledWorkflowCollectionName: 'orders',
+        isPinned: true,
+        startStepIndex: 3,
+      },
+      workflowPort: makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: makeCollectionSchema({ collectionName: 'orders', collectionDisplayName: 'Orders' }),
+        accounts: makeCollectionSchema({
+          collectionName: 'accounts',
+          collectionDisplayName: 'Accounts',
+        }),
+        items: makeCollectionSchema({ collectionName: 'items', collectionDisplayName: 'Items' }),
+      }),
+      runStore: makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue(
+          loaded.map(record => ({
+            type: 'load-related-record',
+            stepIndex: record.stepIndex,
+            executionResult: { relation: { name: 'rel', displayName: 'Rel' }, record },
+            selectedRecordRef: makeRecordRef(),
+          })),
+        ),
+      }),
+      previousSteps: loaded.map(record => loadStep(record.stepIndex)),
+      ...overrides,
+    });
+  }
+
+  it("triggers the action on the call's record, not the calling workflow's", async () => {
+    const agentPort = makeMockAgentPort();
+    const context = makeCallContext([ordersRef, accountsRef], {
+      agentPort,
+      stepDefinition: makeStep({
+        executionType: StepExecutionMode.FullyAutomated,
+        preRecordedArgs: { actionName: 'send-welcome-email' },
+      }),
+    });
+
+    const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+    expect(result.stepOutcome.status).toBe('success');
+    expect(agentPort.executeAction).toHaveBeenCalledWith(
+      {
+        collection: 'orders',
+        action: 'send-welcome-email',
+        id: [99],
+        approvalMessage: 'Send a welcome email to the customer',
+      },
+      expect.objectContaining({ user: expect.objectContaining({ id: 1 }) }),
+      expect.anything(),
+    );
+  });
+
+  it("offers the AI only the call's record, first, and the records the call loaded", async () => {
+    const invoke = jest.fn().mockResolvedValue({
+      tool_calls: [
+        { name: 'select-record', args: { recordIdentifier: 'Step 4 - Items #7' }, id: 'c1' },
+      ],
+    });
+    const bindTools = jest.fn().mockReturnValue({ invoke });
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], {
+      model: { bindTools } as unknown as ExecutionContext['model'],
+      stepDefinition: makeStep({ preRecordedArgs: { actionName: 'send-welcome-email' } }),
+    });
+
+    await new TriggerRecordActionStepExecutor(context).execute();
+
+    const tool = bindTools.mock.calls[0][0][0] as {
+      name: string;
+      schema: { shape: { recordIdentifier: { options: string[] } } };
+    };
+    expect(tool.name).toBe('select-record');
+    expect(tool.schema.shape.recordIdentifier.options).toEqual([
+      'Step 1 - Orders #99',
+      'Step 4 - Items #7',
+    ]);
+  });
+});
