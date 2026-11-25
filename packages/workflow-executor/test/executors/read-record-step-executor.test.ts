@@ -488,6 +488,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(selectMessages).toHaveLength(2);
       expect(selectMessages[0].content).toContain('Step executed by');
       expect(selectMessages[0].content).toContain('selecting the most relevant record');
+      expect(selectMessages[0].content).not.toContain('Sub-workflow call on');
       expect(selectMessages[1].content).toContain('Read the customer email');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -1833,8 +1834,8 @@ describe('ReadRecordStepExecutor', () => {
 
         const selectTool = bindTools.mock.calls[0][0][0];
         expect(selectTool.schema.shape.recordIdentifier.options).toEqual([
-          'Step 0 - Customers #42',
           'Step 1 - UBOs #2',
+          'Step 0 - Customers #42',
           'Step 2 - Orders #99',
         ]);
         expect(agentPort.getRecord).toHaveBeenCalledWith(
@@ -2179,7 +2180,8 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
-    it('keeps the run record in the pool the AI picks from inside a call', async () => {
+    // With no call record to list first, the AI-chosen step fails like the call's pinned ones.
+    it("fails an AI-chosen read when the call's pinned step never ran", async () => {
       const agentPort = makeMockAgentPort();
       const context = makeCalledContext(
         { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
@@ -2193,12 +2195,11 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await new ReadRecordStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        expect.objectContaining({ collection: 'customers', id: [42] }),
-        expect.objectContaining({ id: 1 }),
-        expect.anything(),
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
       );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
     it('resolves the same pinned record on a repeated execution of the step', async () => {
@@ -2236,5 +2237,87 @@ describe('ReadRecordStepExecutor', () => {
     it('keeps the workflow-start sentinel the editor mirrors in app/features/workflow-editor/configuration.ts', () => {
       expect(WORKFLOW_START_STEP_ID).toBe('workflow-start');
     });
+  });
+});
+
+// Inside a call pinned to a record, Get Data still reads any record, the call's record listed first.
+describe('ReadRecordStepExecutor inside a Sub-workflow call', () => {
+  const ordersRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+  const accountsRef = makeRecordRef({ collectionName: 'accounts', recordId: [5], stepIndex: 2 });
+  const itemsRef = makeRecordRef({ collectionName: 'items', recordId: [7], stepIndex: 4 });
+  const callScope: CallScope = {
+    selectedRecordStepId: 'load-1',
+    pinnedFrameStepIndexes: [1, 2],
+    currentFrameStepIndexes: [4],
+    calledWorkflowCollectionName: 'orders',
+    isPinned: true,
+    startStepIndex: 3,
+  };
+
+  function loadStep(stepIndex: number): Step {
+    return {
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Load',
+      },
+      stepOutcome: { type: 'record', stepId: `load-${stepIndex}`, stepIndex, status: 'success' },
+    };
+  }
+
+  it("lists the call's record first and still lets the AI read the calling workflow's", async () => {
+    const loaded = [ordersRef, accountsRef, itemsRef];
+    const invoke = jest.fn().mockResolvedValue({
+      tool_calls: [
+        { name: 'select-record', args: { recordIdentifier: 'Step 0 - Customers #42' }, id: 'c1' },
+      ],
+    });
+    const bindTools = jest.fn().mockReturnValue({ invoke });
+    const agentPort = makeMockAgentPort();
+    const context = makeContext({
+      stepIndex: 5,
+      callScope,
+      agentPort,
+      model: { bindTools } as unknown as ExecutionContext['model'],
+      stepDefinition: makeStep({ preRecordedArgs: { fieldNames: ['email'] } }),
+      workflowPort: makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: makeCollectionSchema({ collectionName: 'orders', collectionDisplayName: 'Orders' }),
+        accounts: makeCollectionSchema({
+          collectionName: 'accounts',
+          collectionDisplayName: 'Accounts',
+        }),
+        items: makeCollectionSchema({ collectionName: 'items', collectionDisplayName: 'Items' }),
+      }),
+      runStore: makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue(
+          loaded.map(record => ({
+            type: 'load-related-record',
+            stepIndex: record.stepIndex,
+            executionResult: { relation: { name: 'rel', displayName: 'Rel' }, record },
+            selectedRecordRef: makeRecordRef(),
+          })),
+        ),
+      }),
+      previousSteps: loaded.map(record => loadStep(record.stepIndex)),
+    });
+
+    const result = await new ReadRecordStepExecutor(context).execute();
+
+    const tool = bindTools.mock.calls[0][0][0] as {
+      schema: { shape: { recordIdentifier: { options: string[] } } };
+    };
+    expect(tool.schema.shape.recordIdentifier.options).toEqual([
+      'Step 1 - Orders #99',
+      'Step 0 - Customers #42',
+      'Step 2 - Accounts #5',
+      'Step 4 - Items #7',
+    ]);
+    expect(result.stepOutcome.status).toBe('success');
+    expect(agentPort.getRecord).toHaveBeenCalledWith(
+      { collection: 'customers', id: [42], fields: ['email'] },
+      expect.objectContaining({ id: 1 }),
+      expect.anything(),
+    );
   });
 });

@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.44.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.44.0...@forestadmin/workflow-executor@1.44.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **workflow-executor:** keep AI-chosen writes in a pinned Sub-workflow call on its own records ([#2105](https://github.com/ForestAdmin/agent-nodejs/issues/2105)) ([4cc19de](https://github.com/ForestAdmin/agent-nodejs/commit/4cc19def8bc45b9753c27e48591677fb58e835fb))
+
 # @forestadmin/workflow-executor [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.43.0...@forestadmin/workflow-executor@1.44.0) (2026-11-24)
 
 

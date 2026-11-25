@@ -360,6 +360,7 @@ function toCallScope(
     excludedStepIndexes,
     callScope: {
       currentFrameStepIndexes,
+      startStepIndex: innermost.stepIndex,
       ...(pinnedBy !== undefined &&
         pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
       ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
