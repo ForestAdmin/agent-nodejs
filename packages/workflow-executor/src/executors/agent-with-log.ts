@@ -1,4 +1,3 @@
-import type ActivityLog from './activity-log';
 import type {
   ActionForm,
   AgentPort,
@@ -14,7 +13,8 @@ import type {
 } from '../ports/agent-port';
 import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
-import type { CollectionSchema, RecordData } from '../types/validated/collection';
+import type { RecordData } from '../types/validated/collection';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
 type WriteOptions = { beforeCall: () => Promise<void> };
 
@@ -22,14 +22,12 @@ export interface AgentWithLogDeps {
   agentPort: AgentPort;
   schemaResolver: SchemaResolver;
   user: StepUser;
-  activityLog: ActivityLog;
+  activityLog: ActivityLogConfig;
   forestServerToken?: string;
 }
 
-// Wraps AgentPort and runs each data-access call through the ActivityLog so it records an
-// activity-log entry. The audit target is derived from the call: the numeric collectionId is
-// resolved from the call's collection name, the recordId from its id. Idempotency stays in the
-// executors: write methods forward a `beforeCall` thunk (the executor's write-ahead marker).
+// Idempotency stays in the executors: write methods forward a `beforeCall` thunk (the executor's
+// write-ahead marker), which agent-client runs after the pending entry.
 export default class AgentWithLog {
   private readonly agentPort: AgentPort;
 
@@ -37,7 +35,7 @@ export default class AgentWithLog {
 
   private readonly user: StepUser;
 
-  private readonly activityLog: ActivityLog;
+  private readonly activityLog: ActivityLogConfig;
 
   private readonly forestServerToken?: string;
 
@@ -49,76 +47,40 @@ export default class AgentWithLog {
     this.forestServerToken = deps.forestServerToken;
   }
 
-  async getRecord(query: GetRecordQuery): Promise<RecordData> {
-    const { collectionId } = await this.resolveSchema(query.collection);
-
-    return this.activityLog.track(
-      { action: 'index', type: 'read', collectionId, recordId: query.id },
-      { operation: () => this.agentPort.getRecord(query, this.user) },
-    );
+  getRecord(query: GetRecordQuery): Promise<RecordData> {
+    return this.agentPort.getRecord(query, this.user, { context: this.activityLog });
   }
 
   async getRelatedData(query: GetRelatedDataQuery): Promise<RecordData[]> {
-    const schema = await this.resolveSchema(query.collection);
+    const label = await this.relationLabel(query.collection, query.relation);
 
-    return this.activityLog.track(
-      {
-        action: 'listRelatedData',
-        type: 'read',
-        collectionId: schema.collectionId,
-        recordId: query.id,
-        label: this.relationLabel(schema, query.relation),
-      },
-      { operation: () => this.agentPort.getRelatedData(query, this.user) },
-    );
+    return this.agentPort.getRelatedData(query, this.user, {
+      context: this.activityLog,
+      call: { label },
+    });
   }
 
   async getSingleRelatedData(query: GetSingleRelatedDataQuery): Promise<RecordData | null> {
-    const schema = await this.resolveSchema(query.collection);
+    const label = await this.relationLabel(query.collection, query.relation);
 
-    return this.activityLog.track(
-      {
-        action: 'listRelatedData',
-        type: 'read',
-        collectionId: schema.collectionId,
-        recordId: query.id,
-        label: this.relationLabel(schema, query.relation),
-      },
-      { operation: () => this.agentPort.getSingleRelatedData(query, this.user) },
-    );
+    return this.agentPort.getSingleRelatedData(query, this.user, {
+      context: this.activityLog,
+      call: { label },
+    });
   }
 
-  async updateRecord(query: UpdateRecordQuery, opts: WriteOptions): Promise<RecordData> {
-    const { collectionId } = await this.resolveSchema(query.collection);
-
-    return this.activityLog.track(
-      { action: 'update', type: 'write', collectionId, recordId: query.id, label: 'updated' },
-      {
-        operation: () => this.agentPort.updateRecord(query, this.user),
-        beforeCall: opts.beforeCall,
-      },
-    );
+  updateRecord(query: UpdateRecordQuery, opts: WriteOptions): Promise<RecordData> {
+    return this.agentPort.updateRecord(query, this.user, {
+      context: this.activityLog,
+      call: { beforeCall: opts.beforeCall },
+    });
   }
 
-  async executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<ExecuteActionResult> {
-    const { collectionId } = await this.resolveSchema(query.collection);
-
-    return this.activityLog.track(
-      {
-        action: 'action',
-        type: 'write',
-        collectionId,
-        recordId: query.id,
-        label: `triggered the action "${query.action}"`,
-      },
-      {
-        operation: () =>
-          this.agentPort.executeAction(query, {
-            user: this.user,
-            forestServerToken: this.forestServerToken,
-          }),
-        beforeCall: opts.beforeCall,
-      },
+  executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<ExecuteActionResult> {
+    return this.agentPort.executeAction(
+      query,
+      { user: this.user, forestServerToken: this.forestServerToken },
+      { context: this.activityLog, call: { beforeCall: opts.beforeCall } },
     );
   }
 
@@ -145,15 +107,12 @@ export default class AgentWithLog {
   // ISO with the browser engine: `list relation "<displayName>"`. The query carries the technical
   // relation name; resolve its displayName from the source schema, falling back to the technical
   // name when the field is absent (resilient to orchestrator schema drift).
-  private relationLabel(schema: CollectionSchema, relation: string): string {
+  private async relationLabel(collection: string, relation: string): Promise<string> {
+    const schema = await this.schemaResolver.resolve(collection);
     const displayName =
       schema.fields.filter(f => f.isRelationship).find(f => f.fieldName === relation)
         ?.displayName ?? relation;
 
     return `list relation "${displayName}"`;
-  }
-
-  private resolveSchema(collectionName: string): Promise<CollectionSchema> {
-    return this.schemaResolver.resolve(collectionName);
   }
 }

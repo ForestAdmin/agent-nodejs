@@ -148,7 +148,6 @@ function listQuery(overrides: Record<string, unknown>) {
   return {
     timezone: 'Europe/Paris',
     segment: 'to-review',
-    searchExtended: 'false',
     'fields[orders]': 'id',
     ...overrides,
   };

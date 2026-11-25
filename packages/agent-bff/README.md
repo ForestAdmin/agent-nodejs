@@ -293,8 +293,9 @@ layer instead, so a caller sending no timezone against a BFF with no `BFF_DEFAUL
 | Bearer and a key header              | `400 ambiguous_credentials` |
 | neither                              | `401 unauthorized`          |
 
-A Mode 1 `bff_access` is signed with a key derived from `BFF_TOKEN_ENCRYPTION_KEY` (HKDF-SHA256),
-never with `FOREST_AUTH_SECRET`. One that is malformed or wrong-typed → `401 unauthorized`; one that
+A Mode 1 `bff_access` is signed with a key derived from `BFF_TOKEN_ENCRYPTION_KEY` (HKDF-SHA256,
+info `forest-bff:bff_access:v1`, `deriveBffAccessKey()` in the package exports), never with
+`FOREST_AUTH_SECRET`. One that is malformed or wrong-typed → `401 unauthorized`; one that
 is validly signed but expired, or signed with the previous key → `401 session_expired` (the client
 should refresh). With OAuth off, every bearer → `401 unauthorized`. Refresh-token reuse remains
 a `POST /oauth/token` concern (`400 invalid_grant`, OAuth/RFC shape).

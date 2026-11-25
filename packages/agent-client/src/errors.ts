@@ -51,3 +51,18 @@ export class ApprovalRequestCreationError extends Error {
     this.name = 'ApprovalRequestCreationError';
   }
 }
+
+export type ActivityLogBlockedReason =
+  | 'notAuthorized'
+  | 'unavailable'
+  | 'endpointAbsent'
+  | 'dropped';
+
+export class ActivityLogBlockedError extends Error {
+  constructor(readonly reason: ActivityLogBlockedReason, readonly cause?: unknown) {
+    super(
+      `The operation was not performed because its activity log could not be written (${reason})`,
+    );
+    this.name = 'ActivityLogBlockedError';
+  }
+}

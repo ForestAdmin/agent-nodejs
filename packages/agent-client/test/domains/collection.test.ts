@@ -4,7 +4,6 @@ import type HttpRequester from '../../src/http-requester';
 import FieldFormStates from '../../src/action-fields/field-form-states';
 import Collection from '../../src/domains/collection';
 
-jest.mock('../../src/http-requester');
 jest.mock('../../src/action-fields/field-form-states');
 
 describe('Collection', () => {
@@ -85,8 +84,40 @@ describe('Collection', () => {
         method: 'get',
         path: '/forest/users/count',
         query: expect.any(Object),
+        skipDeserialization: true,
       });
       expect(result).toBe(42);
+    });
+
+    it('should return null when the agent answers that count is deactivated', async () => {
+      httpRequester.query.mockResolvedValue({ meta: { count: 'deactivated' } });
+
+      await expect(collection.count()).resolves.toBeNull();
+    });
+
+    it('should return NaN when the agent answers neither a count nor the deactivated marker', async () => {
+      httpRequester.query.mockResolvedValue({});
+
+      await expect(collection.count()).resolves.toBeNaN();
+    });
+
+    it.each([[''], [false], [[]], [null], ['5']])(
+      'should return NaN rather than a number the agent did not answer, for a count of %j',
+      async count => {
+        httpRequester.query.mockResolvedValue({ count });
+
+        await expect(collection.count()).resolves.toBeNaN();
+      },
+    );
+
+    it('should send the time zone of the call', async () => {
+      httpRequester.query.mockResolvedValue({ count: 1 });
+
+      await collection.count({ timezone: 'Asia/Tokyo' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { timezone: 'Asia/Tokyo' } }),
+      );
     });
 
     it('should pass options to query serializer', async () => {
@@ -98,6 +129,7 @@ describe('Collection', () => {
         method: 'get',
         path: '/forest/users/count',
         query: expect.objectContaining({ search: 'john' }),
+        skipDeserialization: true,
       });
     });
   });
@@ -328,6 +360,16 @@ describe('Collection', () => {
     it('should return a Relation instance', () => {
       const relation = collection.relation('posts', 1);
       expect(relation).toBeDefined();
+    });
+
+    it('should project a relation list on the listed collection it is given', async () => {
+      httpRequester.query.mockResolvedValue([]);
+
+      await collection.relation('articles', 1, 'posts').list({ fields: ['title'] });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { 'fields[posts]': 'title' } }),
+      );
     });
 
     it('should pipe-encode composite parent ids when querying the relationship', async () => {

@@ -125,6 +125,16 @@ describe('patchBodySchemas', () => {
       expect(parsed).toEqual({ userConfirmed: false });
     });
 
+    it('accepts a declined form carrying the branch the user picked', () => {
+      const parsed = schema.parse({ userConfirmed: false, selectedOption: 'rejected' });
+
+      expect(parsed).toEqual({ userConfirmed: false, selectedOption: 'rejected' });
+    });
+
+    it('rejects a branch that is not an approval outcome', () => {
+      expect(() => schema.parse({ userConfirmed: false, selectedOption: 'maybe' })).toThrow();
+    });
+
     it('accepts a pending-approval submit carrying the approval request id', () => {
       const parsed = schema.parse({
         userConfirmed: true,

@@ -5,15 +5,11 @@ interface InFlightOperation {
 }
 
 /**
- * Holds the audited requests and the status transitions they fire without `await`. Nothing else
- * keeps the transitions alive: `server.close()` waits for connections, and one sent after the
- * response is attached to none — without this, every deploy would leave entries stuck in `pending`.
- *
- * The requests are tracked too, and not only their transitions, for the embedded deployment: there
- * the host owns the connections, so `stop()` returns while requests are still running and their
- * transitions are not registered yet.
+ * Holds the audited operations and the status transitions they fire without `await`. Nothing else
+ * keeps the transitions alive once the caller has its answer: without this, every deploy would
+ * leave entries stuck in `pending`.
  */
-export default class ActivityLogDrainer {
+export class ActivityLogDrainer {
   private readonly inFlight = new Set<InFlightOperation>();
 
   track<T>(operation: () => Promise<T>, description: string): Promise<T> {
@@ -26,7 +22,7 @@ export default class ActivityLogDrainer {
   }
 
   /**
-   * Loops rather than settling one snapshot: a transition is registered only once the request it
+   * Loops rather than settling one snapshot: a transition is registered only once the operation it
    * audits has finished, so a single pass would return before the work that outlives it.
    *
    * `timeoutMs` is the shutdown deadline the caller shares: a stalled audit store would otherwise
@@ -71,3 +67,7 @@ export default class ActivityLogDrainer {
     }
   }
 }
+
+const processDrainer = new ActivityLogDrainer();
+
+export default processDrainer;

@@ -311,7 +311,6 @@ export default class EmbeddedServices {
 
       const forestServerClient = new ForestServerClientImpl(
         this.options.forestAdminClient.schemaService,
-        this.options.forestAdminClient.activityLogsService,
         this.options.forestAdminClient.workflowsService,
         this.options.forestServerUrl,
       );

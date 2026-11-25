@@ -17,6 +17,61 @@ describe('QuerySerializer', () => {
       expect(result.search).toBe('john');
     });
 
+    describe('search', () => {
+      it('should trim the search', () => {
+        const result = QuerySerializer.serialize({ search: ' john ' }, 'users');
+
+        expect(result.search).toBe('john');
+      });
+
+      it('should leave a blank search out', () => {
+        const result = QuerySerializer.serialize({ search: '   ' }, 'users');
+
+        expect(result).not.toHaveProperty('search');
+      });
+
+      it('should send searchExtended when the search reaches related collections', () => {
+        const result = QuerySerializer.serialize(
+          { search: 'john', shouldSearchInRelation: true },
+          'users',
+        );
+
+        expect(result.searchExtended).toBe(true);
+      });
+
+      it('should leave searchExtended out when the search stays on the collection', () => {
+        const result = QuerySerializer.serialize(
+          { search: 'john', shouldSearchInRelation: false },
+          'users',
+        );
+
+        expect(result).not.toHaveProperty('searchExtended');
+      });
+
+      it('should leave searchExtended out when there is no search to extend', () => {
+        const result = QuerySerializer.serialize(
+          { search: ' ', shouldSearchInRelation: true },
+          'users',
+        );
+
+        expect(result).not.toHaveProperty('searchExtended');
+      });
+    });
+
+    describe('timezone', () => {
+      it('should send the time zone of the call', () => {
+        const result = QuerySerializer.serialize({ timezone: 'Asia/Tokyo' }, 'users');
+
+        expect(result.timezone).toBe('Asia/Tokyo');
+      });
+
+      it('should carry no time zone key when the call names none, so the client default applies', () => {
+        const result = QuerySerializer.serialize({ search: 'john' }, 'users');
+
+        expect(result).toStrictEqual({ search: 'john' });
+      });
+    });
+
     describe('pagination', () => {
       it('should serialize pagination with both size and number', () => {
         const result = QuerySerializer.serialize({ pagination: { size: 10, number: 2 } }, 'users');
@@ -232,10 +287,13 @@ describe('QuerySerializer', () => {
       expect(parsed.conditions[1].operator).toBe('greater_than');
     });
 
-    it('should handle collection names with special characters', () => {
-      const result = QuerySerializer.serialize({ fields: ['id'] }, 'user+data');
-      expect(result['fields[user\\+data]']).toBe('id');
-    });
+    it.each(['user+data', 'user data', 'utilisé', 'what?', 'a*b'])(
+      'keys the projection on the raw collection name %s, the key the agent reads',
+      collectionName => {
+        const result = QuerySerializer.serialize({ fields: ['id'] }, collectionName);
+        expect(result).toEqual({ [`fields[${collectionName}]`]: 'id' });
+      },
+    );
 
     it('should handle undefined sort', () => {
       const result = QuerySerializer.serialize({ sort: undefined }, 'users');
@@ -298,11 +356,10 @@ describe('QuerySerializer', () => {
         expect(result['fields[customer]']).toBe('name,email');
       });
 
-      it('should escape special characters in relation names', () => {
-        const result = QuerySerializer.serialize({ fields: ['id', 'user+data@@@name'] }, 'orders');
+      it('keys a related projection on the raw relation name', () => {
+        const result = QuerySerializer.serialize({ fields: ['id', 'user data@@@name'] }, 'orders');
 
-        expect(result['fields[orders]']).toBe('id,user+data');
-        expect(result['fields[user\\+data]']).toBe('name');
+        expect(result).toEqual({ 'fields[orders]': 'id,user data', 'fields[user data]': 'name' });
       });
 
       it('should handle empty fields array', () => {

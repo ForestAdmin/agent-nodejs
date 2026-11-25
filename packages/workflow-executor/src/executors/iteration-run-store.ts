@@ -120,11 +120,7 @@ export default class IterationRunStore implements RunStore {
   }
 
   async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
-    if (this.abandoned) {
-      throw new StepStateError(
-        `Run of step ${this.stepIndex} for a record was abandoned at its timeout`,
-      );
-    }
+    this.refuseIfAbandoned();
 
     if (stepExecution.stepIndex !== this.stepIndex) {
       await this.base.saveStepExecution(runId, stepExecution);
@@ -144,8 +140,27 @@ export default class IterationRunStore implements RunStore {
     await this.handle.set(iteration as unknown as StepIteration);
   }
 
-  deleteStepExecution(runId: string, stepIndex: number): Promise<void> {
-    return this.base.deleteStepExecution(runId, stepIndex);
+  async deleteStepExecution(runId: string, stepIndex: number): Promise<void> {
+    this.refuseIfAbandoned();
+
+    if (stepIndex !== this.stepIndex) {
+      await this.base.deleteStepExecution(runId, stepIndex);
+
+      return;
+    }
+
+    const iteration: Record<string, unknown> = { ...this.handle.get() };
+    ITERATION_FIELDS.forEach(field => delete iteration[field]);
+
+    await this.handle.set(iteration as unknown as StepIteration);
+  }
+
+  private refuseIfAbandoned(): void {
+    if (this.abandoned) {
+      throw new StepStateError(
+        `Run of step ${this.stepIndex} for a record was abandoned at its timeout`,
+      );
+    }
   }
 
   private project(row: StepExecutionData): StepExecutionData[] {

@@ -413,7 +413,7 @@ describe('generateOpenApiDocument', () => {
 
   it('should share one response component per error status instead of inlining it per path', () => {
     const errors = dataOperations().flatMap(operation =>
-      Object.entries(operation.responses).filter(([status]) => status !== '200'),
+      Object.entries(operation.responses).filter(([status]) => !status.startsWith('2')),
     );
 
     expect(errors).toHaveLength(78);
@@ -421,6 +421,7 @@ describe('generateOpenApiDocument', () => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
     expect(Object.keys(responseComponents).sort()).toEqual([
+      'ApprovalRequested',
       'Error400',
       'Error400AiQuery',
       'Error401',
@@ -551,7 +552,6 @@ describe('generateOpenApiDocument', () => {
   it('should name the 403s the BFF itself emits, not only the agent passthrough', () => {
     const list = listResponses();
 
-    expect(list['403'].description).toContain('needs approval');
     expect(list['403'].description).toContain('Forest identity');
     expect(list['403'].description).toContain('plan_feature_missing');
   });
@@ -1014,13 +1014,49 @@ describe('the documented action responses', () => {
     expect(error.description).toContain('sanitize it before rendering');
   });
 
-  it('should say the approval and action_error details are conditional on the agent supplying them', () => {
+  it('should say the action_error details are conditional on the agent supplying them', () => {
     const error = schemas.ErrorResponse as { description: string };
 
-    expect(error.description).toContain('when the agent supplies them');
-    expect(error.description).toContain(
-      '`{ roleIdsAllowedToApprove }` on action_requires_approval',
+    expect(error.description).toContain('when the agent supplies it, `{ html }` on action_error');
+    expect(error.description).not.toContain('action_requires_approval');
+  });
+
+  it('should answer 202 with the filed approval request when the action needs an approval', () => {
+    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
+
+    expect(execute['202'].content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ActionApprovalRequested',
+    });
+    expect(schemas.ActionApprovalRequested).toMatchObject({
+      properties: {
+        type: { type: 'string', enum: ['approval_requested'] },
+        approvalRequest: { properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+      required: ['type', 'approvalRequest'],
+    });
+  });
+
+  it('should leave 202 off the form, which never files an approval request', () => {
+    const form = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/form`);
+
+    expect(Object.keys(form)).not.toContain('202');
+  });
+
+  it('should accept the approval request message as an optional string in the action body', () => {
+    const properties = schemas.ActionRequest.properties as Record<string, unknown>;
+
+    expect(properties.approvalRequestMessage).toEqual({ type: 'string' });
+    expect(schemas.ActionRequest.required).toEqual(['recordIds']);
+    expect(schemas.ActionRequest.description).toContain(
+      '`approvalRequestMessage` becomes the comment',
     );
+  });
+
+  it('should name the approval request that could not be filed among the 503 causes', () => {
+    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
+
+    expect(execute['503'].description).toContain('(type approval_request_failed)');
+    expect(execute['503'].description).toContain('filed but came back without its id');
   });
 
   it('should splice the untrusted-html note into a well-formed sentence', () => {

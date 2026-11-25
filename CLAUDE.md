@@ -42,6 +42,16 @@ yarn test:coverage      # Run tests with coverage
 - `forest-cloud` - Cloud deployment utilities
 - `plugin-*` - Various plugins (aws-s3, export-advanced, flattener)
 
+### Talking to an agent
+
+- Every server-side package that talks to an agent (`agent-bff` Gateway, `mcp-server`, `workflow-executor`, any new one) does it through `@forestadmin/agent-client` only. Never a raw `HttpRequester`, never a hand-built agent URL or query.
+- The business rules of an agent call live in agent-client, not in the surface:
+  - Activity logs: one entry per action, write, delete and read. An action sent for approval leaves its entry `canceled` plus one `createApproval` entry. A write whose log cannot be created does not run; a read runs with a warning.
+  - Approval requests: agent-client files them.
+- A surface only turns logging on with its `ActivityLogSource`, passes its context (Forest server connection, logger, workflow run), and maps agent-client's errors to its own answer.
+- agent-client's API stays business-level: filters, sort, pagination, fields, search, time zone. Never wire parameters such as `page[size]`, `fields[x]` or `searchExtended`.
+- The Forest UI does not use agent-client and keeps writing its own logs.
+
 ### Key Technologies
 
 Node.js | TypeScript | Jest | Lerna | ESM
@@ -192,4 +202,5 @@ Decisions live in `docs/adr/`. Run `/adr` to record one.
 - [A step running once per record renews its run lock with the orchestrator before each record](docs/adr/2026-10-21-a-step-running-once-per-record-renews-its-run-lock-with-the-orchestrat.md) — 2026-10-21-a-step-running-once-per-record-renews-its-run-lock-with-the-orchestrat [accepted]
 - [The MCP server's single `mcp:read` scope means "may use the MCP", not read-only](docs/adr/2026-10-26-the-mcp-server-s-single-mcp-read-scope-means-may-use-the-mcp-not-read.md) — 2026-10-26-the-mcp-server-s-single-mcp-read-scope-means-may-use-the-mcp-not-read [accepted]
 - [BFF OAuth sessions travel sealed in the client's tokens, and the Forest server owns refresh safety](docs/adr/2026-11-03-bff-oauth-sessions-travel-sealed-in-the-client-s-tokens-and-the-forest.md) — 2026-11-03-bff-oauth-sessions-travel-sealed-in-the-client-s-tokens-and-the-forest [accepted]
+- [Activity logging lives inside agent-client, and every surface only passes its context](docs/adr/2026-11-23-activity-logging-lives-inside-agent-client-and-every-surface-only-pass.md) — 2026-11-23-activity-logging-lives-inside-agent-client-and-every-surface-only-pass [accepted]
 <!-- ADR:INDEX:END -->

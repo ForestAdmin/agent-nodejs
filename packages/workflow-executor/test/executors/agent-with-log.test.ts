@@ -4,7 +4,7 @@ import type SchemaResolver from '../../src/schema-resolver';
 import type { StepUser } from '../../src/types/execution-context';
 import type { CollectionSchema } from '../../src/types/validated/collection';
 
-import ActivityLog from '../../src/executors/activity-log';
+import activityLogContext from './activity-log-context';
 import AgentWithLog from '../../src/executors/agent-with-log';
 
 function makeUser(): StepUser {
@@ -21,13 +21,10 @@ function makeUser(): StepUser {
   } as StepUser;
 }
 
-function makeSchema(
-  collectionId = 'col-customers',
-  fields: CollectionSchema['fields'] = [],
-): CollectionSchema {
+function makeSchema(fields: CollectionSchema['fields'] = []): CollectionSchema {
   return {
     collectionName: 'customers',
-    collectionId,
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     referenceField: null,
@@ -43,16 +40,7 @@ function makeRelationField(
   return { fieldName, displayName, isRelationship: true, relationType: 'BelongsTo' };
 }
 
-function makeActivityLogPort() {
-  return {
-    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-    markSucceeded: jest.fn().mockResolvedValue(undefined),
-    markFailed: jest.fn().mockResolvedValue(undefined),
-  };
-}
-
 function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
-  const activityLogPort = makeActivityLogPort();
   const agentPort = {
     getRecord: jest
       .fn()
@@ -63,242 +51,130 @@ function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
     getRelatedData: jest.fn().mockResolvedValue([]),
     getSingleRelatedData: jest.fn().mockResolvedValue(null),
     resolvePolymorphicType: jest.fn().mockResolvedValue({ type: 'orders', id: '99' }),
-    executeAction: jest.fn().mockResolvedValue({ ok: true }),
+    executeAction: jest.fn().mockResolvedValue({ result: { ok: true } }),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: true }),
-  } as unknown as AgentPort;
+    getActionForm: jest.fn(),
+  } as unknown as jest.Mocked<AgentPort>;
   const schemaResolver = {
-    resolve: jest.fn().mockResolvedValue(makeSchema()),
+    resolve: jest.fn().mockResolvedValue(makeSchema([makeRelationField('order', 'Order')])),
   } as unknown as SchemaResolver;
 
-  const deps = {
+  return {
     agentPort,
     schemaResolver,
     user: makeUser(),
-    activityLog: new ActivityLog(activityLogPort, makeUser()),
+    activityLog: activityLogContext(),
     ...overrides,
   };
-
-  return { deps, agentPort, activityLogPort, schemaResolver };
 }
+
+const relatedSchema = makeSchema();
 
 describe('AgentWithLog', () => {
   describe('read methods', () => {
-    it('logs getRecord as index/read against the call target and returns the data', async () => {
-      const { deps, agentPort, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
+    it("runs getRecord under the step's activity log and returns the data", async () => {
+      const deps = makeDeps();
+      const query = { collection: 'customers', id: [42] };
 
-      const result = await agent.getRecord({ collection: 'customers', id: [42], fields: ['name'] });
+      const result = await new AgentWithLog(deps).getRecord(query);
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'index',
-        type: 'read',
-        collectionId: 'col-customers',
-        recordId: [42],
+      expect(deps.agentPort.getRecord).toHaveBeenCalledWith(query, deps.user, {
+        context: deps.activityLog,
       });
-      expect(activityLogPort.markSucceeded).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['name'] },
-        expect.objectContaining({ id: 1 }),
-      );
       expect(result).toEqual({ collectionName: 'customers', recordId: [42], values: {} });
     });
 
-    it('logs getRelatedData as listRelatedData/read labelled with the relation displayName', async () => {
-      const schema = makeSchema('col-customers', [makeRelationField('orders', 'Orders')]);
-      const { deps, activityLogPort, schemaResolver } = makeDeps();
-      (schemaResolver.resolve as jest.Mock).mockResolvedValue(schema);
-      const agent = new AgentWithLog(deps);
-
-      await agent.getRelatedData({
-        collection: 'customers',
-        id: [42],
-        relation: 'orders',
-        relatedSchema: makeSchema('col-orders'),
-        limit: 50,
-      });
-
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'listRelatedData',
-        type: 'read',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'list relation "Orders"',
-      });
-    });
-
-    it('logs getSingleRelatedData as listRelatedData/read labelled with the relation displayName (xToOne)', async () => {
-      const schema = makeSchema('col-customers', [makeRelationField('order', 'Order')]);
-      const { deps, activityLogPort, schemaResolver } = makeDeps();
-      (schemaResolver.resolve as jest.Mock).mockResolvedValue(schema);
-      const agent = new AgentWithLog(deps);
-
-      await agent.getSingleRelatedData({
+    it('labels getRelatedData with the relation displayName', async () => {
+      const deps = makeDeps();
+      const query = {
         collection: 'customers',
         id: [42],
         relation: 'order',
-        relatedSchema: makeSchema('col-orders'),
-      });
+        relatedSchema,
+        limit: null,
+      };
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'listRelatedData',
-          type: 'read',
-          label: 'list relation "Order"',
-        }),
-      );
+      await new AgentWithLog(deps).getRelatedData(query);
+
+      expect(deps.agentPort.getRelatedData).toHaveBeenCalledWith(query, deps.user, {
+        context: deps.activityLog,
+        call: { label: 'list relation "Order"' },
+      });
+    });
+
+    it('labels getSingleRelatedData with the relation displayName', async () => {
+      const deps = makeDeps();
+      const query = { collection: 'customers', id: [42], relation: 'order', relatedSchema };
+
+      await new AgentWithLog(deps).getSingleRelatedData(query);
+
+      expect(deps.agentPort.getSingleRelatedData).toHaveBeenCalledWith(query, deps.user, {
+        context: deps.activityLog,
+        call: { label: 'list relation "Order"' },
+      });
     });
 
     it('falls back to the technical relation name when the field is absent from the schema', async () => {
-      const { deps, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
+      const deps = makeDeps();
+      const query = { collection: 'customers', id: [42], relation: 'invoice', relatedSchema };
 
-      await agent.getRelatedData({
-        collection: 'customers',
-        id: [42],
-        relation: 'orders',
-        relatedSchema: makeSchema('col-orders'),
-        limit: 50,
+      await new AgentWithLog(deps).getSingleRelatedData(query);
+
+      expect(deps.agentPort.getSingleRelatedData).toHaveBeenCalledWith(query, deps.user, {
+        context: deps.activityLog,
+        call: { label: 'list relation "invoice"' },
       });
-
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({ label: 'list relation "orders"' }),
-      );
     });
   });
 
   describe('write methods', () => {
-    it('logs updateRecord as update/write with the static "updated" label', async () => {
-      const { deps, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
+    it("hands updateRecord the step's write-ahead marker", async () => {
+      const deps = makeDeps();
+      const beforeCall = jest.fn().mockResolvedValue(undefined);
+      const query = { collection: 'customers', id: [42], values: { status: 'active' } };
 
-      await agent.updateRecord(
-        { collection: 'customers', id: [42], values: { name: 'X' } },
-        { beforeCall: async () => undefined },
-      );
+      await new AgentWithLog(deps).updateRecord(query, { beforeCall });
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'update',
-        type: 'write',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'updated',
+      expect(deps.agentPort.updateRecord).toHaveBeenCalledWith(query, deps.user, {
+        context: deps.activityLog,
+        call: { beforeCall },
       });
     });
 
-    it('logs executeAction labelled with the action technical name', async () => {
-      const { deps, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
+    it('hands executeAction the marker and the forest server token', async () => {
+      const deps = makeDeps({ forestServerToken: 'forest-token' });
+      const beforeCall = jest.fn().mockResolvedValue(undefined);
+      const query = { collection: 'customers', action: 'refund', id: [42] };
 
-      await agent.executeAction(
-        { collection: 'customers', action: 'send_email', id: [42] },
-        { beforeCall: async () => undefined },
+      const result = await new AgentWithLog(deps).executeAction(query, { beforeCall });
+
+      expect(deps.agentPort.executeAction).toHaveBeenCalledWith(
+        query,
+        { user: deps.user, forestServerToken: 'forest-token' },
+        { context: deps.activityLog, call: { beforeCall } },
       );
-
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'action',
-        type: 'write',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'triggered the action "send_email"',
-      });
-    });
-
-    it('runs beforeCall between createPending and the agent call (audit precedes the side effect)', async () => {
-      const order: string[] = [];
-      const { deps, agentPort, activityLogPort } = makeDeps();
-      (agentPort.updateRecord as jest.Mock).mockImplementation(async () => {
-        order.push('updateRecord');
-
-        return { collectionName: 'customers', recordId: [42], values: {} };
-      });
-      const agent = new AgentWithLog(deps);
-
-      await agent.updateRecord(
-        { collection: 'customers', id: [42], values: { name: 'X' } },
-        {
-          beforeCall: async () => {
-            order.push('beforeCall');
-          },
-        },
-      );
-
-      expect(order).toEqual(['beforeCall', 'updateRecord']);
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'update', type: 'write', recordId: [42] }),
-      );
-    });
-
-    it('logs executeAction as action/write', async () => {
-      const { deps, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
-
-      await agent.executeAction(
-        { collection: 'customers', action: 'send-email', id: [42] },
-        { beforeCall: async () => undefined },
-      );
-
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'action', type: 'write', recordId: [42] }),
-      );
-    });
-
-    it('forwards the forestServerToken to the port (enables approval-request creation)', async () => {
-      const { deps, agentPort } = makeDeps({ forestServerToken: 'server-token' });
-      const agent = new AgentWithLog(deps);
-
-      await agent.executeAction(
-        { collection: 'customers', action: 'send-email', id: [42] },
-        { beforeCall: async () => undefined },
-      );
-
-      expect(agentPort.executeAction).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'send-email', id: [42] },
-        { user: expect.objectContaining({ id: 1 }), forestServerToken: 'server-token' },
-      );
+      expect(result).toEqual({ result: { ok: true } });
     });
   });
 
-  describe('getActionFormInfo (unaudited passthrough)', () => {
-    it('forwards to the agent port with the injected user and emits no activity log', async () => {
-      const { deps, agentPort, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
+  describe('unaudited passthroughs', () => {
+    it('forwards getActionFormInfo with the step user only', async () => {
+      const deps = makeDeps();
+      const query = { collection: 'customers', action: 'refund', id: [42] };
 
-      const result = await agent.getActionFormInfo({
-        collection: 'customers',
-        action: 'send-email',
-        id: [42],
-      });
+      await new AgentWithLog(deps).getActionFormInfo(query);
 
-      expect(agentPort.getActionFormInfo).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'send-email', id: [42] },
-        expect.objectContaining({ id: 1 }),
-      );
-      expect(result).toEqual({ hasForm: true });
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(deps.agentPort.getActionFormInfo).toHaveBeenCalledWith(query, deps.user);
     });
-  });
 
-  describe('resolvePolymorphicType (unaudited passthrough)', () => {
-    it('forwards to the agent port with the injected user and emits no activity log', async () => {
-      const { deps, agentPort, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
+    it('forwards resolvePolymorphicType with the step user only', async () => {
+      const deps = makeDeps();
+      const query = { collection: 'comments', id: [1], relation: 'commentable' };
 
-      const result = await agent.resolvePolymorphicType({
-        collection: 'comments',
-        id: [7],
-        relation: 'commentable',
-      });
+      const result = await new AgentWithLog(deps).resolvePolymorphicType(query);
 
-      expect(agentPort.resolvePolymorphicType).toHaveBeenCalledWith(
-        { collection: 'comments', id: [7], relation: 'commentable' },
-        expect.objectContaining({ id: 1 }),
-      );
+      expect(deps.agentPort.resolvePolymorphicType).toHaveBeenCalledWith(query, deps.user);
       expect(result).toEqual({ type: 'orders', id: '99' });
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
   });
 });

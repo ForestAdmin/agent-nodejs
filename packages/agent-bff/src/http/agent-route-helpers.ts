@@ -4,6 +4,8 @@ import type ReadModelStore from '../read-model/read-model-store';
 import type { SchemaSnapshot } from '../read-model/read-model-store';
 import type { Context } from 'koa';
 
+import { ActivityLogBlockedError } from '@forestadmin/agent-client';
+
 import { mapAgentError } from './agent-error-mapper';
 import { unauthorized } from './bff-http-error';
 import { invalidRequest, schemaUnavailable } from './bff-local-errors';
@@ -47,6 +49,8 @@ export async function callAgent<T>(fn: () => Promise<T>, logger: Logger): Promis
   try {
     return await fn();
   } catch (error) {
+    if (error instanceof ActivityLogBlockedError) throw error;
+
     throw mapAgentError(error, { logger });
   }
 }

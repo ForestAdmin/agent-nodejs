@@ -44,6 +44,19 @@ describe('IterationRunStore', () => {
     expect(base.deleteStepExecution).toHaveBeenCalledWith('run-1', 5);
   });
 
+  it("deletes its own step's execution by clearing this record's iteration, never the step's row", async () => {
+    const { base, handle, store } = setup({
+      selectedRecordRef: UBO,
+      executionParams: { name: 'refund' },
+      idempotencyPhase: 'executing',
+    } as Partial<StepIteration>);
+
+    await store.deleteStepExecution('run-1', 3);
+
+    expect(handle.set).toHaveBeenCalledWith({ sourceRecordRef: UBO, attempt: 1 });
+    expect(base.deleteStepExecution).not.toHaveBeenCalled();
+  });
+
   it('shows the rows of steps that ran once as they are', async () => {
     const { base, store } = setup();
     const condition = {
@@ -162,5 +175,15 @@ describe('IterationRunStore', () => {
     ).rejects.toThrow(StepStateError);
     expect(handle.set).not.toHaveBeenCalled();
     expect(base.saveStepExecution).not.toHaveBeenCalled();
+  });
+
+  it('refuses every delete once abandoned, deleting nothing', async () => {
+    const { base, handle, store } = setup();
+    store.abandon();
+
+    await expect(store.deleteStepExecution('run-1', 3)).rejects.toThrow(StepStateError);
+    await expect(store.deleteStepExecution('run-1', 5)).rejects.toThrow(StepStateError);
+    expect(handle.set).not.toHaveBeenCalled();
+    expect(base.deleteStepExecution).not.toHaveBeenCalled();
   });
 });

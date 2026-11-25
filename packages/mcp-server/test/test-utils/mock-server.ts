@@ -89,6 +89,7 @@ export default class MockServer {
     superagent.post = (reqUrl: string) => createMockRequest('POST', reqUrl);
     superagent.put = (reqUrl: string) => createMockRequest('PUT', reqUrl);
     superagent.delete = (reqUrl: string) => createMockRequest('DELETE', reqUrl);
+    superagent.patch = (reqUrl: string) => createMockRequest('PATCH', reqUrl);
 
     this.superagentMocked = true;
   }
