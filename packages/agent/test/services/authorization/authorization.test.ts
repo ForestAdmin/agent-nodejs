@@ -693,7 +693,7 @@ describe('AuthorizationService', () => {
       );
 
       expect(
-        relationScopes.withScopeFields(new Projection('id', 'account:iban', 'holder:nationalId')),
+        relationScopes.withRelatedKeys(new Projection('id', 'account:iban', 'holder:nationalId')),
       ).toEqual(['id', 'account:iban', 'holder:nationalId']);
     });
 
@@ -711,7 +711,7 @@ describe('AuthorizationService', () => {
         new Projection('id', 'holder:nationalId'),
       );
 
-      expect(relationScopes.withScopeFields(new Projection('id', 'holder:nationalId'))).toEqual([
+      expect(relationScopes.withRelatedKeys(new Projection('id', 'holder:nationalId'))).toEqual([
         'id',
         'holder:nationalId',
       ]);
@@ -733,7 +733,7 @@ describe('AuthorizationService', () => {
       expect(fetched.sort()).toEqual(['accounts', 'holders', 'organizations']);
     });
 
-    it('should nest each scope under the relation path that reaches its collection', async () => {
+    it('should key each scope by the relation path that reaches its collection', async () => {
       const forestAdminClient = buildClient();
       const authorizationService = new AuthorizationService(forestAdminClient);
       (forestAdminClient.getScope as jest.Mock).mockImplementation(
@@ -747,14 +747,8 @@ describe('AuthorizationService', () => {
       );
 
       expect(
-        relationScopes.withScopeFields(new Projection('id', 'account:iban', 'holder:nationalId')),
-      ).toEqual([
-        'id',
-        'account:iban',
-        'holder:nationalId',
-        'account:organization:name',
-        'holder:region',
-      ]);
+        relationScopes.withRelatedKeys(new Projection('id', 'account:iban', 'holder:nationalId')),
+      ).toEqual(['id', 'account:iban', 'holder:nationalId', 'account:id', 'holder:id']);
     });
 
     it('should fetch no scope when the projection reaches no relation', async () => {

@@ -9,14 +9,15 @@ import CsvRelated from '../../src/routes/access/csv-related';
 import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
+import Update from '../../src/routes/modification/update';
 import AuthorizationService from '../../src/services/authorization/authorization';
 import * as factories from '../__factories__';
 
 describe('scopes on related collections', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
 
-  const buildDataSource = (): DataSource =>
-    factories.dataSource.buildWithCollections([
+  const buildDataSource = (): DataSource => {
+    const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
         name: 'cards',
         schema: factories.collectionSchema.build({
@@ -108,6 +109,15 @@ describe('scopes on related collections', () => {
       }),
     ]);
 
+    // The datasource answers which related records are in scope: accounts 10 and 30, holder 100.
+    const inScope = { accounts: [10, 30], holders: [100] };
+    Object.entries(inScope).forEach(([name, ids]) => {
+      jest.spyOn(dataSource.getCollection(name), 'list').mockResolvedValue(ids.map(id => ({ id })));
+    });
+
+    return dataSource;
+  };
+
   const scopes = {
     accounts: { field: 'organization:name', operator: 'equal', value: 'OwnOrg' },
     holders: { field: 'region', operator: 'equal', value: 'EU' },
@@ -176,7 +186,7 @@ describe('scopes on related collections', () => {
   };
 
   describe('list', () => {
-    it('should fetch the columns each related scope reads', async () => {
+    it('should fetch the key of each scoped related record', async () => {
       const dataSource = buildDataSource();
       const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
 
@@ -187,7 +197,7 @@ describe('scopes on related collections', () => {
       expect(list).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
-        expect.arrayContaining(['account:organization:name', 'holder:region']),
+        expect.arrayContaining(['account:id', 'holder:id']),
       );
     });
 
@@ -230,15 +240,15 @@ describe('scopes on related collections', () => {
       );
     });
 
-    it('should not fetch the columns of the related scopes', async () => {
+    it('should not query the related collections', async () => {
       const dataSource = buildDataSource();
-      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+      jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue(cards);
 
       await new List(buildServices({ flagged: false }), options, dataSource, 'cards').handleList(
         buildContext({}, projectionHeader),
       );
 
-      expect(list.mock.calls[0][2]).not.toContain('holder:region');
+      expect(dataSource.getCollection('accounts').list).not.toHaveBeenCalled();
     });
   });
 
@@ -255,6 +265,25 @@ describe('scopes on related collections', () => {
       expect(services.serializer.serialize).toHaveBeenCalledWith(
         dataSource.getCollection('cards'),
         { id: 2, account: null, holder: { id: 100, nationalId: 'EU-1' } },
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should serve the updated card with its out-of-scope account emptied', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      services.serializer.deserialize = jest.fn().mockReturnValue({ id: 2 });
+      jest.spyOn(dataSource.getCollection('cards'), 'update').mockResolvedValue();
+      jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([cards[1]]);
+
+      await new Update(services, options, dataSource, 'cards').handleUpdate(
+        buildContext({ params: { id: '2' } }, {}, { data: { attributes: {} } }),
+      );
+
+      expect(services.serializer.serialize).toHaveBeenCalledWith(
+        dataSource.getCollection('cards'),
+        expect.objectContaining({ id: 2, account: null }),
       );
     });
   });

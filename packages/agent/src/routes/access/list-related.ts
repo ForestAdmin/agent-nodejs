@@ -45,17 +45,17 @@ export default class ListRelatedRoute extends RelationRoute {
       this.foreignCollection,
       queried,
     );
-    const records = relationScopes.redact(
+    const records = await relationScopes.redact(
       await CollectionUtils.listRelation(
         this.collection,
         parentId,
         this.relationName,
         caller,
         paginatedFilter,
-        relationScopes.withScopeFields(queried),
+        relationScopes.withRelatedKeys(queried),
       ),
       queried,
-      caller.timezone,
+      caller,
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(

@@ -1,11 +1,18 @@
 import type {
+  Caller,
   Collection,
   ConditionTree,
-  Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { RecordUtils } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  Filter,
+  Projection,
+  RecordUtils,
+} from '@forestadmin/datasource-toolkit';
+
+import IdUtils from './id';
 
 export type RelationScope = { path: string; collection: Collection; scope: ConditionTree };
 
@@ -13,35 +20,70 @@ export type RelationScope = { path: string; collection: Collection; scope: Condi
  * The scope of a collection reached through a to-one relation empties the related record rather
  * than filtering the root rows: a scope on `accounts` restricts which accounts are seen, never
  * which `cards` exist.
+ *
+ * Which related records are in scope is asked of the datasource, one query per scoped relation
+ * and per page, so the scope is evaluated with the same semantics as everywhere else (dates,
+ * nulls, timezones) rather than re-implemented in memory.
  */
 export default class RelationScopes {
   constructor(private readonly scopes: RelationScope[] = []) {}
 
-  withScopeFields(projection: Projection): Projection {
-    return projection.union(...this.scopes.map(({ path, scope }) => scope.projection.nest(path)));
+  withRelatedKeys(projection: Projection): Projection {
+    return projection.union(
+      ...this.scopes.map(({ path, collection }) => new Projection().withPks(collection).nest(path)),
+    );
   }
 
-  redact(records: RecordData[], projection: Projection, timezone: string): RecordData[] {
+  async redact(
+    records: RecordData[],
+    projection: Projection,
+    caller: Caller,
+  ): Promise<RecordData[]> {
     if (!this.scopes.length) return records;
 
-    const outOfScopePaths = records.map(record => this.getOutOfScopePaths(record, timezone));
+    const outOfScope = await Promise.all(
+      this.scopes.map(scope => this.getOutOfScopeRecords(records, scope, caller)),
+    );
     const reprojected = projection.apply(records);
 
     reprojected.forEach((record, index) => {
-      for (const path of outOfScopePaths[index]) RelationScopes.clear(record, path);
+      this.scopes.forEach(({ path }, scopeIndex) => {
+        if (outOfScope[scopeIndex].has(index)) RelationScopes.clear(record, path);
+      });
     });
 
     return reprojected;
   }
 
-  private getOutOfScopePaths(record: RecordData, timezone: string): string[] {
-    return this.scopes
-      .filter(({ path, collection, scope }) => {
-        const related = RecordUtils.getFieldValue(record, path) as RecordData;
+  /** Indexes of the records whose related record at `path` is outside `scope`. */
+  private async getOutOfScopeRecords(
+    records: RecordData[],
+    { path, collection, scope }: RelationScope,
+    caller: Caller,
+  ): Promise<Set<number>> {
+    const related = records.map(record => RecordUtils.getFieldValue(record, path) as RecordData);
+    const loaded = related.filter(Boolean);
+    if (!loaded.length) return new Set();
 
-        return related && !scope.match(related, collection, timezone);
-      })
-      .map(({ path }) => path);
+    const inScope = await collection.list(
+      caller,
+      new Filter({
+        conditionTree: ConditionTreeFactory.intersect(
+          ConditionTreeFactory.matchRecords(collection.schema, loaded),
+          scope,
+        ),
+      }),
+      new Projection().withPks(collection),
+    );
+    const inScopeIds = new Set(IdUtils.packIds(collection.schema, inScope));
+
+    return new Set(
+      related
+        .map((record, index) =>
+          record && !inScopeIds.has(IdUtils.packId(collection.schema, record)) ? index : -1,
+        )
+        .filter(index => index !== -1),
+    );
   }
 
   private static clear(record: RecordData, path: string): void {

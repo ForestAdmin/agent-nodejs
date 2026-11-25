@@ -38,10 +38,10 @@ export default class ListRoute extends CollectionRoute {
       this.collection,
       queried,
     );
-    const records = relationScopes.redact(
-      await this.collection.list(caller, paginatedFilter, relationScopes.withScopeFields(queried)),
+    const records = await relationScopes.redact(
+      await this.collection.list(caller, paginatedFilter, relationScopes.withRelatedKeys(queried)),
       queried,
-      caller.timezone,
+      caller,
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(

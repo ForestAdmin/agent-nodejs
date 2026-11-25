@@ -37,10 +37,10 @@ export default class GetRoute extends CollectionRoute {
       this.collection,
       queried,
     );
-    const records = relationScopes.redact(
-      await this.collection.list(caller, filter, relationScopes.withScopeFields(queried)),
+    const records = await relationScopes.redact(
+      await this.collection.list(caller, filter, relationScopes.withRelatedKeys(queried)),
       queried,
-      caller.timezone,
+      caller,
     );
 
     if (!records.length) {
