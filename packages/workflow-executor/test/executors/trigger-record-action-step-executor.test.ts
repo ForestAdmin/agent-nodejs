@@ -1159,10 +1159,12 @@ describe('TriggerRecordActionStepExecutor', () => {
         .mockResolvedValueOnce({ fields, canExecute: true, requiredFields: [], skippedFields: [] });
       const html = '<p>Refund <strong>approved</strong></p>';
       const mockModel = makeMockModel({ values: { body: html, note: html } }, 'fill_action_form');
+      const logger = jest.fn();
       const context = makeContext({
         model: mockModel.model,
         agentPort,
         runStore: makeMockRunStore(),
+        logger,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: {
@@ -1177,7 +1179,14 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ values: { body: html, note: 'Refund approved' } }),
         expect.anything(),
+        expect.anything(),
       );
+      const conversionLogs = logger.mock.calls.filter(
+        ([, message]) => message === 'AI form-fill: HTML turned into text for a plain field',
+      );
+      expect(conversionLogs).toEqual([
+        ['Debug', expect.any(String), expect.objectContaining({ field: 'note' })],
+      ]);
     });
 
     it('lets the AI fill the optional fields a change hook reveals once the required ones are set', async () => {

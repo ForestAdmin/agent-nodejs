@@ -83,8 +83,6 @@ function isAmongOptions(field: ActionFormField, value: unknown): boolean {
   );
 }
 
-// A Guidance answer is HTML: copied as is into a text field that is not rich text, its tags would
-// show as text in the form, and be stored with the value when Full AI submits it.
 function isPlainTextField(field: ActionFormField | undefined): boolean {
   return field?.type === 'String' && !field.isRichText;
 }
@@ -446,11 +444,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const { stepDefinition: step } = this.context;
     const fieldLines = form.fields
       .map(field => {
-        const parts = [
-          `- ${field.name} (${field.type}${field.isRichText ? ', rich text' : ''}${
-            field.isRequired ? ', required' : ''
-          })`,
-        ];
+        const attributes = [
+          field.type,
+          field.isRichText && 'rich text',
+          field.isRequired && 'required',
+        ]
+          .filter(Boolean)
+          .join(', ');
+        const parts = [`- ${field.name} (${attributes})`];
         if (field.description) parts.push(`hint: ${field.description}`);
         if (field.enumValues?.length) parts.push(`allowed: ${field.enumValues.join(', ')}`);
 

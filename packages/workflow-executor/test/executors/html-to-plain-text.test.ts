@@ -36,4 +36,54 @@ describe('htmlToPlainText', () => {
   it('keeps brackets that are not formatting tags in HTML text', () => {
     expect(htmlToPlainText('<p>Returns List<String></p>')).toBe('Returns List<String>');
   });
+
+  it('keeps a type parameter named like a formatting tag in upper case', () => {
+    expect(htmlToPlainText('<p>Returns Option<A> of Props<P></p>')).toBe(
+      'Returns Option<A> of Props<P>',
+    );
+  });
+
+  it('turns headings, quotes and ordered list items into lines, dropping strikethrough', () => {
+    expect(
+      htmlToPlainText(
+        '<h2>Title</h2><blockquote>Quote</blockquote><ol><li>One</li></ol><p><s>old</s> new</p>',
+      ),
+    ).toBe('Title\nQuote\nOne\nold new');
+  });
+
+  it('collapses the blank lines left by empty paragraphs and trailing line breaks', () => {
+    expect(htmlToPlainText('<p>a</p><p></p><p>b<br></p>')).toBe('a\nb');
+  });
+
+  it('decodes every supported entity once', () => {
+    expect(htmlToPlainText('<p>a&nbsp;b &quot;c&quot; it&#39;s &gt; &amp;lt;</p>')).toBe(
+      'a b "c" it\'s > &lt;',
+    );
+  });
+
+  it('keeps the address of a link written with single quotes', () => {
+    expect(htmlToPlainText("<p><a href='https://forestadmin.com'>Pay</a></p>")).toBe(
+      'Pay (https://forestadmin.com)',
+    );
+  });
+
+  it('keeps the address of a link whose text spans several lines', () => {
+    expect(htmlToPlainText('<p><a href="https://forestadmin.com">Pay\nnow</a></p>')).toBe(
+      'Pay\nnow (https://forestadmin.com)',
+    );
+  });
+
+  it('keeps a formatted link written as its own address once', () => {
+    expect(
+      htmlToPlainText(
+        '<p><a href="https://forestadmin.com"><em>https://forestadmin.com</em></a></p>',
+      ),
+    ).toBe('https://forestadmin.com');
+  });
+
+  it('keeps HTML holding tags a Guidance response does not use as written', () => {
+    const html = '<div style="color: red"><p>Hi</p><table><tr><td>Total</td></tr></table></div>';
+
+    expect(htmlToPlainText(html)).toBe(html);
+  });
 });
