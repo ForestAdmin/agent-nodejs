@@ -1,4 +1,6 @@
-import { ConditionTreeLeaf, Filter, Projection } from '@forestadmin/datasource-toolkit';
+import type { Filter } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeLeaf, Projection } from '@forestadmin/datasource-toolkit';
 
 import RelationScopes from '../../src/utils/relation-scopes';
 import * as factories from '../__factories__';

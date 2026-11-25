@@ -45,7 +45,7 @@ export default class CsvRoute extends CollectionRoute {
     CsvRouteContext.buildResponse(context);
 
     const list = async (cal: Caller, fil: PaginatedFilter, proj: Projection) =>
-      await relationScopes.redact(
+      relationScopes.redact(
         await this.collection.list(cal, fil, relationScopes.withRelatedKeys(proj)),
         proj,
         cal,
