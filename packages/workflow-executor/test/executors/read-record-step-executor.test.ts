@@ -488,6 +488,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(selectMessages).toHaveLength(2);
       expect(selectMessages[0].content).toContain('Step executed by');
       expect(selectMessages[0].content).toContain('selecting the most relevant record');
+      expect(selectMessages[0].content).not.toContain('Sub-workflow call on');
       expect(selectMessages[1].content).toContain('Read the customer email');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(

@@ -3445,7 +3445,7 @@ describe('UpdateRecordStepExecutor inside a Sub-workflow call', () => {
   });
 
   it('keeps every record as a candidate, in run order, in a call pinned to no record', async () => {
-    const { model, bindTools } = makeSelectThenUpdateModel('Step 2 - Accounts #5');
+    const { model, bindTools, invoke } = makeSelectThenUpdateModel('Step 2 - Accounts #5');
     const context = makeCallContext([ordersRef, accountsRef, itemsRef], {
       model,
       callScope: { currentFrameStepIndexes: [4], startStepIndex: 3 },
@@ -3459,6 +3459,8 @@ describe('UpdateRecordStepExecutor inside a Sub-workflow call', () => {
       'Step 2 - Accounts #5',
       'Step 4 - Items #7',
     ]);
+    const contents = (invoke.mock.calls[0][0] as Array<{ content: unknown }>).map(m => m.content);
+    expect(contents).not.toContainEqual(expect.stringContaining('Sub-workflow call on'));
   });
 
   it("keeps the calling workflow's loads out of the write targets in a call pinned to workflow start", async () => {
