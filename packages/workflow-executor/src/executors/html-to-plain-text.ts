@@ -141,7 +141,7 @@ export default function htmlToPlainText(value: string): string {
   return value
     .replace(LINK, (_, doubleQuotedHref?: string, singleQuotedHref?: string, html = '') => {
       const href = doubleQuotedHref ?? singleQuotedHref;
-      const text = html.replace(GUIDANCE_TAG, '');
+      const text = html.replace(LINE_BREAK, '\n').replace(GUIDANCE_TAG, '');
 
       return text === href ? text : `${text} (${href})`;
     })

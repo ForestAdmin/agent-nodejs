@@ -74,6 +74,12 @@ describe('htmlToPlainText', () => {
     );
   });
 
+  it('turns a line break inside a link into a new line', () => {
+    expect(htmlToPlainText('<p><a href="https://forestadmin.com">First<br>Second</a></p>')).toBe(
+      'First\nSecond (https://forestadmin.com)',
+    );
+  });
+
   it('keeps a formatted link written as its own address once', () => {
     expect(
       htmlToPlainText(
