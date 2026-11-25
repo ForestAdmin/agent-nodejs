@@ -1021,6 +1021,33 @@ describe('UpdateRecordStepExecutor', () => {
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
+
+    it('returns error when the tool call drops the input wrapper', async () => {
+      const invoke = jest.fn().mockResolvedValue({
+        tool_calls: [
+          {
+            name: 'update-record-field',
+            args: { fieldName: 'Status', value: 'active', reasoning: 'flat args' },
+            id: 'call_1',
+          },
+        ],
+      });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: { bindTools } as unknown as ExecutionContext['model'],
+        runStore,
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
   });
 
   describe('agentPort.updateRecord WorkflowExecutorError (Branch B)', () => {
@@ -3231,5 +3258,241 @@ describe('UpdateRecordStepExecutor', () => {
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
+  });
+});
+
+// Inside a call pinned to a record, the AI writes only to that record or to one the call loaded:
+// the calling workflow's records are read candidates, never write targets.
+describe('UpdateRecordStepExecutor inside a Sub-workflow call', () => {
+  const ordersRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+  const accountsRef = makeRecordRef({ collectionName: 'accounts', recordId: [5], stepIndex: 2 });
+  const itemsRef = makeRecordRef({ collectionName: 'items', recordId: [7], stepIndex: 4 });
+  const invoicesRef = makeRecordRef({ collectionName: 'invoices', recordId: [3], stepIndex: 6 });
+  const pinnedCallScope = {
+    selectedRecordStepId: 'load-1',
+    pinnedFrameStepIndexes: [1, 2],
+    currentFrameStepIndexes: [4],
+    calledWorkflowCollectionName: 'orders',
+    isPinned: true as const,
+    startStepIndex: 3,
+  };
+
+  function schemaOf(collectionName: string, collectionDisplayName: string): CollectionSchema {
+    return makeCollectionSchema({ collectionName, collectionDisplayName });
+  }
+
+  function makeWorkflowPortForCall(): WorkflowPort {
+    return makeMockWorkflowPort({
+      customers: makeCollectionSchema(),
+      orders: schemaOf('orders', 'Orders'),
+      accounts: schemaOf('accounts', 'Accounts'),
+      items: schemaOf('items', 'Items'),
+      invoices: schemaOf('invoices', 'Invoices'),
+    });
+  }
+
+  function loadExecution(record: RecordRef) {
+    return {
+      type: 'load-related-record',
+      stepIndex: record.stepIndex,
+      executionResult: { relation: { name: 'rel', displayName: 'Rel' }, record },
+      selectedRecordRef: makeRecordRef(),
+    };
+  }
+
+  function makeCallContext(
+    loaded: RecordRef[],
+    overrides: Parameters<typeof makeContext>[0] = {},
+  ): ExecutionContext<UpdateRecordStepDefinition> {
+    return makeContext({
+      stepIndex: 8,
+      callScope: pinnedCallScope,
+      workflowPort: makeWorkflowPortForCall(),
+      runStore: makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue(loaded.map(loadExecution)),
+      }),
+      previousSteps: loaded.map(record => makeLoadRelatedPreviousStep(record.stepIndex)),
+      ...overrides,
+    });
+  }
+
+  function makeSelectThenUpdateModel(recordIdentifier: string) {
+    const invoke = jest
+      .fn()
+      .mockResolvedValueOnce({
+        tool_calls: [{ name: 'select-record', args: { recordIdentifier }, id: 'call_1' }],
+      })
+      .mockResolvedValueOnce({
+        tool_calls: [
+          {
+            name: 'update-record-field',
+            args: { input: { fieldName: 'Status', value: 'active', reasoning: 'asked' } },
+            id: 'call_2',
+          },
+        ],
+      });
+    const bindTools = jest.fn().mockReturnValue({ invoke });
+
+    return { model: { bindTools } as unknown as ExecutionContext['model'], bindTools, invoke };
+  }
+
+  function selectOptionsOf(bindTools: jest.Mock): string[] {
+    const tool = bindTools.mock.calls[0][0][0] as {
+      name: string;
+      schema: { shape: { recordIdentifier: { options: string[] } } };
+    };
+    expect(tool.name).toBe('select-record');
+
+    return tool.schema.shape.recordIdentifier.options;
+  }
+
+  it("offers the AI only the call's record, first, and the records the call loaded", async () => {
+    const { model, bindTools } = makeSelectThenUpdateModel('Step 4 - Items #7');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], { model });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual(['Step 1 - Orders #99', 'Step 4 - Items #7']);
+    expect(context.runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ selectedRecordRef: itemsRef }),
+    );
+  });
+
+  it("tells the AI to prefer the call's record", async () => {
+    const { model, invoke } = makeSelectThenUpdateModel('Step 1 - Orders #99');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], { model });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    const contents = (invoke.mock.calls[0][0] as Array<{ content: unknown }>).map(m => m.content);
+    expect(contents).toContainEqual(
+      expect.stringContaining(
+        'This step runs inside a Sub-workflow call on "Step 1 - Orders #99", listed first: ' +
+          'prefer it unless the request names another record.',
+      ),
+    );
+  });
+
+  it("updates the call's record without an AI choice when the call loaded nothing", async () => {
+    const { model, bindTools } = makeMockModel({
+      input: { fieldName: 'Status', value: 'active', reasoning: 'asked' },
+    });
+    const context = makeCallContext([ordersRef, accountsRef], { model });
+
+    const result = await new UpdateRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome.status).toBe('awaiting-input');
+    expect(bindTools).toHaveBeenCalledTimes(1);
+    expect(bindTools.mock.calls[0][0][0].name).toBe('update-record-field');
+    expect(context.runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ selectedRecordRef: ordersRef }),
+    );
+  });
+
+  it('keeps records loaded inside a call nested in this one as write targets', async () => {
+    const { model, bindTools } = makeSelectThenUpdateModel('Step 6 - Invoices #3');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef, invoicesRef], { model });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual([
+      'Step 1 - Orders #99',
+      'Step 4 - Items #7',
+      'Step 6 - Invoices #3',
+    ]);
+  });
+
+  it('keeps a record loaded inside the call as a write target after a revision cloned its step', async () => {
+    // The revision re-ran the call from step 6: its load at 4 is cloned at 7, and the record
+    // still carries the original's index, before the call's new start.
+    const { model, bindTools } = makeSelectThenUpdateModel('Step 4 - Items #7');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], {
+      model,
+      callScope: { ...pinnedCallScope, currentFrameStepIndexes: [7], startStepIndex: 6 },
+      previousSteps: [
+        makeLoadRelatedPreviousStep(1),
+        makeLoadRelatedPreviousStep(2),
+        makeLoadRelatedPreviousStep(7, 4),
+      ],
+    });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual(['Step 1 - Orders #99', 'Step 4 - Items #7']);
+    expect(context.runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ selectedRecordRef: itemsRef }),
+    );
+  });
+
+  it("still updates a calling workflow's record pinned by step index", async () => {
+    const { model } = makeMockModel({
+      input: { fieldName: 'Status', value: 'active', reasoning: 'asked' },
+    });
+    const context = makeCallContext([ordersRef, accountsRef], {
+      model,
+      stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepIndex: 2 } }),
+    });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(context.runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ selectedRecordRef: accountsRef }),
+    );
+  });
+
+  it('keeps every record as a candidate, in run order, in a call pinned to no record', async () => {
+    const { model, bindTools, invoke } = makeSelectThenUpdateModel('Step 2 - Accounts #5');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], {
+      model,
+      callScope: { currentFrameStepIndexes: [4], startStepIndex: 3 },
+    });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual([
+      'Step 0 - Customers #42',
+      'Step 1 - Orders #99',
+      'Step 2 - Accounts #5',
+      'Step 4 - Items #7',
+    ]);
+    const contents = (invoke.mock.calls[0][0] as Array<{ content: unknown }>).map(m => m.content);
+    expect(contents).not.toContainEqual(expect.stringContaining('Sub-workflow call on'));
+  });
+
+  it("keeps the calling workflow's loads out of the write targets in a call pinned to workflow start", async () => {
+    const { model, bindTools } = makeSelectThenUpdateModel('Step 4 - Items #7');
+    const context = makeCallContext([ordersRef, accountsRef, itemsRef], {
+      model,
+      callScope: {
+        currentFrameStepIndexes: [4],
+        calledWorkflowCollectionName: 'customers',
+        isPinned: true,
+        startStepIndex: 3,
+      },
+    });
+
+    await new UpdateRecordStepExecutor(context).execute();
+
+    expect(selectOptionsOf(bindTools)).toEqual(['Step 0 - Customers #42', 'Step 4 - Items #7']);
+  });
+
+  it("fails without writing when the call's record cannot be resolved", async () => {
+    const agentPort = makeMockAgentPort();
+    const context = makeCallContext([accountsRef, itemsRef], {
+      agentPort,
+      stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+    });
+
+    const result = await new UpdateRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome.status).toBe('error');
+    expect(result.stepOutcome.error).toBe(
+      'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    );
+    expect(agentPort.updateRecord).not.toHaveBeenCalled();
   });
 });

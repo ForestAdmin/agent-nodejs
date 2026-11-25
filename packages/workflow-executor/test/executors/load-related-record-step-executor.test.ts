@@ -5447,3 +5447,73 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 });
+
+// Inside a call pinned to a record, a Load Related Record with no source set starts from that
+// record, not from the run's record.
+describe('LoadRelatedRecordStepExecutor inside a Sub-workflow call', () => {
+  it("defaults to a relation of the call's record", async () => {
+    const ordersRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+    const runStore = makeMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([
+        {
+          type: 'load-related-record',
+          stepIndex: 1,
+          executionResult: { relation: { name: 'order', displayName: 'Order' }, record: ordersRef },
+          selectedRecordRef: makeRecordRef(),
+        },
+      ]),
+    });
+    const context = makeContext({
+      stepIndex: 3,
+      callScope: {
+        selectedRecordStepId: 'load-1',
+        pinnedFrameStepIndexes: [1],
+        currentFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'orders',
+        isPinned: true,
+        startStepIndex: 2,
+      },
+      runStore,
+      stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+      workflowPort: makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: makeCollectionSchema({ collectionName: 'orders', collectionDisplayName: 'Orders' }),
+      }),
+      previousSteps: [makeLoadRelatedPreviousStep(1)],
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome.status).toBe('awaiting-input');
+    expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ selectedRecordRef: ordersRef }),
+    );
+  });
+
+  it("fails with the call's error when the call's record cannot be resolved", async () => {
+    const agentPort = makeMockAgentPort();
+    const context = makeContext({
+      stepIndex: 3,
+      agentPort,
+      callScope: {
+        selectedRecordStepId: 'load-1',
+        pinnedFrameStepIndexes: [1],
+        currentFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'orders',
+        isPinned: true,
+        startStepIndex: 2,
+      },
+      stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+      previousSteps: [],
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome.status).toBe('error');
+    expect(result.stepOutcome.error).toBe(
+      'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    );
+    expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+  });
+});
