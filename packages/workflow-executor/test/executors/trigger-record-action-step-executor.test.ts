@@ -1177,8 +1177,14 @@ describe('TriggerRecordActionStepExecutor', () => {
       await new TriggerRecordActionStepExecutor(context).execute();
 
       expect(agentPort.executeAction).toHaveBeenCalledWith(
-        expect.objectContaining({ values: { body: html, note: 'Refund approved' } }),
-        expect.anything(),
+        {
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+          approvalMessage: 'Send a welcome email to the customer',
+          values: { body: html, note: 'Refund approved' },
+        },
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
         expect.anything(),
       );
       const conversionLogs = logger.mock.calls.filter(

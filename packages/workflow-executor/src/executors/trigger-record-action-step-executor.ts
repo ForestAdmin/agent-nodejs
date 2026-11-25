@@ -24,6 +24,7 @@ import {
   PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
+import { GUIDANCE_HTML_RULE } from './guidance-html-tags';
 import htmlToPlainText from './html-to-plain-text';
 import RecordStepExecutor from './record-step-executor';
 import TriggerActionApprovals from './trigger-action-approvals';
@@ -48,7 +49,7 @@ Important rules:
 - Never send a placeholder such as "<UNKNOWN>" or "TBD" — leave the field out instead.
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
 - Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.
-- A field marked "rich text" takes HTML: wrap every paragraph in <p>, and use only <strong>, <em>, <s>, <a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>. Never use markdown.
+- A field marked "rich text" takes HTML. ${GUIDANCE_HTML_RULE} Never use markdown.
 - When a rich text field's value comes from a previous step written in HTML, keep its HTML as written.
 - Any other text field takes plain text: never write an HTML tag in it. When its value comes from a previous step written in HTML, keep the text and drop the tags.`;
 

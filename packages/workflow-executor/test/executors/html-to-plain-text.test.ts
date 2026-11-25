@@ -81,6 +81,27 @@ describe('htmlToPlainText', () => {
     ).toBe('https://forestadmin.com');
   });
 
+  it('keeps a lower-case generic type in HTML text', () => {
+    expect(htmlToPlainText('<p>Returns <strong>Array<string></strong> for <name></p>')).toBe(
+      'Returns Array<string> for <name>',
+    );
+  });
+
+  it('puts a nested list and the text before a list on their own lines', () => {
+    expect(
+      htmlToPlainText('Steps:<ul><li>Tasks<ul><li>Refund</li><li>Notify</li></ul></li></ul>'),
+    ).toBe('Steps:\nTasks\nRefund\nNotify');
+  });
+
+  it('reads thousands of unclosed tags in linear time', () => {
+    const unclosedTags = `<p>x</p>${'<a href="'.repeat(4000)}${'<p '.repeat(4000)}`;
+    const start = Date.now();
+
+    htmlToPlainText(unclosedTags);
+
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
   it('keeps HTML holding tags a Guidance response does not use as written', () => {
     const html = '<div style="color: red"><p>Hi</p><table><tr><td>Total</td></tr></table></div>';
 
