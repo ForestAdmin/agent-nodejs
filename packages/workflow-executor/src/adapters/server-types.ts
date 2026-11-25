@@ -54,7 +54,7 @@ export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
   taskType: ServerTaskTypeEnum;
   isSubTask?: boolean;
   prompt: string | null;
-  outgoing: [ServerWorkflowTransition];
+  outgoing: [ServerWorkflowTransition, ...ServerWorkflowTransition[]];
 }
 
 export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
@@ -94,6 +94,7 @@ interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
   preRecordedArgs?: { selectedRecordStepId?: string; actionName?: string };
+  approvalOutcomes?: boolean | null;
 }
 
 interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {

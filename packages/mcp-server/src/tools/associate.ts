@@ -4,8 +4,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import buildClient from '../utils/agent-caller';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 interface AssociateArgument {
   collectionName: string;
@@ -29,7 +29,7 @@ function createAssociateArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareAssociateTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames } = ctx;
+  const { logger, collectionNames } = ctx;
   const argumentShape = createAssociateArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -42,38 +42,29 @@ export default function declareAssociateTool(mcpServer: McpServer, ctx: ToolCont
       inputSchema: argumentShape,
     },
     async (options: AssociateArgument, extra) => {
-      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
+      const { rpcClient } = buildClient(extra, ctx);
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'update',
-        context: {
-          collectionName: options.collectionName,
-          recordId: options.parentRecordId,
-          label: `associate "${options.relationName}" with record ${options.targetRecordId}`,
-        },
-        logger,
-        operation: async () => {
-          const relation = rpcClient
-            .collection(options.collectionName)
-            .relation(options.relationName, options.parentRecordId);
+      try {
+        const relation = rpcClient
+          .collection(options.collectionName)
+          .relation(options.relationName, options.parentRecordId);
 
-          await relation.associate(options.targetRecordId);
+        await relation.associate(options.targetRecordId);
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  message: `Successfully associated record ${options.targetRecordId} with ${options.collectionName}/${options.parentRecordId} through relation "${options.relationName}"`,
-                }),
-              },
-            ],
-          };
-        },
-      });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                message: `Successfully associated record ${options.targetRecordId} with ${options.collectionName}/${options.parentRecordId} through relation "${options.relationName}"`,
+              }),
+            },
+          ],
+        };
+      } catch (error) {
+        throw await toToolError(error, { logger });
+      }
     },
     logger,
   );

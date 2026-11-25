@@ -3,7 +3,6 @@ import type { RunnerState } from './runner';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
 
-import { ActivityLogsService, ForestHttpApi } from '@forestadmin/forestadmin-client';
 import { randomUUID } from 'crypto';
 import { hostname } from 'os';
 import { Sequelize } from 'sequelize';
@@ -15,7 +14,6 @@ import AlwaysErrorAiModelPort from './adapters/always-error-ai-model-port';
 import createConsoleLogger from './adapters/console-logger';
 import ForestServerAutomationPort from './adapters/forest-server-automation-port';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
-import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import AutomationPoller from './automation/automation-poller';
 import CredentialEncryption from './crypto/credential-encryption';
@@ -155,15 +153,6 @@ function buildCommonDependencies(options: ExecutorOptions) {
     authSecret: options.authSecret,
   });
 
-  const activityLogsService = new ActivityLogsService(new ForestHttpApi(), {
-    forestServerUrl,
-    headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
-  });
-  const activityLogPortFactory = new ForestadminClientActivityLogPortFactory(
-    activityLogsService,
-    logger,
-  );
-
   return {
     agentPort,
     automationPort,
@@ -171,7 +160,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     schemaCache,
     workflowPort,
     aiModelPort,
-    activityLogPortFactory,
+    forestServerUrl,
     logger,
     pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
     // Zero survives the default: it is how an operator turns the sweep off.

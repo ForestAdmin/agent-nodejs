@@ -10,8 +10,8 @@ import { z } from 'zod';
 import { createListArgumentShape } from './list';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
+import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 function createHasManyArgumentShape(collectionNames: string[]) {
   return {
@@ -71,6 +71,28 @@ function createErrorEnhancer(
   };
 }
 
+async function readListedCollectionName(
+  forestServerClient: ForestServerClient,
+  options: HasManyArgument,
+  logger: Logger,
+): Promise<string | undefined> {
+  try {
+    const reference = getFieldsOfCollection(
+      await fetchForestSchema(forestServerClient),
+      options.collectionName,
+    ).find(field => field.field === options.relationName)?.reference;
+
+    return reference?.split('.').slice(0, -1).join('.');
+  } catch (schemaError) {
+    logger(
+      'Warn',
+      `Listing relation "${options.relationName}" without its target collection: ${schemaError}`,
+    );
+
+    return undefined;
+  }
+}
+
 export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolContext): string {
   const { forestServerClient, logger, collectionNames } = ctx;
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
@@ -86,7 +108,7 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
-      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
+      const { rpcClient } = buildClient(extra, ctx);
 
       const labelParts = [];
 
@@ -100,38 +122,29 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
 
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'listRelatedData',
-        context: {
-          collectionName: options.collectionName,
-          recordId: options.parentRecordId,
-          label: `list relation "${options.relationName}"${extraLabel}`,
-        },
-        logger,
-        operation: async () => {
-          const relation = rpcClient
-            .collection(options.collectionName)
-            .relation(options.relationName, options.parentRecordId);
+      const label = `list relation "${options.relationName}"${extraLabel}`;
 
-          let response: { records: unknown[]; totalCount?: number };
+      try {
+        const listedCollectionName = await readListedCollectionName(
+          forestServerClient,
+          options,
+          logger,
+        );
+        const relation = rpcClient
+          .collection(options.collectionName)
+          .relation(options.relationName, options.parentRecordId, listedCollectionName);
 
-          if (options.enableCount) {
-            const [records, totalCount] = await Promise.all([
-              relation.list(options as SelectOptions),
-              relation.count(options as SelectOptions),
-            ]);
-            response = { records, totalCount };
-          } else {
-            const records = await relation.list(options as SelectOptions);
-            response = { records };
-          }
+        const response = options.enableCount
+          ? await relation.listAndCount(options as SelectOptions, { label })
+          : { records: await relation.list(options as SelectOptions, { label }) };
 
-          return { content: [{ type: 'text', text: JSON.stringify(response) }] };
-        },
-        errorEnhancer: createErrorEnhancer(forestServerClient, options, logger),
-      });
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+      } catch (error) {
+        throw await toToolError(error, {
+          logger,
+          errorEnhancer: createErrorEnhancer(forestServerClient, options, logger),
+        });
+      }
     },
     logger,
   );

@@ -1,5 +1,4 @@
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
-import type { AgentPort } from '../../src/ports/agent-port';
+import type { AgentAudit, AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
@@ -7,7 +6,9 @@ import type { UpdateRecordStepExecutionData } from '../../src/types/step-executi
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
+import activityLogContext from './activity-log-context';
 import {
   ActivityLogCreationError,
   AgentPortError,
@@ -15,7 +16,6 @@ import {
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
-import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -49,10 +49,10 @@ function makeMockAgentPort(
 ): AgentPort {
   return {
     getRecord: jest.fn().mockResolvedValue({ values: updatedValues }),
-    updateRecord: jest.fn().mockResolvedValue({
-      collectionName: 'customers',
-      recordId: [42],
-      values: updatedValues,
+    updateRecord: jest.fn(async (_query, _user, audit?: AgentAudit) => {
+      await audit?.call?.beforeCall?.();
+
+      return { collectionName: 'customers', recordId: [42], values: updatedValues };
     }),
     getRelatedData: jest.fn(),
     executeAction: jest.fn(),
@@ -124,8 +124,7 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'updat
 function makeContext(
   overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLogPort?: ActivityLogPort;
-    activityLog?: ActivityLog;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<UpdateRecordStepDefinition> {
@@ -162,16 +161,7 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLog =
-    overrides.activityLog ??
-    new ActivityLog(
-      overrides.activityLogPort ?? {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      },
-      base.user,
-    );
+  const activityLog = overrides.activityLog ?? activityLogContext();
 
   return {
     ...base,
@@ -227,6 +217,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -247,49 +238,38 @@ describe('UpdateRecordStepExecutor', () => {
   describe('operation activity log (PRD-442 #1)', () => {
     it('logs the update against the acted record and its collection, not the trigger', async () => {
       const runStore = makeMockRunStore();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } })
           .model,
         runStore,
-        activityLogPort,
+        agentPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
       await new UpdateRecordStepExecutor(context).execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'update',
-        type: 'write',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'updated',
-      });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42] }),
+        expect.anything(),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
     });
 
-    it('does not log the update while only awaiting confirmation', async () => {
+    it('does not send the update to the agent while only awaiting confirmation', async () => {
       const runStore = makeMockRunStore();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } })
           .model,
         runStore,
-        activityLogPort,
+        agentPort,
       });
 
       const result = await new UpdateRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('logs against a related record in another collection (cross-collection)', async () => {
@@ -341,11 +321,7 @@ describe('UpdateRecordStepExecutor', () => {
           },
         ]),
       });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         baseRecordRef,
         model,
@@ -354,35 +330,29 @@ describe('UpdateRecordStepExecutor', () => {
           customers: makeCollectionSchema(),
           orders: ordersSchema,
         }),
-        activityLogPort,
+        agentPort,
         previousSteps: [makeLoadRelatedPreviousStep(2)],
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
       await new UpdateRecordStepExecutor(context).execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'update',
-        type: 'write',
-        collectionId: 'col-orders',
-        recordId: [99],
-        label: 'updated',
-      });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.anything(),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
     });
 
     it('does not persist the executing marker when the activity log cannot be created', async () => {
       const runStore = makeMockRunStore();
-      const activityLogPort = {
-        createPending: jest
-          .fn()
-          .mockRejectedValue(new ActivityLogCreationError(new Error('audit down'))),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
+        new ActivityLogCreationError(new Error('audit down')),
+      );
       const context = makeContext({
         runStore,
-        activityLogPort,
+        agentPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
@@ -456,6 +426,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -505,6 +476,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
 
       // Final persisted execution must keep AI suggestion in pendingData
@@ -550,6 +522,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(finalSave).toEqual(
@@ -613,20 +586,13 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
-      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
-      // No side effect happened → no audit-log entry (PRD-442 #2: no premature/duplicate log).
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -861,6 +827,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -931,6 +898,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(result.stepOutcome.status).toBe('success');
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           expect.objectContaining({ values: { [expectedFieldName]: 'John Doe' } }),
+          expect.anything(),
           expect.anything(),
         );
       },
@@ -1228,6 +1196,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
   });
@@ -1406,6 +1375,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
+        expect.anything(),
       );
       // Pre-recorded reference is the technical name 'status'; the persisted displayName 'Status'
       // is resolved from the schema, not received on the wire.
@@ -1530,6 +1500,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99], values: { total: 150 } }),
         context.user,
+        expect.anything(),
       );
     });
 
@@ -1580,6 +1551,7 @@ describe('UpdateRecordStepExecutor', () => {
           values: { status: 'active' },
         }),
         context.user,
+        expect.anything(),
       );
     });
 
@@ -1624,6 +1596,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
+        expect.anything(),
       );
     });
 
@@ -1687,6 +1660,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { count: 42 } }),
         context.user,
+        expect.anything(),
       );
     });
 
@@ -1805,6 +1779,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { age: 42 } }),
         context.user,
+        expect.anything(),
       );
     });
 
@@ -1844,6 +1819,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -1912,6 +1888,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { status: 'inactive' } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -1958,6 +1935,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { closedAt: '2026-06-01T00:00:00Z' } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -1973,6 +1951,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { closedAt: '2026-06-01T10:00:00+02:00' } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2008,6 +1987,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { age: 12 } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2080,6 +2060,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { age: written } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2139,6 +2120,7 @@ describe('UpdateRecordStepExecutor', () => {
           expect(agentPort.updateRecord).toHaveBeenCalledWith(
             { collection: 'customers', id: [42], values: { metadata: value } },
             context.user,
+            expect.anything(),
           );
         },
       );
@@ -2154,6 +2136,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { location: written } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2185,6 +2168,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { address: { street: 'Main St' } } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2198,6 +2182,7 @@ describe('UpdateRecordStepExecutor', () => {
           expect(agentPort.updateRecord).toHaveBeenCalledWith(
             { collection: 'customers', id: [42], values: { addresses: value } },
             context.user,
+            { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
           );
         },
       );
@@ -2251,6 +2236,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { age: 0 } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2262,6 +2248,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { isActive: false } },
           context.user,
+          expect.anything(),
         );
       });
 
@@ -2273,6 +2260,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { closedAt: null } },
           context.user,
+          expect.anything(),
         );
       });
     });
@@ -2308,17 +2296,11 @@ describe('UpdateRecordStepExecutor', () => {
       const mockModel = makeMockModel();
       const runStore = makeMockRunStore();
       const agentPort = makeMockAgentPort();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const workflowPort = makeMockWorkflowPort({ customers: multiFieldSchema });
       const context = makeContext({
         model: mockModel.model,
         runStore,
         agentPort,
-        activityLogPort,
         workflowPort,
         stepDefinition: makeStep({ executionType, preRecordedArgs }),
       });
@@ -2328,7 +2310,6 @@ describe('UpdateRecordStepExecutor', () => {
         mockModel,
         runStore,
         agentPort,
-        activityLogPort,
         workflowPort,
         context,
       };
@@ -2353,6 +2334,7 @@ describe('UpdateRecordStepExecutor', () => {
           values: { status: 'inactive', age: 42, isActive: true },
         },
         context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
     });
 
@@ -2379,22 +2361,19 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('creates a single activity log entry for the step', async () => {
-      const { executor, activityLogPort } = makeMultiFieldContext({
+      const { executor, agentPort, context } = makeMultiFieldContext({
         fieldNames: ['status', 'age', 'note'],
         values: { status: 'active', age: 7, note: 'vip' },
       });
 
       await executor.execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'update',
-        type: 'write',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'updated',
-      });
+      expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active', age: 7, note: 'vip' } },
+        context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
     });
 
     it('writes null to clear a field', async () => {
@@ -2408,6 +2387,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active', note: null } },
         context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
     });
 
@@ -2422,6 +2402,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
       expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
         'run-1',
@@ -2444,6 +2425,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
         context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
     });
 
@@ -2579,7 +2561,6 @@ describe('UpdateRecordStepExecutor', () => {
     function makeSuggestionContext(
       preRecordedArgs: UpdateRecordStepDefinition['preRecordedArgs'],
       aiValues?: Record<string, unknown>,
-      activityLogPort?: ActivityLogPort,
     ) {
       const mockModel = makeMockModel(
         aiValues ? { values: aiValues, reasoning: 'r' } : undefined,
@@ -2596,7 +2577,6 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         agentPort,
-        activityLogPort,
         workflowPort: makeMockWorkflowPort({ customers: suggestionSchema }),
         stepDefinition: makeStep({
           executionType: StepExecutionMode.AutomatedWithConfirmation,
@@ -2749,7 +2729,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('pauses without calling the AI when every field has a pinned value, still reading the record', async () => {
-      const { executor, mockModel, runStore, agentPort } = makeSuggestionContext({
+      const { executor, context, mockModel, runStore, agentPort } = makeSuggestionContext({
         fieldNames: ['status', 'age'],
         values: { status: 'active', age: null },
       });
@@ -2761,6 +2741,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], fields: ['status', 'age'] },
         expect.objectContaining({ id: 1 }),
+        { context: context.activityLog },
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -2877,7 +2858,7 @@ describe('UpdateRecordStepExecutor', () => {
 
     describe('current value of each field', () => {
       it('reads every pinned field in one projection after the AI answers', async () => {
-        const { executor, mockModel, agentPort } = makeSuggestionContext(
+        const { executor, context, mockModel, agentPort } = makeSuggestionContext(
           { fieldNames: ['status', 'age', 'isActive'] },
           { field_0: 'inactive', field_1: 42, field_2: false },
         );
@@ -2888,6 +2869,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.getRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], fields: ['status', 'age', 'isActive'] },
           expect.objectContaining({ id: 1 }),
+          { context: context.activityLog },
         );
         expect(mockModel.invoke.mock.invocationCallOrder[0]).toBeLessThan(
           (agentPort.getRecord as jest.Mock).mock.invocationCallOrder[0],
@@ -2992,27 +2974,19 @@ describe('UpdateRecordStepExecutor', () => {
       });
 
       it('logs the read in the activity log against the selected record', async () => {
-        const activityLogPort = {
-          createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-          markSucceeded: jest.fn().mockResolvedValue(undefined),
-          markFailed: jest.fn().mockResolvedValue(undefined),
-        };
-        const { executor } = makeSuggestionContext(
+        const { executor, agentPort, context } = makeSuggestionContext(
           { fieldNames: ['status', 'age'] },
           { field_0: 'inactive', field_1: 42 },
-          activityLogPort,
         );
 
         await executor.execute();
 
-        expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
-        expect(activityLogPort.createPending).toHaveBeenCalledWith({
-          renderingId: 1,
-          action: 'index',
-          type: 'read',
-          collectionId: 'col-customers',
-          recordId: [42],
-        });
+        expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+        expect(agentPort.getRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], fields: ['status', 'age'] },
+          context.user,
+          { context: context.activityLog },
+        );
       });
     });
 
@@ -3056,7 +3030,7 @@ describe('UpdateRecordStepExecutor', () => {
       }
 
       it('writes the override and the kept suggestions in one update, then completes the step', async () => {
-        const { executor, runStore, agentPort, updatedValues } = makeConfirmationContext({
+        const { executor, context, runStore, agentPort, updatedValues } = makeConfirmationContext({
           userConfirmed: true,
           values: { age: '50' },
         });
@@ -3072,6 +3046,7 @@ describe('UpdateRecordStepExecutor', () => {
             values: { status: 'inactive', age: 50, isActive: false },
           },
           expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
         );
         expect((runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1]).toEqual({
           type: 'update-record',
@@ -3092,7 +3067,7 @@ describe('UpdateRecordStepExecutor', () => {
       });
 
       it('writes every suggestion when the user confirms without overriding any field', async () => {
-        const { executor, agentPort } = makeConfirmationContext({ userConfirmed: true });
+        const { executor, context, agentPort } = makeConfirmationContext({ userConfirmed: true });
 
         await executor.execute();
 
@@ -3103,11 +3078,12 @@ describe('UpdateRecordStepExecutor', () => {
             values: { status: 'inactive', age: 42, isActive: false },
           },
           expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
         );
       });
 
       it('writes every suggestion when values is empty', async () => {
-        const { executor, agentPort } = makeConfirmationContext({
+        const { executor, context, agentPort } = makeConfirmationContext({
           userConfirmed: true,
           values: {},
         });
@@ -3121,11 +3097,12 @@ describe('UpdateRecordStepExecutor', () => {
             values: { status: 'inactive', age: 42, isActive: false },
           },
           expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
         );
       });
 
       it('clears a field the user overrides with null', async () => {
-        const { executor, agentPort } = makeConfirmationContext({
+        const { executor, context, agentPort } = makeConfirmationContext({
           userConfirmed: true,
           values: { status: null },
         });
@@ -3139,6 +3116,7 @@ describe('UpdateRecordStepExecutor', () => {
             values: { status: null, age: 42, isActive: false },
           },
           expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
         );
       });
 
@@ -3373,6 +3351,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
           { collection: 'customers', id: [42], values: { age: written } },
           expect.objectContaining({ id: 1 }),
+          expect.anything(),
         );
       },
     );
@@ -3396,11 +3375,12 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { [field.fieldName]: aiValue } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
     it('writes AI embedded documents given as JSON strings as is', async () => {
-      const { executor, agentPort } = makeAiContext(
+      const { executor, context, agentPort } = makeAiContext(
         {
           fieldName: 'addresses',
           displayName: 'Addresses',
@@ -3416,6 +3396,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { addresses: ['{"street":"Main St"}'] } },
         expect.objectContaining({ id: 1 }),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
     });
 
@@ -3430,6 +3411,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { location: '2.35,48.85' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -3813,13 +3795,8 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('idempotency', () => {
-    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+    it('returns success without sending the update again when idempotencyPhase is done', async () => {
       const agentPort = makeMockAgentPort();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const doneExecution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
@@ -3831,7 +3808,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([doneExecution]),
       });
-      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -3839,16 +3816,10 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
 
-    it('returns error without activity log when idempotencyPhase is executing', async () => {
+    it('returns error without sending the update when idempotencyPhase is executing', async () => {
       const agentPort = makeMockAgentPort();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const executingExecution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
@@ -3858,7 +3829,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([executingExecution]),
       });
-      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -3868,7 +3839,6 @@ describe('UpdateRecordStepExecutor', () => {
         'An unexpected error occurred while processing this step.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
 
     it('saves executing marker before side effect and done marker with executionResult after', async () => {
@@ -3930,7 +3900,7 @@ describe('UpdateRecordStepExecutor', () => {
         workflowPort: makeMockWorkflowPort({ customers: schema }),
       });
 
-      return { executor: new UpdateRecordStepExecutor(context), agentPort };
+      return { executor: new UpdateRecordStepExecutor(context), agentPort, context };
     }
 
     const booleanField = {
@@ -3976,6 +3946,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { isActive: true } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -3985,6 +3956,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(t.agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { isActive: true } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
 
       const f = makeCoercionContext(booleanField, null, { userConfirmed: true, value: 'false' });
@@ -3992,6 +3964,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(f.agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { isActive: false } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4006,6 +3979,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { scores: [1, 2] } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4020,6 +3994,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { scores: [1, 2] } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4034,6 +4009,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { tags: ['a', 'b'] } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4048,6 +4024,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { colors: ['red', 'blue'] } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4068,6 +4045,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { age: 42 } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4088,6 +4066,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { createdAt: '2026-05-28T00:00:00.000Z' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4108,7 +4087,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('writes embedded documents a user confirmed as is', async () => {
-      const { executor, agentPort } = makeCoercionContext(embeddedDocumentsField, null, {
+      const { executor, context, agentPort } = makeCoercionContext(embeddedDocumentsField, null, {
         userConfirmed: true,
         value: [{ street: 'Main St' }, '{"street":"Elm St"}'],
       });
@@ -4122,6 +4101,7 @@ describe('UpdateRecordStepExecutor', () => {
           values: { addresses: [{ street: 'Main St' }, '{"street":"Elm St"}'] },
         },
         expect.objectContaining({ id: 1 }),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
     });
 
@@ -4174,6 +4154,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { isActive: true } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4188,6 +4169,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { isActive: null } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4272,6 +4254,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { age: 0 } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4291,6 +4274,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { value: pendingValue } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4348,6 +4332,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { age: '12345678901234567890' } },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 

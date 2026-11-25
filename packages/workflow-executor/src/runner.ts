@@ -1,6 +1,5 @@
 import type { StepContextConfig } from './executors/step-executor-factory';
 import type OAuthTokenService from './oauth/token-service';
-import type { ActivityLogPortFactory } from './ports/activity-log-port';
 import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger, LoggerLevel } from './ports/logger-port';
@@ -10,6 +9,8 @@ import type SchemaCache from './schema-cache';
 import type { RunControl, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
+
+import { drainActivityLogs } from '@forestadmin/agent-client';
 
 import createConsoleLogger from './adapters/console-logger';
 import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S, MAX_CONCURRENT_RUNS } from './defaults';
@@ -36,7 +37,7 @@ export interface RunnerConfig {
   schemaCache: SchemaCache;
   pollingIntervalS: number;
   aiModelPort: AiModelPort;
-  activityLogPortFactory: ActivityLogPortFactory;
+  forestServerUrl: string;
   envSecret: string;
   authSecret: string;
   logger?: Logger;
@@ -114,6 +115,9 @@ export default class Runner {
       this.pollingTimer = null;
     }
 
+    const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
+    const deadline = Date.now() + timeoutS * 1000;
+
     try {
       // Drain in-flight runs (each entry may cover a whole auto-chain), and the poll in progress,
       // which hands back whatever it claims now that nothing will run it.
@@ -123,7 +127,6 @@ export default class Runner {
           runs: [...this.inFlightRuns.keys()],
         });
 
-        const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
           Promise.all([this.pollCycle, this.inFlightRuns.drain()]).then(() => {
@@ -149,7 +152,14 @@ export default class Runner {
 
       // Wait for fire-and-forget activity-log transitions to settle before closing resources —
       // otherwise audit-trail rows can be left stuck in Pending.
-      await this.config.activityLogPortFactory.drain();
+      const unfinishedActivityLogs = await drainActivityLogs(Math.max(deadline - Date.now(), 0));
+
+      if (unfinishedActivityLogs.length > 0) {
+        this.logger('Error', 'Drain timeout — activity logs still in flight', {
+          unfinished: unfinishedActivityLogs,
+          timeoutS,
+        });
+      }
 
       const results = await Promise.allSettled([
         this.config.aiModelPort.closeConnections(),
@@ -396,7 +406,6 @@ export default class Runner {
         const executor = await StepExecutorFactory.create(
           currentStep,
           { ...this.contextConfig, runControl: this.runControlFor(currentStep.runId, lock) },
-          this.config.activityLogPortFactory.forRun(currentToken),
           (mcpServerId, userId) => this.remoteToolFetcher.fetch(mcpServerId, userId),
           currentIncomingData,
           currentToken,
@@ -574,6 +583,7 @@ export default class Runner {
       runStore: this.config.runStore,
       schemaCache: this.config.schemaCache,
       logger: this.logger,
+      forestServerUrl: this.config.forestServerUrl,
       stepTimeoutS: this.config.stepTimeoutS,
       aiInvokeTimeoutS: this.config.aiInvokeTimeoutS,
     };

@@ -1,4 +1,8 @@
-import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActivityLogSource,
+  HttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 
 import createAgentActionClient from '../../src/action/agent-action-client';
 import { createHttpTransport } from '../../src/agent/agent-transport';
@@ -7,7 +11,11 @@ function transportTo(agentUrl: string, timeoutMs?: number) {
   return createHttpTransport({ agentUrl, timeoutMs });
 }
 
-jest.mock('@forestadmin/agent-client');
+jest.mock('@forestadmin/agent-client', () => ({
+  ...jest.requireActual('@forestadmin/agent-client'),
+  HttpRequester: jest.fn(),
+  createRemoteAgentClient: jest.fn(),
+}));
 
 const createRemoteAgentClientMock = createRemoteAgentClient as jest.Mock;
 const mockedHttpRequester = jest.mocked(HttpRequester);
@@ -76,6 +84,45 @@ describe('createAgentActionClient', () => {
       method: 'get',
       path: '/forest/_actions/users/0/approve',
       maxTimeAllowed: 2500,
+    });
+  });
+
+  it('executes through agent-client with the Forest server connection, the approval message and the timeout', async () => {
+    const executeAction = jest.fn(async () => ({ success: 'done' }));
+    createRemoteAgentClientMock.mockReturnValue({ collection: jest.fn(() => ({ executeAction })) });
+    const activityLog = {
+      forestServer: { serverUrl: 'https://api.forestadmin.com', serverToken: 'st', renderingId: 1 },
+      activityLog: { source: ActivityLogSource.BFF },
+    };
+    const beforeCall = jest.fn();
+    const fill = jest.fn();
+    const isOutcomeUnknown = jest.fn();
+
+    await createAgentActionClient({
+      transport: transportTo('https://agent.example.com'),
+      token: 'jwt-token',
+      actionEndpoints: {} as never,
+      activityLog,
+    }).executeAction({
+      collection: 'users',
+      actionName: 'approve',
+      recordIds: ['1'],
+      timezone: 'UTC',
+      approvalRequestMessage: 'why',
+      maxTimeAllowed: 30_000,
+      isOutcomeUnknown,
+      beforeCall,
+      fill,
+    });
+
+    expect(createRemoteAgentClientMock).toHaveBeenCalledWith(expect.objectContaining(activityLog));
+    expect(executeAction).toHaveBeenCalledWith('approve', {
+      recordIds: ['1'],
+      timezone: 'UTC',
+      approvalRequestMessage: 'why',
+      maxTimeAllowed: 30_000,
+      fill,
+      activityLog: { beforeCall, isOutcomeUnknown },
     });
   });
 });

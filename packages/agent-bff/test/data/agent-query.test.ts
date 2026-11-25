@@ -1,7 +1,5 @@
 import {
   MAX_PARSED_FILTER_DEPTH,
-  buildCountAgentQuery,
-  buildListAgentQuery,
   collectCountFieldPaths,
   collectListFieldPaths,
   parseCountRequest,
@@ -9,6 +7,7 @@ import {
   parseParentId,
   parseRelationCountRequest,
   parseRelationListRequest,
+  toSelectOptions,
 } from '../../src/data/agent-query';
 import { MAX_PAGE_LIMIT } from '../../src/data/request-schemas';
 
@@ -26,270 +25,59 @@ const RELATION_PARSERS: Parser[] = [
   ['parseRelationCountRequest', body => parseRelationCountRequest(body, logger)],
 ];
 
-describe('buildListAgentQuery', () => {
-  it('should always pass the resolved timezone', () => {
-    expect(buildListAgentQuery('users', 'America/New_York', {})).toEqual({
-      timezone: 'America/New_York',
-    });
+describe('toSelectOptions', () => {
+  it('should always carry the resolved time zone', () => {
+    expect(toSelectOptions('Europe/Paris', {})).toEqual({ timezone: 'Europe/Paris' });
   });
 
-  it('should serialize filter, projection, sort and page to agent query params', () => {
-    const query = buildListAgentQuery('users', 'Europe/Paris', {
-      filter: { field: 'email', operator: 'present' },
-      projection: ['id', 'email'],
-      sort: [{ field: 'createdAt', direction: 'desc' }],
-      page: { limit: 20, offset: 40 },
-    });
+  it('should name the filter, projection, sort, page and search the way agent-client reads them', () => {
+    const filter = { field: 'email', operator: 'Present' };
 
-    expect(query).toEqual({
+    expect(
+      toSelectOptions('Europe/Paris', {
+        filter,
+        projection: ['id', 'email'],
+        sort: [
+          { field: 'email', direction: 'desc' },
+          { field: 'id', direction: 'asc' },
+        ],
+        page: { limit: 20, offset: 40 },
+        search: 'ada',
+        searchExtended: true,
+      }),
+    ).toEqual({
       timezone: 'Europe/Paris',
-      filters: JSON.stringify({ field: 'email', operator: 'present', value: null }),
-      'fields[users]': 'id,email',
-      sort: '-createdAt',
-      'page[size]': 20,
-      'page[number]': 3,
+      filters: filter,
+      fields: ['id', 'email'],
+      sort: [
+        { field: 'email', ascending: false },
+        { field: 'id', ascending: true },
+      ],
+      pagination: { size: 20, number: 3 },
+      search: 'ada',
+      shouldSearchInRelation: true,
     });
   });
 
   it('should default an unspecified sort direction to ascending', () => {
-    const query = buildListAgentQuery('users', 'Europe/Paris', {
-      sort: [{ field: 'name' }, { field: 'age', direction: 'desc' }],
-    });
-
-    expect(query.sort).toBe('name,-age');
+    expect(toSelectOptions('Europe/Paris', { sort: [{ field: 'email' }] }).sort).toEqual([
+      { field: 'email', ascending: true },
+    ]);
   });
 
-  it('should accept a page.limit at the maximum and forward it as page[size]', () => {
+  it('should forward a page.limit at the maximum as the page size', () => {
     expect(
-      buildListAgentQuery('users', 'Europe/Paris', {
-        page: { limit: MAX_PAGE_LIMIT, offset: 2 * MAX_PAGE_LIMIT },
-      }),
-    ).toMatchObject({ 'page[size]': MAX_PAGE_LIMIT, 'page[number]': 3 });
+      toSelectOptions('Europe/Paris', { page: { limit: MAX_PAGE_LIMIT, offset: 0 } }).pagination,
+    ).toEqual({ size: MAX_PAGE_LIMIT, number: 1 });
   });
 
-  it('should refuse an unrepresentable offset rather than emit a fractional page number', () => {
-    expect(() =>
-      buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 20, offset: 15 } }),
-    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  it('should keep an empty filter, which the agent receives as one', () => {
+    expect(toSelectOptions('Europe/Paris', { filter: {} }).filters).toEqual({});
   });
-});
 
-describe('buildCountAgentQuery', () => {
-  it('should serialize only the filter and timezone', () => {
-    expect(
-      buildCountAgentQuery('Europe/Paris', { filter: { field: 'active', operator: 'equal' } }),
-    ).toEqual({
+  it('should leave out an empty projection and an empty sort', () => {
+    expect(toSelectOptions('Europe/Paris', { projection: [], sort: [] })).toEqual({
       timezone: 'Europe/Paris',
-      filters: JSON.stringify({ field: 'active', operator: 'equal', value: null }),
-    });
-  });
-
-  it('should emit only the timezone when no filter is provided', () => {
-    expect(buildCountAgentQuery('UTC', {})).toEqual({ timezone: 'UTC' });
-  });
-});
-
-// Every HTTP agent reads the snake_case spelling: a v1 liana answers NoMatchingOperatorError for
-// the canonical one, and the v2 agent PascalCases whatever it receives. So the rewrite is
-// unconditional, and `agent-client` documents the same invariant for its own calls.
-describe('the outgoing filter', () => {
-  it('should rewrite the canonical operator for every agent, not only a legacy one', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: { field: 'status', operator: 'Equal', value: 'published' },
-    });
-
-    expect(JSON.parse(query.filters as string)).toEqual({
-      field: 'status',
-      operator: 'equal',
-      value: 'published',
-    });
-  });
-
-  it('should rewrite a leaf operator to snake_case', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: { field: 'title', operator: 'StartsWith', value: 'A' },
-    });
-
-    expect(JSON.parse(query.filters as string)).toEqual({
-      field: 'title',
-      operator: 'starts_with',
-      value: 'A',
-    });
-  });
-
-  it('should rewrite the aggregator and every nested leaf of a branch', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: {
-        aggregator: 'And',
-        conditions: [
-          { field: 'status', operator: 'Equal', value: 'published' },
-          {
-            aggregator: 'Or',
-            conditions: [{ field: 'createdAt', operator: 'PreviousWeek' }],
-          },
-        ],
-      },
-    });
-
-    expect(JSON.parse(query.filters as string)).toEqual({
-      aggregator: 'and',
-      conditions: [
-        { field: 'status', operator: 'equal', value: 'published' },
-        {
-          aggregator: 'or',
-          conditions: [{ field: 'createdAt', operator: 'previous_week', value: null }],
-        },
-      ],
-    });
-  });
-
-  it('should rewrite a count filter too, since count shares the operator contract', () => {
-    const query = buildCountAgentQuery('UTC', {
-      filter: { field: 'title', operator: 'NotContains', value: 'x' },
-    });
-
-    expect(JSON.parse(query.filters as string)).toEqual({
-      field: 'title',
-      operator: 'not_contains',
-      value: 'x',
-    });
-  });
-
-  it('should add a null value to an operand-less leaf, which the liana rejects without one', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: { field: 'title', operator: 'Present' },
-    });
-
-    expect(JSON.parse(query.filters as string)).toEqual({
-      field: 'title',
-      operator: 'present',
-      value: null,
-    });
-  });
-
-  it('should add the null value inside a branch too, where the liana checks every leaf', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: {
-        aggregator: 'And',
-        conditions: [
-          { field: 'title', operator: 'Present' },
-          { field: 'id', operator: 'Present' },
-        ],
-      },
-    });
-
-    expect(JSON.parse(query.filters as string)).toEqual({
-      aggregator: 'and',
-      conditions: [
-        { field: 'title', operator: 'present', value: null },
-        { field: 'id', operator: 'present', value: null },
-      ],
-    });
-  });
-
-  it('should keep an explicit value, including a falsy one', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: { field: 'count', operator: 'Equal', value: 0 },
-    });
-
-    expect(JSON.parse(query.filters as string).value).toBe(0);
-  });
-
-  it('should not add a value to a branch, which carries none', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: { aggregator: 'Or', conditions: [{ field: 'id', operator: 'Present' }] },
-    });
-
-    expect(JSON.parse(query.filters as string)).not.toHaveProperty('value');
-  });
-
-  it('should not touch a value that happens to look like an operator', () => {
-    const query = buildListAgentQuery('users', 'UTC', {
-      filter: { field: 'label', operator: 'Equal', value: 'StartsWith' },
-    });
-
-    expect(JSON.parse(query.filters as string).value).toBe('StartsWith');
-  });
-});
-
-describe('search in the outgoing agent query', () => {
-  it('should send the search term under the wire name the agent reads', () => {
-    expect(buildListAgentQuery('users', 'Europe/Paris', { search: 'ada' })).toEqual({
-      timezone: 'Europe/Paris',
-      search: 'ada',
-    });
-  });
-
-  it('should send searchExtended under the wire name the agent reads', () => {
-    expect(
-      buildListAgentQuery('users', 'Europe/Paris', { search: 'ada', searchExtended: true }),
-    ).toEqual({ timezone: 'Europe/Paris', search: 'ada', searchExtended: true });
-  });
-
-  it('should send searchExtended false when explicitly disabled alongside a search', () => {
-    expect(
-      buildListAgentQuery('users', 'Europe/Paris', { search: 'ada', searchExtended: false }),
-    ).toEqual({ timezone: 'Europe/Paris', search: 'ada', searchExtended: false });
-  });
-
-  it('should send both the filter and the search so the agent intersects them', () => {
-    expect(
-      buildListAgentQuery('users', 'Europe/Paris', {
-        filter: { field: 'active', operator: 'equal', value: true },
-        search: 'ada',
-      }),
-    ).toEqual({
-      timezone: 'Europe/Paris',
-      filters: JSON.stringify({ field: 'active', operator: 'equal', value: true }),
-      search: 'ada',
-    });
-  });
-
-  it('should treat an empty search as absent', () => {
-    expect(buildListAgentQuery('users', 'Europe/Paris', { search: '' })).toEqual({
-      timezone: 'Europe/Paris',
-    });
-  });
-
-  it('should treat a whitespace-only search as absent', () => {
-    expect(buildListAgentQuery('users', 'Europe/Paris', { search: '   ' })).toEqual({
-      timezone: 'Europe/Paris',
-    });
-  });
-
-  it('should not send searchExtended when it arrives without a search', () => {
-    expect(buildListAgentQuery('users', 'Europe/Paris', { searchExtended: true })).toEqual({
-      timezone: 'Europe/Paris',
-    });
-  });
-
-  it('should not send searchExtended when the search it accompanies is blank', () => {
-    expect(
-      buildListAgentQuery('users', 'Europe/Paris', { search: ' ', searchExtended: true }),
-    ).toEqual({ timezone: 'Europe/Paris' });
-  });
-
-  it('should keep the inner spacing of the search term', () => {
-    expect(buildListAgentQuery('users', 'Europe/Paris', { search: 'ada lovelace' }).search).toBe(
-      'ada lovelace',
-    );
-  });
-
-  it('should trim the search term on the way out', () => {
-    expect(buildListAgentQuery('users', 'Europe/Paris', { search: '  ada  ' }).search).toBe('ada');
-  });
-
-  it('should accept the same search inputs on count as on list', () => {
-    expect(buildCountAgentQuery('Europe/Paris', { search: 'ada', searchExtended: true })).toEqual({
-      timezone: 'Europe/Paris',
-      search: 'ada',
-      searchExtended: true,
-    });
-  });
-
-  it('should leave the count query untouched when the search is blank', () => {
-    expect(buildCountAgentQuery('UTC', { search: '  ', searchExtended: true })).toEqual({
-      timezone: 'UTC',
     });
   });
 });

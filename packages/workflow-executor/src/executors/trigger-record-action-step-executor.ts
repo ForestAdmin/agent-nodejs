@@ -1,3 +1,4 @@
+import type { TriggerActionOutcome } from './trigger-action-approvals';
 import type { ActionForm, ActionFormField } from '../ports/agent-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
@@ -8,7 +9,6 @@ import type {
 } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
-import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { isDeepStrictEqual } from 'util';
@@ -18,11 +18,14 @@ import {
   ActionFormValidationError,
   ActionNotFoundError,
   ActionRequiresApprovalError,
+  ApprovalBranchesMissingError,
+  ApprovalRequestUntrackedError,
   NoActionsError,
   PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import TriggerActionApprovals from './trigger-action-approvals';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
@@ -83,15 +86,21 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
-  // approvalRequest lives here, off the shared record builder; super spreads it onto the outcome.
-  protected override buildOutcomeResult(outcome: {
-    status: RecordStepStatus;
-    error?: string;
-    errorKind?: ErrorKind;
-    errorSourceStepIndex?: number;
-    approvalRequest?: { id: string };
-  }): StepExecutionResult {
+  private readonly approvals = new TriggerActionApprovals(this.context, outcome =>
+    this.buildOutcomeResult(outcome),
+  );
+
+  // The approval fields live here, off the shared record builder; super spreads them onto the outcome.
+  protected override buildOutcomeResult(outcome: TriggerActionOutcome): StepExecutionResult {
     return super.buildOutcomeResult(outcome);
+  }
+
+  protected override async declineConfirmation(
+    execution: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    if (!this.approvals.hasOutcomes) return super.declineConfirmation(execution);
+
+    return this.approvals.decline(execution);
   }
 
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
@@ -105,18 +114,26 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         result && !('skipped' in result) && result.submissionOutcome === 'pending-approval';
       const approvalRequest = isPendingApproval ? result.approvalRequest : undefined;
 
-      if (isPendingApproval && !approvalRequest) {
-        this.context.logger(
-          'Warn',
-          'Replayed a pending-approval step with no approval id; no deep-link available.',
-          { stepIndex: this.context.stepIndex, renderingId: this.context.user.renderingId },
-        );
+      if (isPendingApproval) {
+        if (!approvalRequest) {
+          this.context.logger(
+            'Warn',
+            'Replayed a pending-approval step with no approval id; no deep-link available.',
+            { stepIndex: this.context.stepIndex, renderingId: this.context.user.renderingId },
+          );
+        }
+
+        const ranAction = {
+          selectedRecordRef: existing.selectedRecordRef,
+          actionName: existing.executionParams?.name ?? existing.pendingData?.name ?? 'unknown',
+        };
+
+        return this.approvals.settle(approvalRequest, ranAction, existing);
       }
 
-      return this.buildOutcomeResult({
-        status: 'success',
-        ...(approvalRequest && { approvalRequest }),
-      });
+      if (result && !('skipped' in result)) return this.approvals.executedResult();
+
+      return this.buildOutcomeResult({ status: 'success' });
     }
 
     if (existing?.idempotencyPhase === 'executing') {
@@ -493,25 +510,34 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const outcome = await this.context.agent.executeAction(
-      {
-        collection: selectedRecordRef.collectionName,
-        action: name,
-        // Global actions run on no record — omit the id so the approval isn't linked to one.
-        ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
-        ...(form && { values: form.values }),
-        ...(target.approvalMessage && { approvalMessage: target.approvalMessage }),
-      },
-      {
-        beforeCall: () =>
-          this.context.runStore.saveStepExecution(this.context.runId, {
-            type: 'trigger-action',
-            stepIndex: this.context.stepIndex,
-            selectedRecordRef,
-            idempotencyPhase: 'executing',
-          }),
-      },
-    );
+    const outcome = await this.context.agent
+      .executeAction(
+        {
+          collection: selectedRecordRef.collectionName,
+          action: name,
+          // Global actions run on no record — omit the id so the approval isn't linked to one.
+          ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
+          ...(form && { values: form.values }),
+          ...(target.approvalMessage && { approvalMessage: target.approvalMessage }),
+          // A request filed here would stay open with no run to follow its review.
+          ...(this.approvals.refuses && { skipApprovalRequest: true }),
+        },
+        {
+          beforeCall: () =>
+            this.context.runStore.saveStepExecution(this.context.runId, {
+              type: 'trigger-action',
+              stepIndex: this.context.stepIndex,
+              selectedRecordRef,
+              idempotencyPhase: 'executing',
+            }),
+        },
+      )
+      .catch(async error => {
+        if (!(error instanceof ActionRequiresApprovalError && this.approvals.refuses)) throw error;
+
+        await this.clearRefusedExecution();
+        throw new ApprovalBranchesMissingError(name);
+      });
 
     const submission = form && {
       submittedBy: 'ai' as const,
@@ -548,9 +574,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         idempotencyPhase: 'done',
       });
 
-      return this.buildOutcomeResult({
-        status: 'success',
-        ...(outcome.approvalRequest && { approvalRequest: outcome.approvalRequest }),
+      return this.approvals.settle(outcome.approvalRequest, {
+        selectedRecordRef,
+        actionName: name,
       });
     }
 
@@ -568,7 +594,20 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       idempotencyPhase: 'done',
     });
 
-    return this.buildOutcomeResult({ status: 'success' });
+    return this.approvals.executedResult();
+  }
+
+  // Nothing ran, so the `executing` record beforeCall wrote must not make a re-dispatch read the
+  // step as interrupted. Failing to clear it must not hide the configuration error either.
+  private async clearRefusedExecution(): Promise<void> {
+    try {
+      await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
+    } catch (error) {
+      this.context.logger('Warn', 'Could not clear the refused step execution', {
+        ...this.logCtx,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**
@@ -583,7 +622,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const { selectedRecordRef, displayName, name } = target;
     const confirmation = existingExecution.userConfirmation;
     const submissionOutcome = confirmation?.submissionOutcome ?? 'executed';
+    const approvalRequest = confirmation?.approvalRequest;
     const aiFilledValues = existingExecution.pendingData?.form?.aiFilledValues;
+    const pausesOnApproval = this.approvals.hasOutcomes && submissionOutcome === 'pending-approval';
+
+    if (pausesOnApproval && !approvalRequest) throw new ApprovalRequestUntrackedError(name);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
@@ -597,13 +640,21 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         submissionOutcome,
         // AI-assisted = the human submitted natively (audit).
         submittedBy: 'user',
+        ...(approvalRequest && { approvalRequest }),
         ...(confirmation?.submittedValues && { submittedValues: confirmation.submittedValues }),
         ...(aiFilledValues?.length && { aiFilledValues }),
       },
       selectedRecordRef,
+      // The submission happened in the front: a re-dispatch replays this record (and, on a step
+      // with approval outcomes, its review) instead of going through the confirmation again.
+      idempotencyPhase: 'done',
     });
 
-    return this.buildOutcomeResult({ status: 'success' });
+    if (submissionOutcome === 'pending-approval') {
+      return this.approvals.settle(approvalRequest, { selectedRecordRef, actionName: name });
+    }
+
+    return this.approvals.executedResult();
   }
 
   private async selectAction(

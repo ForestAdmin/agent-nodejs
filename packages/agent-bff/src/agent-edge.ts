@@ -1,4 +1,3 @@
-import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
 import type { ResolvedApiKeyConfig } from './api-key/api-key-edge';
@@ -11,8 +10,6 @@ import type ReadModelStore from './read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import createActionRoutesMiddleware from './action/action-routes-middleware';
-import createActivityLogWriter from './activity-log/activity-log-writer';
-import createBffActivityLogsService from './activity-log/activity-logs-service';
 import createAgentStubMiddleware from './agent/agent-stub';
 import { createHttpTransport } from './agent/agent-transport';
 import createInProcessTransport from './agent/in-process-transport';
@@ -130,11 +127,9 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
   );
 }
 
-// The routes that write an activity log come with the writer holding their pending transitions, so
-// the host can drain it when it stops.
 interface AgentRouteEdge {
   middlewares: Middleware[];
-  activityLogs?: ActivityLogWriter;
+  writesActivityLogs?: boolean;
 }
 
 // The data middleware falls through to the action middleware on a non-data path.
@@ -172,18 +167,21 @@ function buildAgentRouteMiddlewares(
     return { middlewares: [permissionsMiddleware, createAgentStubMiddleware()] };
   }
 
-  const activityLogs = createActivityLogWriter({
-    service: createBffActivityLogsService(apiKeyConfig.forestServerUrl),
-    logger,
-  });
+  const { forestServerUrl } = apiKeyConfig;
 
   return {
     middlewares: [
       permissionsMiddleware,
-      createDataRoutesMiddleware({ store, transport, logger, activityLogs }),
-      createActionRoutesMiddleware({ store, transport, logger, activityLogs, actionTimeoutMs }),
+      createDataRoutesMiddleware({ store, transport, logger, forestServerUrl }),
+      createActionRoutesMiddleware({
+        store,
+        transport,
+        logger,
+        forestServerUrl,
+        actionTimeoutMs,
+      }),
     ],
-    activityLogs,
+    writesActivityLogs: true,
   };
 }
 
@@ -218,7 +216,7 @@ export function buildAiMiddlewares(
 interface AgentEdge {
   middlewares: Middleware[];
   invalidate(): void;
-  activityLogs?: ActivityLogWriter;
+  writesActivityLogs?: boolean;
   servesFilterOperators: boolean;
 }
 
@@ -306,7 +304,7 @@ export function buildAgentMiddlewares(
       bundle?.store.invalidate();
       permissionsCache.clear();
     },
-    activityLogs: routeEdge.activityLogs,
+    writesActivityLogs: routeEdge.writesActivityLogs,
     servesFilterOperators: Boolean(bundle && transport),
   };
 }

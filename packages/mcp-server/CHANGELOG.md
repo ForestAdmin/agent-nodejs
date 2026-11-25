@@ -1,3 +1,29 @@
+# @forestadmin/mcp-server [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.10...@forestadmin/mcp-server@1.30.0) (2026-11-24)
+
+
+### Features
+
+* **agent-client:** move activity logging and approvals into agent-client for every surface ([#2106](https://github.com/ForestAdmin/agent-nodejs/issues/2106)) ([a474f54](https://github.com/ForestAdmin/agent-nodejs/commit/a474f5412cb1453d7b918043dd1d0b90cf54c4e3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.21.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.48.0
+
+## @forestadmin/mcp-server [1.29.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.9...@forestadmin/mcp-server@1.29.10) (2026-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.20.0
+
 ## @forestadmin/mcp-server [1.29.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.8...@forestadmin/mcp-server@1.29.9) (2026-11-24)
 
 

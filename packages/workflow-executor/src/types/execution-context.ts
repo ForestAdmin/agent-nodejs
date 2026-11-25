@@ -1,10 +1,10 @@
-import type ActivityLog from '../executors/activity-log';
 import type AgentWithLog from '../executors/agent-with-log';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type SchemaResolver from '../schema-resolver';
 import type { RecordRef } from './validated/collection';
 import type {
+  ApprovalRequestReview,
   AvailableStepExecution,
   CallScope,
   Step,
@@ -13,6 +13,7 @@ import type {
 } from './validated/execution';
 import type { StepDefinition } from './validated/step-definition';
 import type { StepOutcome } from './validated/step-outcome';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 // Re-export the runtime result types alongside the context they flow with.
@@ -44,7 +45,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly stepDefinition: TStep;
   readonly model: BaseChatModel;
   readonly agent: AgentWithLog;
-  readonly activityLog: ActivityLog;
+  readonly activityLog: ActivityLogConfig;
   readonly runStore: RunStore;
   readonly user: StepUser;
   readonly timezone: string;
@@ -53,6 +54,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly logger: Logger;
   // Set only while the step runs inside a Sub-workflow call.
   readonly callScope?: CallScope;
+  readonly approvalRequests?: ReadonlyArray<ApprovalRequestReview>;
   readonly subWorkflowEnds?: ReadonlyArray<Readonly<SubWorkflowEnd>>;
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutS?: number;

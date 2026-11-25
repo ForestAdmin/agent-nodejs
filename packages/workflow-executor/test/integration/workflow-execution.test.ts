@@ -5,6 +5,7 @@ import type { AvailableStepExecution, StepUser } from '../../src/types/execution
 import type { CollectionSchema } from '../../src/types/validated/collection';
 import type { BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
 
+import { ServerUtils } from '@forestadmin/forestadmin-client';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 import { z } from 'zod';
@@ -216,14 +217,7 @@ function createIntegrationSetup(overrides?: {
     runStore,
     schemaCache,
     aiModelPort: aiClient,
-    activityLogPortFactory: {
-      forRun: jest.fn().mockReturnValue({
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      }),
-      drain: jest.fn().mockResolvedValue(undefined),
-    },
+    forestServerUrl: 'https://api.forestadmin.com',
     pollingIntervalS: overrides?.pollingIntervalS ?? 60,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
@@ -273,6 +267,15 @@ function buildPendingStep(
 // ---------------------------------------------------------------------------
 
 describe('workflow execution (integration)', () => {
+  const forestServerCall = jest.spyOn(ServerUtils, 'queryWithBearerToken');
+
+  beforeEach(() => {
+    forestServerCall.mockReset();
+    forestServerCall.mockResolvedValue({ data: { id: 'log-1', attributes: { index: '0' } } });
+  });
+
+  afterAll(() => forestServerCall.mockRestore());
+
   it('read-record happy path: trigger → AI selects field → read record → success', async () => {
     const workflowPort = createMockWorkflowPort({
       getAvailableRun: jest.fn().mockResolvedValue({
@@ -326,6 +329,7 @@ describe('workflow execution (integration)', () => {
         fields: ['email'],
       }),
       expect.objectContaining({ id: STEP_USER.id }),
+      expect.anything(),
     );
 
     // Assert — step data was saved in the RunStore
@@ -451,6 +455,7 @@ describe('workflow execution (integration)', () => {
         values: { status: 'active' },
       }),
       expect.objectContaining({ id: STEP_USER.id }),
+      expect.anything(),
     );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
@@ -519,6 +524,96 @@ describe('workflow execution (integration)', () => {
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({ type: 'record', status: 'success' }),
+    );
+  });
+
+  it('trigger-action manual with approval outcomes: the form files a request → pauses on it', async () => {
+    const step = buildPendingStep({
+      stepDefinition: {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.Manual,
+        prompt: 'Send the email',
+        preRecordedArgs: { selectedRecordStepId: 'workflow-start', actionName: 'send_email' },
+        approvalOutcomes: true,
+      },
+    });
+    const workflowPort = createMockWorkflowPort({
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
+      getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_ACTIONS),
+    });
+    const { server, agentPort, runStore } = createIntegrationSetup({ workflowPort });
+    await runStore.init();
+    const token = signToken({ id: STEP_USER.id });
+
+    await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+    const res = await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        pendingData: {
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          approvalRequest: { id: '12' },
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(agentPort.executeAction).not.toHaveBeenCalled();
+    expect(workflowPort.updateStepExecution).toHaveBeenLastCalledWith(
+      'run-1',
+      expect.objectContaining({
+        type: 'record',
+        status: 'awaiting-input',
+        awaitingInputReason: 'pending-approval',
+        approvalRequests: [{ id: '12' }],
+        actionTarget: expect.objectContaining({ actionName: 'send_email' }),
+      }),
+    );
+  });
+
+  it('trigger-action AI-assisted with approval outcomes: declining the form takes the branch picked', async () => {
+    const step = buildPendingStep({
+      stepDefinition: {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Send the email',
+        preRecordedArgs: { selectedRecordStepId: 'workflow-start', actionName: 'send_email' },
+        approvalOutcomes: true,
+      },
+    });
+    const workflowPort = createMockWorkflowPort({
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
+      getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_ACTIONS),
+    });
+    const { server, agentPort, runStore } = createIntegrationSetup({ workflowPort });
+    await runStore.init();
+    const token = signToken({ id: STEP_USER.id });
+
+    await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+    const res = await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ pendingData: { userConfirmed: false, selectedOption: 'rejected' } });
+
+    expect(res.status).toBe(200);
+    expect(agentPort.executeAction).not.toHaveBeenCalled();
+    expect(workflowPort.updateStepExecution).toHaveBeenLastCalledWith(
+      'run-1',
+      expect.objectContaining({ type: 'record', status: 'success', selectedOption: 'rejected' }),
     );
   });
 
@@ -753,6 +848,14 @@ describe('workflow execution (integration)', () => {
 
     expect(res2.status).toBe(200);
     expect(mcpToolInvoke).toHaveBeenCalledWith({ message: 'Hello' });
+    expect(forestServerCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'post',
+        path: '/api/activity-logs-requests',
+        bearerToken: 'test-forest-token',
+        headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
+      }),
+    );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({ type: 'mcp', status: 'success' }),

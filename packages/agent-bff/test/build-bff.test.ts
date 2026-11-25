@@ -2,16 +2,30 @@ import type { Logger } from '../src/ports/logger-port';
 
 import request from 'supertest';
 
+import createActionRoutesMiddleware from '../src/action/action-routes-middleware';
 import { createHttpTransport } from '../src/agent/agent-transport';
 import buildBff from '../src/build-bff';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch, stubFetch } from './helpers/fetch-stub';
 import { parseConfig } from '../src/config/env-config';
+import createDataRoutesMiddleware from '../src/data/data-routes-middleware';
 import version from '../src/version';
 
 jest.mock('../src/agent/agent-transport', () => {
   const actual = jest.requireActual('../src/agent/agent-transport');
 
   return { ...actual, createHttpTransport: jest.fn(actual.createHttpTransport) };
+});
+
+jest.mock('../src/data/data-routes-middleware', () => {
+  const actual = jest.requireActual('../src/data/data-routes-middleware');
+
+  return { ...actual, __esModule: true, default: jest.fn(actual.default) };
+});
+
+jest.mock('../src/action/action-routes-middleware', () => {
+  const actual = jest.requireActual('../src/action/action-routes-middleware');
+
+  return { ...actual, __esModule: true, default: jest.fn(actual.default) };
 });
 
 const VALID_ENV = {
@@ -50,6 +64,17 @@ describe('buildBff', () => {
 
     expect(built).not.toHaveLength(0);
     expect(built).toEqual(built.map(() => capped));
+  });
+
+  it('should hand the data and action routes the Forest server their activity logs are written to', async () => {
+    await buildBff({ config: parseConfig(VALID_ENV), logger: noopLogger });
+
+    expect(createDataRoutesMiddleware).toHaveBeenCalledWith(
+      expect.objectContaining({ forestServerUrl: VALID_ENV.FOREST_SERVER_URL }),
+    );
+    expect(createActionRoutesMiddleware).toHaveBeenCalledWith(
+      expect.objectContaining({ forestServerUrl: VALID_ENV.FOREST_SERVER_URL }),
+    );
   });
 
   describe('when every required key is present', () => {

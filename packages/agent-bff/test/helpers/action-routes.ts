@@ -5,7 +5,6 @@ import type ReadModelStore from '../../src/read-model/read-model-store';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
-import { passthroughActivityLogs } from './activity-log';
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
 import createErrorMiddleware from '../../src/http/error-middleware';
@@ -100,7 +99,16 @@ export function clientOf(
   form: Action,
   loadAction: jest.Mock = jest.fn(async () => form),
 ): AgentActionClient & { loadAction: jest.Mock } {
-  return { loadAction };
+  return {
+    loadAction,
+    executeAction: async ({ beforeCall, fill, maxTimeAllowed, isOutcomeUnknown, ...params }) => {
+      await beforeCall();
+      const loaded = await loadAction(params);
+      await fill(loaded);
+
+      return loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });
+    },
+  };
 }
 
 export function buildApp(
@@ -124,15 +132,17 @@ export function buildApp(
   app.use(bodyParser());
   app.use(async (ctx, next) => {
     ctx.state.timezone = timezone;
+    ctx.state.authMode = 'api-key';
+    ctx.state.apiKeyIdentity = { renderingId: 1 };
     if (agentToken !== null) ctx.state.agentToken = agentToken;
     await next();
   });
   app.use(
     createActionRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store,
       transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger,
-      activityLogs: passthroughActivityLogs(),
       createClient: () => client,
       actionTimeoutMs,
     }),
@@ -152,15 +162,17 @@ export function buildAppWithTerminal(client: AgentActionClient) {
   app.use(bodyParser());
   app.use(async (ctx, next) => {
     ctx.state.timezone = TIMEZONE;
+    ctx.state.authMode = 'api-key';
+    ctx.state.apiKeyIdentity = { renderingId: 1 };
     ctx.state.agentToken = 'agent-token';
     await next();
   });
   app.use(
     createActionRoutesMiddleware({
+      forestServerUrl: 'https://api.forestadmin.test',
       store: storeOf(readModel),
       transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger: noopLogger,
-      activityLogs: passthroughActivityLogs(),
       createClient: () => client,
     }),
   );

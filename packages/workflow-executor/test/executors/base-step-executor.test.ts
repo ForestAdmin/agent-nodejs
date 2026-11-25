@@ -1,5 +1,4 @@
 /* eslint-disable max-classes-per-file */
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
@@ -14,10 +13,12 @@ import type {
   ErrorKind,
   StepOutcome,
 } from '../../src/types/validated/step-outcome';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
+import activityLogContext from './activity-log-context';
 import {
   AiAssistUnavailableError,
   AiInvokeTimeoutError,
@@ -30,7 +31,6 @@ import {
   SourceRecordMissingError,
   StepStateError,
 } from '../../src/errors';
-import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -123,19 +123,10 @@ function makeMockLogger(): Logger {
   return jest.fn();
 }
 
-function makeMockActivityLogPort(): ActivityLogPort {
-  return {
-    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-    markSucceeded: jest.fn().mockResolvedValue(undefined),
-    markFailed: jest.fn().mockResolvedValue(undefined),
-  };
-}
-
 function makeContext(
   overrides: Partial<ExecutionContext> & {
     agentPort?: AgentPort;
-    activityLogPort?: ActivityLogPort;
-    activityLog?: ActivityLog;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext {
@@ -179,9 +170,7 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLog =
-    overrides.activityLog ??
-    new ActivityLog(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
+  const activityLog = overrides.activityLog ?? activityLogContext();
 
   return {
     ...base,

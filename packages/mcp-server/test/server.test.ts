@@ -1,6 +1,7 @@
 import type EphemeralStorage from '../src/file-uploads/ephemeral-storage';
 import type * as net from 'net';
 
+import { drainActivityLogs } from '@forestadmin/agent-client';
 import * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
@@ -1152,6 +1153,7 @@ describe('ForestMCPServer Instance', () => {
 
       // Inject mock httpClient to return expected collections
       listMockForestServerClient = createMockForestServerClient({
+        forestServerUrl: 'https://test.forestadmin.com',
         fetchSchema: jest.fn().mockResolvedValue([
           { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
           { name: 'products', fields: [{ field: 'name', type: 'String' }] },
@@ -1174,6 +1176,7 @@ describe('ForestMCPServer Instance', () => {
     });
 
     afterAll(async () => {
+      await drainActivityLogs();
       listMockServer.restoreSuperagent();
       await new Promise<void>(resolve => {
         if (listServer?.httpServer) {
@@ -1380,11 +1383,13 @@ describe('ForestMCPServer Instance', () => {
       );
 
       // Setup mock to capture the activity log API call and mock agent response
+      const createActivityLog = jest.fn(() => ({
+        data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+      }));
       listMockServer.clear();
       listMockServer
-        .post('/api/activity-logs-requests', {
-          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
-        })
+        .post('/api/activity-logs-requests/mcp', createActivityLog)
+        .patch('/api/activity-logs-requests/', {})
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       const response = await request(listHttpServer)
@@ -1405,12 +1410,16 @@ describe('ForestMCPServer Instance', () => {
       // The tool call should succeed (or fail on agent call, but activity log should be created first)
       expect(response.status).toBe(200);
 
-      expect(listMockForestServerClient.createMcpActivityLog).toHaveBeenCalled();
-
-      const activityLogCall = listMockForestServerClient.createMcpActivityLog.mock.calls[0][0];
-      expect(activityLogCall.forestServerToken).toBe(forestServerToken);
-      expect(activityLogCall.action).toBe('index');
-      expect(activityLogCall.collectionName).toBe('users');
+      expect(createActivityLog).toHaveBeenCalledWith(
+        'https://test.forestadmin.com/api/activity-logs-requests/mcp',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: `Bearer ${forestServerToken}`,
+            'Forest-Application-Source': 'MCP',
+          }),
+          body: expect.objectContaining({ action: 'index', collectionModelName: 'users' }),
+        }),
+      );
     });
 
     it('should include shouldSearchInRelation and fields in list tool schema', async () => {
@@ -1553,6 +1562,7 @@ describe('ForestMCPServer Instance', () => {
           .post('/api/activity-logs-requests', {
             data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
           })
+          .patch('/api/activity-logs-requests/', {})
           // Capture GET requests to /forest/* collections (via superagent mock)
           // The superagent mock passes query params as the body
           .get(/\/forest\/\w+/, (_url, options) => {
@@ -2050,6 +2060,7 @@ describe('ForestMCPServer Instance', () => {
             .post('/api/activity-logs-requests', {
               data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
             })
+            .patch('/api/activity-logs-requests/', {})
             .get(/\/forest\/users\/count/, () => ({
               count: 42,
             }))
@@ -2133,6 +2144,7 @@ describe('ForestMCPServer Instance', () => {
             .post('/api/activity-logs-requests', {
               data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
             })
+            .patch('/api/activity-logs-requests/', {})
             .get(/\/forest\/users\/count/, (_url, options) => {
               countCalls.push(JSON.stringify(options?.body));
 

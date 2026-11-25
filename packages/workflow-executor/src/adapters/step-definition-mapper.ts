@@ -73,6 +73,7 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
         ...base,
         type: StepType.TriggerAction,
         preRecordedArgs: task.preRecordedArgs,
+        approvalOutcomes: task.approvalOutcomes,
       });
     case ServerTaskTypeEnum.LoadRelatedRecord:
       return parseStepDefinition(LoadRelatedRecordStepDefinitionSchema, {

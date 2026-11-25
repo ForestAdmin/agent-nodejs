@@ -1,8 +1,7 @@
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
-import type { AgentPort } from '../../src/ports/agent-port';
+import type { AgentAudit, AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { ExecutionContext } from '../../src/types/execution-context';
+import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution-context';
 import type {
   LoadRelatedRecordStepExecutionData,
   TriggerRecordActionStepExecutionData,
@@ -10,7 +9,9 @@ import type {
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
+import type { ActivityLogConfig } from '@forestadmin/agent-client';
 
+import activityLogContext from './activity-log-context';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
@@ -18,11 +19,11 @@ import {
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
-import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
+import InMemoryStore from '../../src/stores/in-memory-store';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
@@ -45,18 +46,42 @@ function makeRecordRef(overrides: Partial<RecordRef> = {}): RecordRef {
   };
 }
 
+function rejectingAfterTheHook(error: unknown) {
+  return async (_query: unknown, _caller: unknown, audit?: AgentAudit) => {
+    await audit?.call?.beforeCall?.();
+    throw error;
+  };
+}
+
 function makeMockAgentPort(): AgentPort {
   return {
     getRecord: jest.fn(),
     updateRecord: jest.fn(),
     getRelatedData: jest.fn(),
-    executeAction: jest.fn().mockResolvedValue({ result: undefined }),
+    executeAction: jest.fn(async (_query, _caller, audit?: AgentAudit) => {
+      await audit?.call?.beforeCall?.();
+
+      return { result: undefined };
+    }),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
     // Default: a formless action (no fields) — matches the prior behavior of most tests.
     getActionForm: jest
       .fn()
       .mockResolvedValue({ fields: [], canExecute: true, requiredFields: [], skippedFields: [] }),
   } as unknown as AgentPort;
+}
+
+// Like agent-client: files the approval request unless the query asks to skip it.
+function mockAgentFilingUnlessSkipped(agentPort: AgentPort): void {
+  (agentPort.executeAction as jest.Mock).mockImplementation(async (query, _caller, audit) => {
+    await audit?.call?.beforeCall?.();
+
+    if (query.skipApprovalRequest) {
+      throw new ActionRequiresApprovalError('send-welcome-email', [7]);
+    }
+
+    return { approvalRequested: true, approvalRequest: { id: '12' } };
+  });
 }
 
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
@@ -129,8 +154,7 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 function makeContext(
   overrides: Partial<ExecutionContext<TriggerActionStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLogPort?: ActivityLogPort;
-    activityLog?: ActivityLog;
+    activityLog?: ActivityLogConfig;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<TriggerActionStepDefinition> {
@@ -168,16 +192,7 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLog =
-    overrides.activityLog ??
-    new ActivityLog(
-      overrides.activityLogPort ?? {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      },
-      base.user,
-    );
+  const activityLog = overrides.activityLog ?? activityLogContext();
 
   return {
     ...base,
@@ -241,6 +256,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           approvalMessage: 'User requested welcome email',
         },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -278,6 +294,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ approvalMessage: 'Send a welcome email to the customer' }),
+        expect.anything(),
         expect.anything(),
       );
     });
@@ -399,6 +416,11 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await new TriggerRecordActionStepExecutor(context).execute();
 
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
+      );
       // Non-blocking: the run continues (success), not awaiting-input.
       expect(result.stepOutcome).toEqual(
         expect.objectContaining({ status: 'success', approvalRequest: { id: 'req_42' } }),
@@ -557,27 +579,22 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('logs the action against the acted record and its collection, not the trigger', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const context = makeContext({
         agentPort,
-        activityLogPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
       await new TriggerRecordActionStepExecutor(context).execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'action',
-        type: 'write',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'triggered the action "send-welcome-email"',
-      });
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+        }),
+        expect.anything(),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
     });
 
     it('logs against a related record in another collection (cross-collection)', async () => {
@@ -635,17 +652,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const context = makeContext({
         baseRecordRef,
         model,
         runStore,
         agentPort,
-        activityLogPort,
         workflowPort: makeMockWorkflowPort({
           customers: makeCollectionSchema(),
           orders: ordersSchema,
@@ -656,14 +667,11 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       await new TriggerRecordActionStepExecutor(context).execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'action',
-        type: 'write',
-        collectionId: 'col-orders',
-        recordId: [99],
-        label: 'triggered the action "cancel-order"',
-      });
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', action: 'cancel-order', id: [99] }),
+        expect.anything(),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
     });
   });
 
@@ -700,19 +708,15 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('does NOT create an activity log (the frontend logs on its side)', async () => {
+    it('does not execute the action while awaiting confirmation, the frontend runs it', async () => {
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
       });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         model: mockModel.model,
-        activityLogPort,
+        agentPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.AutomatedWithConfirmation,
         }),
@@ -721,9 +725,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       await executor.execute();
 
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
-      expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
-      expect(activityLogPort.markFailed).not.toHaveBeenCalled();
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
     });
   });
 
@@ -981,6 +983,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       agentPort: AgentPort,
       runStore: ReturnType<typeof makeMockRunStore>,
       logger: jest.Mock = jest.fn(),
+      approvalOutcomes?: boolean,
     ) {
       return makeContext({
         model: makeMockModel({ values: { amount: 50 } }, 'fill_action_form').model,
@@ -993,6 +996,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             selectedRecordStepId: 'workflow-start',
             actionName: 'send-welcome-email',
           },
+          ...(approvalOutcomes !== undefined && { approvalOutcomes }),
         }),
       });
     }
@@ -1011,6 +1015,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'send-welcome-email', values: { amount: 50 } }),
         { user: expect.anything(), forestServerToken: undefined },
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -1150,6 +1155,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           values: { closing_notice_type: 'immediate', block_fx: true },
         }),
         expect.anything(),
+        expect.anything(),
       );
     });
 
@@ -1203,6 +1209,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(secondPrompt).toContain('- block_fx (Boolean)');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ values: { closing_notice_type: 'immediate' } }),
+        expect.anything(),
         expect.anything(),
       );
     });
@@ -1320,6 +1327,7 @@ describe('TriggerRecordActionStepExecutor', () => {
               values: { operation_type: 'Transfer', destination_account: realValue },
             }),
             expect.anything(),
+            expect.anything(),
           );
         },
       );
@@ -1341,6 +1349,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           expect.objectContaining({
             values: { operation_type: 'Transfer', destination_account: 'ACC-42' },
           }),
+          expect.anything(),
           expect.anything(),
         );
       });
@@ -1442,6 +1451,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             values: aiValuesOutOfFormOrder,
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
         const submitted = (agentPort.executeAction as jest.Mock).mock.calls[0][0].values;
         expect(Object.keys(submitted)).toEqual(formOrder);
@@ -1544,6 +1554,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             values: { a: '1', x: '2', b: '3' },
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
         const submitted = (agentPort.executeAction as jest.Mock).mock.calls[0][0].values;
         expect(Object.keys(submitted)).toEqual(['a', 'x', 'b']);
@@ -1649,6 +1660,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             },
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
       });
 
@@ -1708,6 +1720,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             },
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
       });
 
@@ -1763,6 +1776,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             },
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
       });
 
@@ -1954,6 +1968,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect(agentPort.executeAction).toHaveBeenCalledWith(
           expect.objectContaining({ values: { title: 'x', tags: [] } }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
       });
 
@@ -2037,6 +2052,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             values: { region: 'us', plan: 'us_basic', tax_id: 'US-123' },
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
       });
 
@@ -2083,6 +2099,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             values: { tags: ['a', 'z'] },
           }),
           { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
         );
       });
     });
@@ -2165,8 +2182,8 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('falls back to AI-assisted when the action requires an approval', async () => {
       const agentPort = makeMockAgentPort();
       mockFillThenComplete(agentPort);
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new ActionRequiresApprovalError('send-welcome-email', [7]),
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(new ActionRequiresApprovalError('send-welcome-email', [7])),
       );
       const runStore = makeMockRunStore();
       const logger = jest.fn();
@@ -2190,11 +2207,84 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('falls back to AI-assisted when the submission is rejected by validation', async () => {
+    it('errors instead of handing the form to a human on a step saved without branches', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore();
+
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore, jest.fn(), false),
+      ).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ skipApprovalRequest: true }),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
+      );
+      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(lastSave).not.toHaveProperty('pendingData');
+    });
+
+    it('still hands the form back on a validation rejection when the step was saved without branches', async () => {
       const agentPort = makeMockAgentPort();
       mockFillThenComplete(agentPort);
       (agentPort.executeAction as jest.Mock).mockRejectedValue(
         new ActionFormValidationError('send-welcome-email'),
+      );
+      const runStore = makeMockRunStore();
+
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore, jest.fn(), false),
+      ).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(lastSave.pendingData.fullAiFallback).toEqual({ reason: 'backend-refused' });
+    });
+
+    it('pauses on the request it filed from the form on a step with branches', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore();
+
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore, jest.fn(), true),
+      ).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
+      );
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'awaiting-input',
+          awaitingInputReason: 'pending-approval',
+          approvalRequests: [{ id: '12' }],
+        }),
+      );
+    });
+
+    it('falls back to AI-assisted when the submission is rejected by validation', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(new ActionFormValidationError('send-welcome-email')),
       );
       const runStore = makeMockRunStore();
       const result = await new TriggerRecordActionStepExecutor(
@@ -2213,11 +2303,13 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('keeps the backend refusal message in pendingData and logs it', async () => {
       const agentPort = makeMockAgentPort();
       mockFillThenComplete(agentPort);
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new ActionFormValidationError(
-          'send-welcome-email',
-          undefined,
-          'Account cannot be closed: 2 cards still active',
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(
+          new ActionFormValidationError(
+            'send-welcome-email',
+            undefined,
+            'Account cannot be closed: 2 cards still active',
+          ),
         ),
       );
       const runStore = makeMockRunStore();
@@ -2247,11 +2339,13 @@ describe('TriggerRecordActionStepExecutor', () => {
 
     it('keeps the backend refusal message off the error outcome of a formless action', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new ActionFormValidationError(
-          'send-welcome-email',
-          undefined,
-          'Account cannot be closed: 2 cards still active',
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(
+          new ActionFormValidationError(
+            'send-welcome-email',
+            undefined,
+            'Account cannot be closed: 2 cards still active',
+          ),
         ),
       );
       const result = await new TriggerRecordActionStepExecutor(
@@ -2271,8 +2365,8 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('surfaces a plain permission/infra error as a step error (no fallback)', async () => {
       const agentPort = makeMockAgentPort();
       mockFillThenComplete(agentPort);
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new AgentPortError('executeAction', new Error('403 Forbidden')),
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(new AgentPortError('executeAction', new Error('403 Forbidden'))),
       );
       const result = await new TriggerRecordActionStepExecutor(
         fullAiContext(agentPort, makeMockRunStore()),
@@ -2319,8 +2413,8 @@ describe('TriggerRecordActionStepExecutor', () => {
   describe('agentPort.executeAction WorkflowExecutorError (Branch B)', () => {
     it('returns error when executeAction throws WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new StepStateError('Action not permitted'),
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(new StepStateError('Action not permitted')),
       );
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
@@ -2355,7 +2449,9 @@ describe('TriggerRecordActionStepExecutor', () => {
   describe('agentPort.executeAction infra error', () => {
     it('returns error outcome for infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(new Error('Connection refused')),
+      );
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
         reasoning: 'test',
@@ -2374,8 +2470,8 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('returns user message and logs cause when agentPort.executeAction throws an infra error', async () => {
       const logger = jest.fn();
       const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new AgentPortError('executeAction', new Error('DB connection lost')),
+      (agentPort.executeAction as jest.Mock).mockImplementation(
+        rejectingAfterTheHook(new AgentPortError('executeAction', new Error('DB connection lost'))),
       );
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
@@ -2429,6 +2525,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           approvalMessage: 'User wants to archive',
         },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
     });
 
@@ -2464,6 +2561,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           approvalMessage: 'fallback to technical name',
         },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
       );
     });
   });
@@ -2837,6 +2935,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'send-welcome-email' }),
         { user: context.user, forestServerToken: undefined },
+        expect.anything(),
       );
       // Pre-recorded reference is the technical name; the persisted displayName is resolved
       // from the schema, not received on the wire.
@@ -2934,6 +3033,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           approvalMessage: 'Send a welcome email to the customer',
         }),
         expect.anything(),
+        expect.anything(),
       );
     });
 
@@ -3010,6 +3110,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'archive' }),
         { user: context.user, forestServerToken: undefined },
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -3249,6 +3350,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           id: [42],
         }),
         { user: context.user, forestServerToken: undefined },
+        expect.anything(),
       );
     });
 
@@ -3459,13 +3561,8 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('idempotency', () => {
-    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+    it('returns success without executing the action again when idempotencyPhase is done', async () => {
       const agentPort = makeMockAgentPort();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const doneExecution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -3477,7 +3574,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([doneExecution]),
       });
-      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -3485,16 +3582,10 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
 
-    it('returns error without activity log when idempotencyPhase is executing', async () => {
+    it('returns error without executing the action when idempotencyPhase is executing', async () => {
       const agentPort = makeMockAgentPort();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const executingExecution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -3504,7 +3595,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([executingExecution]),
       });
-      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -3514,7 +3605,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         'An unexpected error occurred while processing this step.',
       );
       expect(agentPort.executeAction).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
 
     it('saves executing marker before side effect and done marker with executionResult after', async () => {
@@ -3548,6 +3638,739 @@ describe('TriggerRecordActionStepExecutor', () => {
         idempotencyPhase: 'done',
         executionResult: { success: true },
       });
+    });
+  });
+
+  describe('on a step saved with approval outcomes (Full AI)', () => {
+    const approvalStep = () =>
+      makeStep({ executionType: StepExecutionMode.FullyAutomated, approvalOutcomes: true });
+
+    const filedRecord = (approvalRequest?: { id: string }) => ({
+      type: 'trigger-action' as const,
+      stepIndex: 0,
+      idempotencyPhase: 'done' as const,
+      executionParams: { displayName: 'Block card', name: 'block_card' },
+      executionResult: {
+        success: true as const,
+        submissionOutcome: 'pending-approval' as const,
+        submittedBy: 'ai' as const,
+        ...(approvalRequest && { approvalRequest }),
+      },
+      selectedRecordRef: makeRecordRef(),
+    });
+
+    const replay = async (
+      approvalRequests: ExecutionContext['approvalRequests'],
+      record = filedRecord({ id: '12' }),
+    ) => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([record]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: approvalStep(),
+        ...(approvalRequests && { approvalRequests }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      return { result, runStore, agentPort };
+    };
+
+    it('pauses on the approval request it filed instead of succeeding', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({
+        approvalRequested: true,
+        approvalRequest: { id: '12' },
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
+      );
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+        awaitingInputReason: 'pending-approval',
+        approvalRequests: [{ id: '12' }],
+        actionTarget: {
+          collectionName: 'customers',
+          actionName: 'send-welcome-email',
+          recordId: '42',
+        },
+      });
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionResult: expect.objectContaining({
+            submissionOutcome: 'pending-approval',
+            approvalRequest: { id: '12' },
+          }),
+        }),
+      );
+    });
+
+    it('falls back to the native form when the AI leaves a required field empty', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [{ name: 'reason', type: 'String', isRequired: true }],
+        canExecute: false,
+        requiredFields: ['reason'],
+        skippedFields: [],
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: approvalStep(),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      });
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            fullAiFallback: { reason: 'required-fields-missing' },
+          }),
+        }),
+      );
+    });
+
+    it('pauses on the approval request filed from the native form of the fallback', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            pendingData: {
+              displayName: 'Block card',
+              name: 'block_card',
+              fullAiFallback: { reason: 'required-fields-missing' },
+            },
+            userConfirmation: {
+              userConfirmed: true,
+              submissionOutcome: 'pending-approval',
+              approvalRequest: { id: '12' },
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({ runStore, stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'awaiting-input',
+          awaitingInputReason: 'pending-approval',
+          approvalRequests: [{ id: '12' }],
+        }),
+      );
+    });
+
+    it('errors the step when the filed request comes back without an id', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ approvalRequested: true });
+      const context = makeContext({ agentPort, stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'This action was submitted for approval, but the workflow cannot follow its review. Check the approval requests, then revise the step.',
+        }),
+      );
+    });
+
+    it('goes down the approved branch when the action ran without needing an approval', async () => {
+      const context = makeContext({ stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'approved',
+      });
+    });
+
+    it.each([
+      ['approved', 3],
+      ['rejected', 4],
+    ] as const)(
+      'takes the %s branch on replay once the reviewer decided, naming the reviewer',
+      async (status, approverId) => {
+        const { result, runStore, agentPort } = await replay([{ id: '12', status, approverId }]);
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+          selectedOption: status,
+          approverId,
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionResult: expect.objectContaining({
+              submissionOutcome: 'pending-approval',
+              approvalOutcome: status,
+            }),
+          }),
+        );
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['pending', 'in-progress', 'warning'] as const)(
+      'pauses again on replay while the request is %s',
+      async status => {
+        const { result, runStore } = await replay([{ id: '12', status }]);
+
+        expect(result.stepOutcome).toEqual(
+          expect.objectContaining({
+            status: 'awaiting-input',
+            awaitingInputReason: 'pending-approval',
+            approvalRequests: [{ id: '12' }],
+            actionTarget: { collectionName: 'customers', actionName: 'block_card', recordId: '42' },
+          }),
+        );
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      },
+    );
+
+    it('pauses again on replay when the server sends no review of the request', async () => {
+      const { result } = await replay(undefined);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'awaiting-input', approvalRequests: [{ id: '12' }] }),
+      );
+    });
+
+    it('errors the step on replay when the approved action failed when it ran', async () => {
+      const { result } = await replay([{ id: '12', status: 'failed' }]);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'operator',
+          error:
+            'The action was approved, but it failed when it ran. Check the approval request, then revise the step.',
+        }),
+      );
+    });
+
+    it('errors the step on replay when its requester canceled the request', async () => {
+      const { result } = await replay([{ id: '12', status: 'canceled' }]);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'operator',
+          error:
+            'The approval request of this step was canceled by its requester. Abort the run, or revise the step to submit the action again.',
+        }),
+      );
+    });
+
+    it('errors the step on replay when the request no longer exists', async () => {
+      const { result } = await replay([{ id: '12' }]);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'The approval request of this step no longer exists. Revise the step to submit the action again.',
+        }),
+      );
+    });
+
+    it('errors the step on replay when the filed request has no id', async () => {
+      const { result } = await replay([{ id: '12', status: 'approved' }], filedRecord());
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('goes down the approved branch on replay of an action that already ran', async () => {
+      const { result } = await replay(undefined, {
+        ...filedRecord(),
+        executionResult: { success: true, actionResult: { ok: true } },
+      } as never);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'success', selectedOption: 'approved' }),
+      );
+    });
+  });
+
+  describe('on a step saved with approval outcomes (native form)', () => {
+    const confirmedRecord = (
+      userConfirmation: TriggerRecordActionStepExecutionData['userConfirmation'],
+    ): TriggerRecordActionStepExecutionData => ({
+      type: 'trigger-action',
+      stepIndex: 0,
+      pendingData: {
+        displayName: 'Block card',
+        name: 'block_card',
+        form: { fields: [], aiFilledValues: [{ field: 'reason', value: 'fraud' }] },
+      },
+      userConfirmation,
+      selectedRecordRef: makeRecordRef(),
+    });
+
+    const submit = async (
+      userConfirmation: TriggerRecordActionStepExecutionData['userConfirmation'],
+      {
+        executionType = StepExecutionMode.Manual,
+        approvalOutcomes = true,
+      }: { executionType?: StepExecutionMode; approvalOutcomes?: boolean | 'absent' } = {},
+    ) => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([confirmedRecord(userConfirmation)]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({
+          executionType,
+          ...(approvalOutcomes !== 'absent' && { approvalOutcomes }),
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      return { result, runStore, agentPort };
+    };
+
+    it.each([StepExecutionMode.Manual, StepExecutionMode.AutomatedWithConfirmation])(
+      'pauses on the approval request the user filed from the form (%s)',
+      async executionType => {
+        const { result, runStore, agentPort } = await submit(
+          {
+            userConfirmed: true,
+            submissionOutcome: 'pending-approval',
+            approvalRequest: { id: '12' },
+            submittedValues: { reason: 'fraud' },
+          },
+          { executionType },
+        );
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'awaiting-input',
+          awaitingInputReason: 'pending-approval',
+          approvalRequests: [{ id: '12' }],
+          actionTarget: { collectionName: 'customers', actionName: 'block_card', recordId: '42' },
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            idempotencyPhase: 'done',
+            executionResult: {
+              success: true,
+              submissionOutcome: 'pending-approval',
+              submittedBy: 'user',
+              approvalRequest: { id: '12' },
+              submittedValues: { reason: 'fraud' },
+              aiFilledValues: [{ field: 'reason', value: 'fraud' }],
+            },
+          }),
+        );
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+      },
+    );
+
+    it('errors the step when the form filed a request without its id', async () => {
+      const { result, runStore } = await submit({
+        userConfirmed: true,
+        submissionOutcome: 'pending-approval',
+      });
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'This action was submitted for approval, but the workflow cannot follow its review. Check the approval requests, then revise the step.',
+        }),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('goes down the approved branch when the form ran the action without an approval', async () => {
+      const { result } = await submit({
+        userConfirmed: true,
+        submissionOutcome: 'executed',
+        actionResult: { ok: true },
+      });
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'approved',
+      });
+    });
+
+    it.each([
+      ['approved', 3],
+      ['rejected', 4],
+    ] as const)(
+      'takes the %s branch on replay of the request the form filed',
+      async (status, approverId) => {
+        const { runStore: submitStore } = await submit({
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          approvalRequest: { id: '12' },
+        });
+        const savedRecord = (submitStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([savedRecord]),
+        });
+        const context = makeContext({
+          runStore,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.Manual,
+            approvalOutcomes: true,
+          }),
+          approvalRequests: [{ id: '12', status, approverId }],
+        });
+
+        const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+          selectedOption: status,
+          approverId,
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionResult: expect.objectContaining({
+              submittedBy: 'user',
+              approvalOutcome: status,
+            }),
+          }),
+        );
+      },
+    );
+
+    it.each(['approved', 'rejected'] as const)(
+      'takes the %s branch the user picked when declining the form',
+      async selectedOption => {
+        const { result, runStore, agentPort } = await submit(
+          { userConfirmed: false, selectedOption },
+          { executionType: StepExecutionMode.AutomatedWithConfirmation },
+        );
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+          selectedOption,
+        });
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ executionResult: { skipped: true, selectedOption } }),
+        );
+      },
+    );
+
+    it('names a composite record id the way the agents write it in a request', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            ...confirmedRecord({
+              userConfirmed: true,
+              submissionOutcome: 'pending-approval',
+              approvalRequest: { id: '12' },
+            }),
+            selectedRecordRef: makeRecordRef({ collectionName: 'cards', recordId: [1, 'a'] }),
+          },
+        ]),
+      });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          approvalOutcomes: true,
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          actionTarget: { collectionName: 'cards', actionName: 'block_card', recordId: '1|a' },
+        }),
+      );
+    });
+
+    it('errors the step when the form is declined without a branch', async () => {
+      const { result, runStore } = await submit(
+        { userConfirmed: false },
+        { executionType: StepExecutionMode.AutomatedWithConfirmation },
+      );
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'error', error: expect.any(String) }),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('skips without a branch when declining the form of a step without approval outcomes', async () => {
+      const { result, runStore } = await submit(
+        { userConfirmed: false, selectedOption: 'rejected' },
+        { executionType: StepExecutionMode.AutomatedWithConfirmation, approvalOutcomes: false },
+      );
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+      });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ executionResult: { skipped: true } }),
+      );
+    });
+
+    it('succeeds with the request id on a step without approval outcomes', async () => {
+      const { result, runStore } = await submit(
+        {
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          approvalRequest: { id: '12' },
+        },
+        { approvalOutcomes: 'absent' },
+      );
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+        approvalRequest: { id: '12' },
+      });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionResult: expect.objectContaining({ approvalRequest: { id: '12' } }),
+        }),
+      );
+    });
+  });
+
+  describe('on a step saved without approval outcomes whose action now requires one', () => {
+    const savedWithoutBranches = (executionType = StepExecutionMode.FullyAutomated) =>
+      makeStep({ executionType, approvalOutcomes: false });
+
+    const expectBranchesMissing = (result: StepExecutionResult) =>
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add the ' +
+            'Approved and Rejected branches. Approval request 12 stays open: reject it in ' +
+            'Approvals if the action must not run.',
+        }),
+      );
+
+    it('errors the step once the request it filed is recorded', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({
+        approvalRequested: true,
+        approvalRequest: { id: '12' },
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expectBranchesMissing(result);
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionResult: expect.objectContaining({ approvalRequest: { id: '12' } }),
+        }),
+      );
+    });
+
+    it('errors the step when the form files a request', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            pendingData: { displayName: 'Block card', name: 'block_card' },
+            userConfirmation: {
+              userConfirmed: true,
+              submissionOutcome: 'pending-approval',
+              approvalRequest: { id: '12' },
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({
+        runStore,
+        stepDefinition: savedWithoutBranches(StepExecutionMode.Manual),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expectBranchesMissing(result);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
+      );
+    });
+
+    it('errors the step again when it is replayed', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            idempotencyPhase: 'done',
+            executionParams: { displayName: 'Block card', name: 'block_card' },
+            executionResult: {
+              success: true,
+              submissionOutcome: 'pending-approval',
+              approvalRequest: { id: '12' },
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({ runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expectBranchesMissing(result);
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('errors without filing a request when the agent asks for an approval', async () => {
+      const agentPort = makeMockAgentPort();
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+          approvalMessage: 'User requested welcome email',
+          skipApprovalRequest: true,
+        },
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
+        expect.anything(),
+      );
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
+      );
+    });
+
+    it('errors the same way when the step is dispatched again after the refusal', async () => {
+      const agentPort = makeMockAgentPort();
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = new InMemoryStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+      const redispatched = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(redispatched.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+    });
+
+    it('still errors on the missing branches when clearing the refused record fails', async () => {
+      const agentPort = makeMockAgentPort();
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore({
+        deleteStepExecution: jest.fn().mockRejectedValue(new Error('run store down')),
+      });
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(runStore.deleteStepExecution).toHaveBeenCalledWith('run-1', 0);
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+    });
+
+    it('succeeds when the action ran without an approval', async () => {
+      const runStore = makeMockRunStore();
+      const context = makeContext({ runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(expect.objectContaining({ status: 'success' }));
+      expect(result.stepOutcome).not.toHaveProperty('selectedOption');
     });
   });
 });
