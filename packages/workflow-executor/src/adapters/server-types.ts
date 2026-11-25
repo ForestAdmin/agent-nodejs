@@ -69,7 +69,11 @@ export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
 interface ServerWorkflowTaskGetData extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.GetData;
   executionType: ServerStepExecutionTypeEnum.FullyAutomated;
-  preRecordedArgs?: { selectedRecordStepId?: string; fieldNames?: string[] };
+  preRecordedArgs?: {
+    selectedRecordStepId?: string;
+    relationPath?: string[];
+    fieldNames?: string[];
+  };
 }
 
 interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {
@@ -77,7 +81,12 @@ interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {
   executionType:
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
-  preRecordedArgs?: { selectedRecordStepId?: string; fieldName?: string; value?: unknown };
+  preRecordedArgs?: {
+    selectedRecordStepId?: string;
+    relationPath?: string[];
+    fieldName?: string;
+    value?: unknown;
+  };
 }
 
 interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
@@ -87,7 +96,7 @@ interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
     | ServerStepExecutionTypeEnum.Manual
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
-  preRecordedArgs?: { selectedRecordStepId?: string; actionName?: string };
+  preRecordedArgs?: { selectedRecordStepId?: string; relationPath?: string[]; actionName?: string };
   approvalOutcomes?: boolean | null;
 }
 
@@ -97,7 +106,11 @@ interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
   // Validated by the step-definition schema.
-  preRecordedArgs?: { selectedRecordStepId?: string; relationName?: string };
+  preRecordedArgs?: {
+    selectedRecordStepId?: string;
+    relationPath?: string[];
+    relationName?: string;
+  };
 }
 
 export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {

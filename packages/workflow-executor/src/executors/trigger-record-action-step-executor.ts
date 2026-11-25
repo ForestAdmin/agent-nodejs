@@ -194,7 +194,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     // back to AI record selection among the available source records.
     const selectedRecordRef =
       preRecordedArgs?.selectedRecordStepId !== undefined
-        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        ? await this.resolveSourceRecordRef(
+            preRecordedArgs.selectedRecordStepId,
+            preRecordedArgs.relationPath,
+          )
         : await this.resolveRecordRef(step.prompt, { writes: true });
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;

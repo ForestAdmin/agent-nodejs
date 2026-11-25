@@ -1,3 +1,4 @@
+import type { RelationPathHop } from './relation-path';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -12,9 +13,11 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  CollectionAccessDeniedError,
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
   NoRecordsError,
+  RelationPathEmptyError,
   SourceLoadsSeveralRecordsError,
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
@@ -23,6 +26,7 @@ import {
 } from '../errors';
 import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
 import { isSameRecord } from './iteration-run-store';
+import followRelationPath from './relation-path';
 import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
@@ -127,7 +131,45 @@ export default abstract class RecordStepExecutor<
   // trigger-action "On record"). The reference is a stable BPMN step id (or the
   // WORKFLOW_START_STEP_ID sentinel), not a runtime index — so it survives the index shifts a
   // revision causes (clones keep their step id) and is knowable by the editor at build time.
-  protected async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
+  protected async resolveSourceRecordRef(
+    stepId: string,
+    relationPath?: readonly string[],
+  ): Promise<RecordRef> {
+    const root = await this.resolvePinnedRecordRef(stepId);
+    if (!relationPath) return root;
+
+    const resolution = await followRelationPath(this.context, root, relationPath);
+    const { title } = this.context.stepDefinition;
+
+    if (resolution.status === 'forbidden') {
+      throw new CollectionAccessDeniedError(title, resolution.collectionDisplayName);
+    }
+
+    if (resolution.status === 'empty') {
+      const missing = resolution.hops[resolution.hops.length - 1];
+
+      throw new RelationPathEmptyError(
+        title,
+        missing.relationDisplayName,
+        this.relationPathLabel(stepId, resolution.hops),
+      );
+    }
+
+    return resolution.record;
+  }
+
+  private relationPathLabel(stepId: string, hops: RelationPathHop[]): string {
+    const rootLabel =
+      stepId === WORKFLOW_START_STEP_ID
+        ? 'Starting record'
+        : `"${
+            findPinnedLoadStep(this.context.previousSteps, stepId)?.stepDefinition.title ?? stepId
+          }"`;
+
+    return [rootLabel, ...hops.map(hop => hop.relationDisplayName)].join(' › ');
+  }
+
+  private async resolvePinnedRecordRef(stepId: string): Promise<RecordRef> {
     if (stepId !== WORKFLOW_START_STEP_ID) {
       // Inside a call, only this call's own steps: a closed call repeating the id is not a source.
       const record = await this.resolveStepRecordRef(

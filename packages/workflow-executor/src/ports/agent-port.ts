@@ -43,6 +43,8 @@ export type GetSingleRelatedDataQuery = {
   fields?: string[];
 };
 
+export type GetRelatedRecordIdQuery = Omit<GetSingleRelatedDataQuery, 'fields'>;
+
 export type ExecuteActionQuery = {
   collection: string;
   action: string;
@@ -114,6 +116,13 @@ export interface AgentPort {
     user: StepUser,
     audit?: AgentAudit,
   ): Promise<RecordData | null>;
+  // Reads only the linkage of a to-one relation: the target itself is not read, so its readability
+  // is the caller's to check. Returns null when the parent links no record.
+  getRelatedRecordId(
+    query: GetRelatedRecordIdQuery,
+    user: StepUser,
+    audit?: AgentAudit,
+  ): Promise<Id[] | null>;
   // Reads a polymorphic relation's target from the raw JSON:API linkage ({ type, id }), which the
   // agent-client deserializer drops. Returns null when the record has no linked target.
   resolvePolymorphicType(

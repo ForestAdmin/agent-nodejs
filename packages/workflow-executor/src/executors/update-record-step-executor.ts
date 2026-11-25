@@ -318,7 +318,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     const selectedRecordRef =
       preRecordedArgs?.selectedRecordStepId !== undefined
-        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        ? await this.resolveSourceRecordRef(
+            preRecordedArgs.selectedRecordStepId,
+            preRecordedArgs.relationPath,
+          )
         : await this.resolveRecordRef(step.prompt, {
             preRecordedStepIndex: preRecordedArgs?.selectedRecordStepIndex,
             writes: true,
