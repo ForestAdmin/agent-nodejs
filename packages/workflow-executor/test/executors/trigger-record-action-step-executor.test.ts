@@ -1184,8 +1184,31 @@ describe('TriggerRecordActionStepExecutor', () => {
           approvalMessage: 'Send a welcome email to the customer',
           values: { body: html, note: 'Refund approved' },
         },
-        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
-        expect.anything(),
+        {
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            firstName: 'Test',
+            lastName: 'User',
+            team: 'admin',
+            renderingId: 1,
+            role: 'admin',
+            permissionLevel: 'admin',
+            tags: {},
+          },
+          forestServerToken: undefined,
+        },
+        {
+          call: { beforeCall: expect.any(Function) },
+          context: {
+            activityLog: { source: 'WorkflowExecutor', collectionIdOf: expect.any(Function) },
+            forestServer: {
+              renderingId: 1,
+              serverToken: 'forest-token',
+              serverUrl: 'https://api.forestadmin.com',
+            },
+          },
+        },
       );
       const conversionLogs = logger.mock.calls.filter(
         ([, message]) => message === 'AI form-fill: HTML turned into text for a plain field',

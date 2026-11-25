@@ -13,6 +13,8 @@ export const GUIDANCE_HTML_TAGS = [
   'blockquote',
 ];
 
+export const GUIDANCE_INLINE_TAGS = ['strong', 'em', 's', 'a'];
+
 const allowedInsideParagraphs = GUIDANCE_HTML_TAGS.filter(tag => tag !== 'p').map(tag =>
   tag === 'a' ? '<a href="...">' : `<${tag}>`,
 );

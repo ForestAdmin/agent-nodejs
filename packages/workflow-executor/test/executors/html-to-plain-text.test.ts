@@ -1,3 +1,4 @@
+import { GUIDANCE_HTML_TAGS } from '../../src/executors/guidance-html-tags';
 import htmlToPlainText from '../../src/executors/html-to-plain-text';
 
 describe('htmlToPlainText', () => {
@@ -98,6 +99,25 @@ describe('htmlToPlainText', () => {
     const start = Date.now();
 
     htmlToPlainText(unclosedTags);
+
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it('drops every tag of the Guidance list', () => {
+    const html = GUIDANCE_HTML_TAGS.map(tag => `<${tag}>${tag}</${tag}>`).join('');
+
+    expect(htmlToPlainText(html)).not.toMatch(/<\/?[a-z]/);
+  });
+
+  it('keeps a value holding any other tag HTML defines as written', () => {
+    expect(htmlToPlainText('<p>Use <mark>this</mark></p>')).toBe('<p>Use <mark>this</mark></p>');
+  });
+
+  it('reads thousands of links left without a closing tag in linear time', () => {
+    const unclosedLinks = `<p>x</p>${'<a href="x">'.repeat(40000)}`;
+    const start = Date.now();
+
+    htmlToPlainText(unclosedLinks);
 
     expect(Date.now() - start).toBeLessThan(500);
   });
