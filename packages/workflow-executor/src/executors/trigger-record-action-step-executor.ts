@@ -24,6 +24,8 @@ import {
   PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
+import { GUIDANCE_HTML_RULE } from './guidance-html-tags';
+import htmlToPlainText from './html-to-plain-text';
 import RecordStepExecutor from './record-step-executor';
 import TriggerActionApprovals from './trigger-action-approvals';
 import { StepExecutionMode } from '../types/validated/step-definition';
@@ -46,7 +48,10 @@ Important rules:
 - This applies to required fields too: a required field you leave out is completed by a human reviewer.
 - Never send a placeholder such as "<UNKNOWN>" or "TBD" — leave the field out instead.
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
-- Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
+- Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.
+- A field marked "rich text" takes HTML. ${GUIDANCE_HTML_RULE} Never use markdown.
+- When a rich text field's value comes from a previous step written in HTML, keep its HTML as written.
+- Any other text field takes plain text: never write an HTML tag in it. When its value comes from a previous step written in HTML, keep the text and drop the tags.`;
 
 const PLACEHOLDER_VALUE = /^<[\w\s-]+>$/;
 
@@ -77,6 +82,10 @@ function isAmongOptions(field: ActionFormField, value: unknown): boolean {
   return candidates.every(candidate =>
     field.enumValues.some(option => String(option) === String(candidate)),
   );
+}
+
+function isPlainTextField(field: ActionFormField | undefined): boolean {
+  return field?.type === 'String' && !field.isRichText;
 }
 
 interface ActionTarget extends ActionRef {
@@ -346,8 +355,20 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         ([a], [b]) => formOrder.indexOf(a) - formOrder.indexOf(b),
       );
 
-      for (const [field, value] of valuesInFormOrder) {
+      for (const [field, aiValue] of valuesInFormOrder) {
         const formField = form.fields.find(f => f.name === field);
+        const value =
+          isPlainTextField(formField) && typeof aiValue === 'string'
+            ? htmlToPlainText(aiValue)
+            : aiValue;
+
+        if (value !== aiValue) {
+          this.context.logger('Debug', 'AI form-fill: HTML turned into text for a plain field', {
+            ...this.logCtx,
+            field,
+          });
+        }
+
         const filledByAi = Object.prototype.hasOwnProperty.call(accumulator, field);
         // The AI gets one more try on a value the form no longer holds (emptied by the agent, or out of
         // options a hook swapped); without that bound, such a hook would run the loop to the cap.
@@ -424,7 +445,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const { stepDefinition: step } = this.context;
     const fieldLines = form.fields
       .map(field => {
-        const parts = [`- ${field.name} (${field.type}${field.isRequired ? ', required' : ''})`];
+        const attributes = [
+          field.type,
+          field.isRichText && 'rich text',
+          field.isRequired && 'required',
+        ]
+          .filter(Boolean)
+          .join(', ');
+        const parts = [`- ${field.name} (${attributes})`];
         if (field.description) parts.push(`hint: ${field.description}`);
         if (field.enumValues?.length) parts.push(`allowed: ${field.enumValues.join(', ')}`);
 

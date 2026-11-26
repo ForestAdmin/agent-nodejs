@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { AiAssistUnavailableError, StepStateError, extractErrorMessage } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { GUIDANCE_HTML_RULE } from './guidance-html-tags';
 import patchBodySchemas from '../http/pending-data-validators';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -17,7 +18,7 @@ Write the response the operator would type, using the step instructions and the 
 - Keep a reasonable length: a few sentences unless the instructions clearly require more.
 - Use only facts available in the context — never invent names, dates, amounts or identifiers.
 - Format the response as HTML when it helps the reader, and always when the instructions ask for formatting.
-- Wrap every paragraph in <p>, and use only <strong>, <em>, <s>, <a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>.
+- ${GUIDANCE_HTML_RULE}
 - When the instructions ask for plain text or no formatting, write plain text with no HTML tag at all.
 - Never use markdown or code blocks.`;
 

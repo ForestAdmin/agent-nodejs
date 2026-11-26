@@ -257,7 +257,7 @@ describe('GuidanceStepExecutor', () => {
       const allContent = messages.map(m => m.content).join('\n');
       expect(allContent).toContain('Wrap every paragraph in <p>');
       expect(allContent).toContain(
-        '<a href="...">, <h1> to <h3>, <ul>, <ol>, <li> and <blockquote>',
+        '<a href="...">, <h1>, <h2>, <h3>, <ul>, <ol>, <li> and <blockquote>.',
       );
       expect(allContent).toContain('plain text with no HTML tag at all');
       expect(allContent).not.toContain('Plain text only');
