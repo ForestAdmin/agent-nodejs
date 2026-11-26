@@ -79,6 +79,22 @@ describe('toToolError', () => {
       expect(logger).toHaveBeenCalledWith('Warn', 'Agent answered HTTP 500: hook crashed');
     });
 
+    it('should log at most 500 characters of an agent 5xx body', async () => {
+      const page = `<html>${'x'.repeat(2000)}</html>`;
+
+      await toToolError(new AgentHttpError(502, page, page), { logger });
+
+      expect(logger).toHaveBeenCalledWith('Warn', `Agent answered HTTP 502: ${page.slice(0, 500)}`);
+    });
+
+    it('should log why an action may have run', async () => {
+      await toToolError(new ActionOutcomeUnknownError(new AgentTimeoutError('Timeout', 30_000)), {
+        logger,
+      });
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'Action execute got no answer: Timeout');
+    });
+
     it('should list the fields that keep an action from running', async () => {
       const error = new ActionValuesNotExecutableError(
         ['reason'],

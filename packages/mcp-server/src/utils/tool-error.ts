@@ -30,6 +30,8 @@ const DROPPED_AUDIT_MESSAGE =
   'Failed to create activity log: the server returned no activity log id. ' +
   'Blocking the operation to preserve the audit trail.';
 
+const LOGGED_DETAIL_MAX = 500;
+
 const AGENT_TIMEOUT_MESSAGE = 'The agent did not answer in time.';
 
 const AGENT_UNREACHABLE_MESSAGE = 'The agent could not be reached.';
@@ -75,8 +77,16 @@ export default async function toToolError(
   if (isUnanswered(error)) logger('Warn', `Agent call failed without an answer: ${error.message}`);
 
   if (error instanceof AgentHttpError && error.status >= 500) {
-    const detail = extractErrorDetail(error) ?? error.responseText;
-    logger('Warn', `Agent answered HTTP ${error.status}: ${detail ?? 'no detail'}`);
+    const detail = (extractErrorDetail(error) ?? error.responseText)?.slice(0, LOGGED_DETAIL_MAX);
+    logger('Warn', `Agent answered HTTP ${error.status}: ${detail || 'no detail'}`);
+  }
+
+  if (error instanceof ActionOutcomeUnknownError) {
+    const { cause } = error;
+    logger(
+      'Warn',
+      `Action execute got no answer: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
   }
 
   let errorMessage = messageOf(error);
