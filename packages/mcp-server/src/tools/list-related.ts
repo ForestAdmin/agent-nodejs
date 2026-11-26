@@ -110,20 +110,6 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
     async (options: HasManyArgument, extra) => {
       const { rpcClient } = buildClient(extra, ctx);
 
-      const labelParts = [];
-
-      if (options.search) {
-        labelParts.push('search');
-      }
-
-      if (options.filters) {
-        labelParts.push('filter');
-      }
-
-      const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
-
-      const label = `list relation "${options.relationName}"${extraLabel}`;
-
       try {
         const listedCollectionName = await readListedCollectionName(
           forestServerClient,
@@ -135,8 +121,8 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
           .relation(options.relationName, options.parentRecordId, listedCollectionName);
 
         const response = options.enableCount
-          ? await relation.listAndCount(options as SelectOptions, { label })
-          : { records: await relation.list(options as SelectOptions, { label }) };
+          ? await relation.listAndCount(options as SelectOptions)
+          : { records: await relation.list(options as SelectOptions) };
 
         return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {
