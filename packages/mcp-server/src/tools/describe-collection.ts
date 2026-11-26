@@ -262,14 +262,16 @@ Check \`_meta\` for data availability context.`,
             const { forestServerToken, renderingId } = getAuthContext(extra);
             let mcpWorkflows: { workflowId: string; name: string }[] = [];
 
-            try {
-              mcpWorkflows = await forestServerClient.listMcpEnabledWorkflows({
-                forestServerToken,
-                renderingId,
-                collectionName: options.collectionName,
-              });
-            } catch (error) {
-              logger('Warn', `Workflows of ${options.collectionName} not listed: ${error}`);
+            if (ctx.enabledTools?.has('triggerWorkflow') ?? true) {
+              try {
+                mcpWorkflows = await forestServerClient.listMcpEnabledWorkflows({
+                  forestServerToken,
+                  renderingId,
+                  collectionName: options.collectionName,
+                });
+              } catch (error) {
+                logger('Warn', `Workflows of ${options.collectionName} not listed: ${error}`);
+              }
             }
 
             const workflows = mcpWorkflows.map(workflow => ({

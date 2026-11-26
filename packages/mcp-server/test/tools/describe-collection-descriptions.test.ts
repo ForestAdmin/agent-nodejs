@@ -230,6 +230,47 @@ describe('describeCollection serves the descriptions written in Forest', () => {
     ]);
   });
 
+  it('lists no workflow when the server does not offer triggerWorkflow', async () => {
+    let readOnlyHandler: typeof handler;
+    const readOnlyServer = {
+      registerTool: jest.fn((_name, _config, toolHandler) => {
+        readOnlyHandler = toolHandler;
+      }),
+    } as unknown as McpServer;
+    declareDescribeCollectionTool(readOnlyServer, {
+      forestServerClient,
+      logger,
+      collectionNames: ['orders'],
+      enabledTools: new Set(['describeCollection', 'list', 'listRelated']),
+    });
+
+    const result = await readOnlyHandler({ collectionName: 'orders' }, extra());
+    const body = JSON.parse(result.content[0].text);
+
+    expect(forestServerClient.listMcpEnabledWorkflows).not.toHaveBeenCalled();
+    expect(body.workflows).toEqual([]);
+    expect(body.description).toBe('Customer orders');
+  });
+
+  it("returns no description for a field or workflow missing from Forest's answer", async () => {
+    forestServerClient.getSemanticLayerCollection.mockResolvedValue({
+      collection: neverDescribed,
+      fields: {},
+      actions: {},
+      workflows: [],
+    });
+
+    const { body } = await call();
+
+    expect(body.fields.map(field => field.name)).toEqual(['id', 'status']);
+    body.fields.forEach(field => expect(field).not.toHaveProperty('description'));
+    expect(body.relations[0]).not.toHaveProperty('description');
+    expect(body.workflows).toEqual([
+      { id: 'wf-1', name: 'Refund order' },
+      { id: 'wf-3', name: 'Escalate' },
+    ]);
+  });
+
   it('lists no workflow when the MCP-enabled workflows cannot be listed', async () => {
     forestServerClient.listMcpEnabledWorkflows.mockRejectedValue(new HttpError('conflict', 409));
 
