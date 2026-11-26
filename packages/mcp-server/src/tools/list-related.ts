@@ -5,6 +5,7 @@ import type { ToolContext } from '../tool-context';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { relationTargetOf } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import { createListArgumentShape } from './list';
@@ -77,12 +78,13 @@ async function readListedCollectionName(
   logger: Logger,
 ): Promise<string | undefined> {
   try {
-    const reference = getFieldsOfCollection(
+    const relation = getFieldsOfCollection(
       await fetchForestSchema(forestServerClient),
       options.collectionName,
-    ).find(field => field.field === options.relationName)?.reference;
+    ).find(field => field.field === options.relationName);
+    const target = relation && relationTargetOf(relation);
 
-    return reference?.split('.').slice(0, -1).join('.');
+    return target && 'target' in target ? target.target : undefined;
   } catch (schemaError) {
     logger(
       'Warn',

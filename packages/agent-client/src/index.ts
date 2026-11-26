@@ -90,6 +90,8 @@ export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
+export { default as relationTargetOf } from './schema/relation-target';
+export type { RelationTarget } from './schema/relation-target';
 export { default as actionEndpointsFromSchema } from './schema/action-endpoints';
 export type { SchemaAction, SchemaCollectionWithActions } from './schema/action-endpoints';
 export { default as serializeRecordId, deserializeRecordId } from './record-id';

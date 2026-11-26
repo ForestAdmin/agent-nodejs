@@ -1,7 +1,12 @@
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
-import { actionEndpointsFromSchema, groupByRecordKey, recordKey } from '@forestadmin/agent-client';
+import {
+  actionEndpointsFromSchema,
+  groupByRecordKey,
+  recordKey,
+  relationTargetOf,
+} from '@forestadmin/agent-client';
 
 export const RELATIONSHIP_TYPES = [
   'BelongsTo',
@@ -44,19 +49,9 @@ function toListableTarget(target: RelationTarget): string | null {
 function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
   if (!field.relationship) return null;
 
-  const type = field.relationship;
+  const target = relationTargetOf(field);
 
-  if (field.polymorphicReferencedModels && field.polymorphicReferencedModels.length > 0) {
-    return { type, polymorphic: true, targets: [...field.polymorphicReferencedModels] };
-  }
-
-  if (field.reference) {
-    // reference is `${foreignCollection}.${key}`; the collection name may itself contain dots
-    // (e.g. mongoose nested collections like `User.address`), so drop only the trailing key.
-    return { type, polymorphic: false, target: field.reference.split('.').slice(0, -1).join('.') };
-  }
-
-  return null;
+  return target && { type: field.relationship, ...target };
 }
 
 function deepFreeze<T>(value: T): T {
