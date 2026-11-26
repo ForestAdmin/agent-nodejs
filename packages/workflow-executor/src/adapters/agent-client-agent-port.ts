@@ -21,6 +21,7 @@ import type {
   Action,
   ActionEndpointsByCollection,
   ActivityLogConfig,
+  SchemaAction,
   SelectOptions,
 } from '@forestadmin/agent-client';
 
@@ -32,6 +33,7 @@ import {
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   HttpRequester,
   UnknownActionFieldError,
+  actionEndpointsFromSchema,
   createRemoteAgentClient,
   extractErrorDetail,
   isApprovalRequested,
@@ -536,30 +538,19 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private buildActionEndpoints(renderingId: number): ActionEndpointsByCollection {
-    const endpoints: ActionEndpointsByCollection = {};
-
-    for (const [collectionName, schema] of this.schemaCache.entriesForRendering(renderingId)) {
-      endpoints[collectionName] = {};
-
-      for (const action of schema.actions) {
-        // agent-client only POSTs /hooks/load when `hooks.load` is true (dynamic form); for static
-        // forms it builds the form from `fields`/`layout` directly, so no 404 probe reaches agents
-        // that don't expose the route. `hooks` and `fields` are forwarded WITHOUT defaults: a
-        // legacy schema omitting them must keep probing — coercing to {load: false} / [] would
-        // silently render dynamic or unknown forms as empty static ones.
-        endpoints[collectionName][action.name] = {
+    // The executor's schema carries no action id, so the name stands in as smart_action_id.
+    return actionEndpointsFromSchema(
+      [...this.schemaCache.entriesForRendering(renderingId)].map(([name, schema]) => ({
+        name,
+        actions: schema.actions.map(action => ({
           id: action.name,
           name: action.name,
           endpoint: action.endpoint,
-          hooks: action.hooks,
-          // Zod envelope-validates `fields`/`layout` as arrays of opaque objects. Inner shape is
-          // owned by @forestadmin/forestadmin-client and consumed by agent-client below.
-          fields: action.fields as ActionEndpointsByCollection[string][string]['fields'],
-          layout: action.layout as ActionEndpointsByCollection[string][string]['layout'],
-        };
-      }
-    }
-
-    return endpoints;
+          hooks: action.hooks as SchemaAction['hooks'],
+          fields: action.fields as SchemaAction['fields'],
+          layout: action.layout as SchemaAction['layout'],
+        })),
+      })),
+    );
   }
 }

@@ -6,6 +6,8 @@ import type {
 } from '../http-client';
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 
+import { actionEndpointsFromSchema } from '@forestadmin/agent-client';
+
 /**
  * Schema Fetcher Utility
  *
@@ -118,33 +120,6 @@ export function getActionsOfCollection(
   return collection.actions || [];
 }
 
-/**
- * Builds a mapping of action endpoints by collection from the Forest Admin schema.
- * This is used by the agent client to resolve action endpoints.
- *
- * @param schema - The Forest Admin schema
- * @returns A mapping of collection names to action names to their endpoints
- */
 export function getActionEndpoints(schema: ForestSchema): ActionEndpoints {
-  const actionEndpoints: ActionEndpoints = {};
-
-  for (const collection of schema.collections) {
-    if (collection.actions && collection.actions.length > 0) {
-      actionEndpoints[collection.name] = {};
-
-      for (const action of collection.actions) {
-        if (action.endpoint) {
-          actionEndpoints[collection.name][action.name] = {
-            id: action.id,
-            name: action.name,
-            endpoint: action.endpoint,
-            hooks: action.hooks,
-            fields: action.fields,
-          };
-        }
-      }
-    }
-  }
-
-  return actionEndpoints;
+  return actionEndpointsFromSchema(schema.collections);
 }

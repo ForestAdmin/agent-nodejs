@@ -1,7 +1,7 @@
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
-import { groupByRecordKey, recordKey } from '@forestadmin/agent-client';
+import { actionEndpointsFromSchema, groupByRecordKey, recordKey } from '@forestadmin/agent-client';
 
 export const RELATIONSHIP_TYPES = [
   'BelongsTo',
@@ -85,15 +85,12 @@ export default class ReadModel {
     this.collections = new Set();
     this.relations = new Map();
     this.listableRelations = new Map();
-    // Null-prototype so an action/collection named like an Object.prototype member
-    // (`toString`, `constructor`, `__proto__`, …) can't falsely pass the allow-list.
-    this.actionEndpoints = Object.create(null) as ActionEndpointsByCollection;
+    this.actionEndpoints = actionEndpointsFromSchema(collections);
     this.primaryKeys = new Map();
 
     for (const collection of collections) {
       this.collections.add(collection.name);
       this.buildRelations(collection);
-      this.buildActionEndpoints(collection);
       this.buildPrimaryKeys(collection);
     }
 
@@ -119,28 +116,6 @@ export default class ReadModel {
 
     this.relations.set(collection.name, relations);
     this.listableRelations.set(collection.name, listable);
-  }
-
-  private buildActionEndpoints(collection: ForestSchemaCollection): void {
-    const actions = collection.actions ?? [];
-    const withEndpoint = actions.filter(action => Boolean(action.endpoint));
-
-    if (withEndpoint.length === 0) return;
-
-    this.actionEndpoints[collection.name] = Object.create(null);
-
-    for (const action of withEndpoint) {
-      // Copy fields/hooks so a mutating consumer can't corrupt the shared cached schema, and
-      // default them defensively: the schema is cast from `Record<string, unknown>`, so a
-      // malformed action could omit them at runtime despite the declared type.
-      this.actionEndpoints[collection.name][action.name] = {
-        id: action.id,
-        name: action.name,
-        endpoint: action.endpoint,
-        hooks: { load: action.hooks?.load ?? false, change: [...(action.hooks?.change ?? [])] },
-        fields: (action.fields ?? []).map(field => ({ ...field })),
-      };
-    }
   }
 
   /**
