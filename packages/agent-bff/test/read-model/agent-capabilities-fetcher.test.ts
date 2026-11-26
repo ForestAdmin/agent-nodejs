@@ -2,7 +2,7 @@ import type { CapabilitiesFetcher } from '../../src/read-model/capabilities-cach
 import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { ForestSchemaCollection, ForestSchemaMeta } from '@forestadmin/forestadmin-client';
 
-import { AgentHttpError, HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import { AgentHttpError, createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import { collection as collectionFixture, column } from './fixtures';
 import { createHttpTransport } from '../../src/agent/agent-transport';
@@ -19,17 +19,13 @@ function transportTo(agentUrl: string, timeoutMs?: number) {
 jest.mock('@forestadmin/agent-client', () => ({
   ...jest.requireActual('@forestadmin/agent-client'),
   createRemoteAgentClient: jest.fn(),
-  HttpRequester: jest.fn(),
 }));
 
 const createRemoteAgentClientMock = createRemoteAgentClient as jest.Mock;
-const mockedHttpRequester = jest.mocked(HttpRequester);
 
 const LEGACY_META = { liana: 'forest-express-sequelize', liana_version: '9.6.10' };
 
 describe('createAgentCapabilitiesFetcher', () => {
-  const query = jest.fn();
-  const stream = jest.fn();
   const logger = jest.fn();
 
   const usersApimap = [
@@ -65,11 +61,8 @@ describe('createAgentCapabilitiesFetcher', () => {
   }
 
   beforeEach(() => {
-    query.mockReset();
     logger.mockReset();
     createRemoteAgentClientMock.mockReset();
-    mockedHttpRequester.mockReset();
-    mockedHttpRequester.mockImplementation(() => ({ query, stream } as unknown as HttpRequester));
   });
 
   it('should build a client for the agent url/token and fetch capabilities per collection', async () => {
@@ -84,11 +77,10 @@ describe('createAgentCapabilitiesFetcher', () => {
     });
     const result = await fetcher('users');
 
-    expect(HttpRequester).toHaveBeenCalledWith('tok', { url: 'https://agent' });
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith({
       url: 'https://agent',
+      timeoutMs: undefined,
       token: 'tok',
-      httpRequester: expect.objectContaining({ query: expect.any(Function) }),
     });
     expect(collection).toHaveBeenCalledWith('users');
     expect(capabilities).toHaveBeenCalledTimes(1);
@@ -138,7 +130,7 @@ describe('createAgentCapabilitiesFetcher', () => {
     ]);
   });
 
-  it('should inject an HttpRequester that applies the configured timeout', async () => {
+  it('should give the client the configured timeout', async () => {
     createRemoteAgentClientMock.mockReturnValue({
       collection: jest
         .fn()
@@ -151,15 +143,9 @@ describe('createAgentCapabilitiesFetcher', () => {
       ...synthesisFrom([]),
     })('users');
 
-    const httpRequester = createRemoteAgentClientMock.mock.calls[0][0]
-      .httpRequester as HttpRequester;
-    await httpRequester.query({ method: 'get', path: '/forest/users/capabilities' });
-
-    expect(query).toHaveBeenCalledWith({
-      method: 'get',
-      path: '/forest/users/capabilities',
-      maxTimeAllowed: 2500,
-    });
+    expect(createRemoteAgentClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://agent', timeoutMs: 2500 }),
+    );
   });
 
   describe('when the agent answers the capabilities route with a 404', () => {

@@ -4,9 +4,6 @@ import type {
   ForestSchemaField,
   ForestServerClient,
 } from '../http-client';
-import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
-
-import { actionEndpointsFromSchema } from '@forestadmin/agent-client';
 
 /**
  * Schema Fetcher Utility
@@ -19,7 +16,6 @@ import { actionEndpointsFromSchema } from '@forestadmin/agent-client';
 export type ForestField = ForestSchemaField;
 export type ForestAction = ForestSchemaAction;
 export type ForestCollection = ForestSchemaCollection;
-export type ActionEndpoints = ActionEndpointsByCollection;
 
 export interface ForestSchema {
   collections: ForestCollection[];
@@ -118,8 +114,4 @@ export function getActionsOfCollection(
   }
 
   return collection.actions || [];
-}
-
-export function getActionEndpoints(schema: ForestSchema): ActionEndpoints {
-  return actionEndpointsFromSchema(schema.collections);
 }

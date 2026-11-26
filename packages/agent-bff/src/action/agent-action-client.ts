@@ -72,10 +72,9 @@ export default function createAgentActionClient({
   activityLog,
 }: AgentActionClientOptions): AgentActionClient {
   const client = createRemoteAgentClient({
-    url: transport.url,
+    ...transport,
     token,
     actionEndpoints,
-    httpRequester: transport.createRequester(token),
     ...activityLog,
   });
 

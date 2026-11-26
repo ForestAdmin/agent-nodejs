@@ -68,12 +68,7 @@ export default function createAgentCapabilitiesFetcher({
   store,
   logger,
 }: AgentCapabilitiesFetcherOptions): CapabilitiesFetcher {
-  const clientFor = (bearer: string) =>
-    createRemoteAgentClient({
-      url: transport.url,
-      token: bearer,
-      httpRequester: transport.createRequester(bearer),
-    });
+  const clientFor = (bearer: string) => createRemoteAgentClient({ ...transport, token: bearer });
 
   // A borrowed token cannot be renewed, so its client is built once; a factory mints one per fetch.
   function createFetch(): CapabilitiesFetcher {

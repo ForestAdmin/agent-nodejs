@@ -6,7 +6,7 @@ import { drainActivityLogs } from '@forestadmin/agent-client';
 import { ActivityLogsService, ServerUtils } from '@forestadmin/forestadmin-client';
 
 import declareExecuteActionTool from '../../src/tools/execute-action';
-import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
+import { fetchForestSchema } from '../../src/utils/schema-fetcher';
 
 jest.mock('../../src/utils/schema-fetcher');
 jest.mock('@forestadmin/forestadmin-client', () => ({
@@ -32,19 +32,23 @@ describe('executeAction on an action that needs an approval', () => {
     };
     (ActivityLogsService as jest.Mock).mockImplementation(() => service);
     forestServer.mockResolvedValue({ data: { id: 'req_42' } });
-    jest.mocked(fetchForestSchema).mockResolvedValue({ collections: [] });
-    jest.mocked(getActionEndpoints).mockReturnValue({
-      users: {
-        refund: {
-          id: 'users-refund',
-          name: 'refund',
-          endpoint: '/forest/actions/refund',
-          hooks: { load: false, change: [] },
-          fields: [],
-          layout: [],
+    jest.mocked(fetchForestSchema).mockResolvedValue({
+      collections: [
+        {
+          name: 'users',
+          actions: [
+            {
+              id: 'users-refund',
+              name: 'refund',
+              endpoint: '/forest/actions/refund',
+              hooks: { load: false, change: [] },
+              fields: [],
+              layout: [],
+            },
+          ],
         },
-      },
-    } as unknown as ReturnType<typeof getActionEndpoints>);
+      ],
+    } as never);
 
     const agentDispatcher: InProcessAgentDispatcher = {
       request: async () => ({

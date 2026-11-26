@@ -151,6 +151,21 @@ describe('HttpRequester', () => {
       expect(mockRequest.timeout).toHaveBeenCalledWith(5000);
     });
 
+    it("should fall back on the client's default timeout when the call sets none", async () => {
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+      const bounded = new HttpRequester('test-token', {
+        url: 'https://api.example.com',
+        defaultTimeoutMs: 2500,
+      });
+
+      await bounded.query({ method: 'get', path: '/forest/users' });
+      await bounded.query({ method: 'get', path: '/forest/users', maxTimeAllowed: 5000 });
+
+      expect(mockRequest.timeout.mock.calls).toEqual([[2500], [5000]]);
+    });
+
     it('should use custom content type if provided', async () => {
       mockRequest.then = jest.fn((onFulfilled: any) => {
         return Promise.resolve(onFulfilled({ body: {} }));
@@ -447,6 +462,21 @@ describe('HttpRequester', () => {
       });
 
       expect(mockRequest.timeout).toHaveBeenCalledWith(5000);
+    });
+
+    it("should fall back on the client's default timeout when the stream sets none", async () => {
+      const bounded = new HttpRequester('test-token', {
+        url: 'https://api.example.com',
+        defaultTimeoutMs: 2500,
+      });
+
+      await bounded.stream({
+        path: '/forest/users.csv',
+        contentType: 'text/csv',
+        stream: {} as any,
+      });
+
+      expect(mockRequest.timeout).toHaveBeenCalledWith(2500);
     });
 
     it('should include query parameters', async () => {

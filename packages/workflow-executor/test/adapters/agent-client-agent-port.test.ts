@@ -79,8 +79,6 @@ jest.mock('@forestadmin/agent-client', () => {
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
     recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
-    actionEndpointsFromSchema: jest.requireActual('@forestadmin/agent-client')
-      .actionEndpointsFromSchema,
     serializeRecordId: jest.requireActual('@forestadmin/agent-client').serializeRecordId,
     deserializeRecordId: jest.requireActual('@forestadmin/agent-client').deserializeRecordId,
     ActivityLogBlockedError: jest.requireActual('@forestadmin/agent-client')
@@ -1871,16 +1869,19 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionEndpoints: {
-            users: {
-              refund: expect.objectContaining({
-                name: 'refund',
-                endpoint: '/forest/actions/refund',
-                hooks: { load: true, change: ['amount'] },
-                fields: [{ field: 'amount', type: 'Number', isRequired: true }],
-              }),
+          schema: [
+            {
+              name: 'users',
+              actions: [
+                expect.objectContaining({
+                  name: 'refund',
+                  endpoint: '/forest/actions/refund',
+                  hooks: { load: true, change: ['amount'] },
+                  fields: [{ field: 'amount', type: 'Number', isRequired: true }],
+                }),
+              ],
             },
-          },
+          ],
         }),
       );
     });
@@ -1893,14 +1894,14 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionEndpoints: expect.objectContaining({
-            users: expect.objectContaining({
-              sendEmail: expect.objectContaining({
-                hooks: undefined,
-                fields: undefined,
-              }),
-            }),
-          }),
+          schema: expect.arrayContaining([
+            {
+              name: 'users',
+              actions: expect.arrayContaining([
+                expect.objectContaining({ name: 'sendEmail', hooks: undefined, fields: undefined }),
+              ]),
+            },
+          ]),
         }),
       );
     });

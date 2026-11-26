@@ -18,9 +18,9 @@ import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 import type {
   Action,
-  ActionEndpointsByCollection,
   ActivityLogConfig,
   SchemaAction,
+  SchemaCollectionWithActions,
   SelectOptions,
 } from '@forestadmin/agent-client';
 
@@ -33,7 +33,6 @@ import {
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   HttpRequester,
   UnknownActionFieldError,
-  actionEndpointsFromSchema,
   createRemoteAgentClient,
   extractErrorDetail,
   isApprovalRequested,
@@ -461,7 +460,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token: this.mintToken(user),
-      actionEndpoints: this.buildActionEndpoints(user.renderingId),
+      schema: this.actionSchemaOf(user.renderingId),
       ...(this.forestServerUrl && forestServerToken
         ? {
             forestServer: {
@@ -519,20 +518,18 @@ export default class AgentClientAgentPort implements AgentPort {
     }
   }
 
-  private buildActionEndpoints(renderingId: number): ActionEndpointsByCollection {
+  private actionSchemaOf(renderingId: number): SchemaCollectionWithActions[] {
     // The executor's schema carries no action id, so the name stands in as smart_action_id.
-    return actionEndpointsFromSchema(
-      [...this.schemaCache.entriesForRendering(renderingId)].map(([name, schema]) => ({
-        name,
-        actions: schema.actions.map(action => ({
-          id: action.name,
-          name: action.name,
-          endpoint: action.endpoint,
-          hooks: action.hooks as SchemaAction['hooks'],
-          fields: action.fields as SchemaAction['fields'],
-          layout: action.layout as SchemaAction['layout'],
-        })),
+    return [...this.schemaCache.entriesForRendering(renderingId)].map(([name, schema]) => ({
+      name,
+      actions: schema.actions.map(action => ({
+        id: action.name,
+        name: action.name,
+        endpoint: action.endpoint,
+        hooks: action.hooks as SchemaAction['hooks'],
+        fields: action.fields as SchemaAction['fields'],
+        layout: action.layout as SchemaAction['layout'],
       })),
-    );
+    }));
   }
 }

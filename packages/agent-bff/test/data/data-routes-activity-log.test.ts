@@ -3,7 +3,7 @@ import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { AgentReads } from '../helpers/data-routes';
 import type { Middleware } from 'koa';
 
-import { drainActivityLogs } from '@forestadmin/agent-client';
+import { AgentHttpError, drainActivityLogs } from '@forestadmin/agent-client';
 import { ActivityLogsService, HttpError } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
@@ -214,7 +214,7 @@ describe('data routes activity log', () => {
         service,
         client: {
           list: async () => {
-            throw new Error('agent is down');
+            throw new AgentHttpError(500, {}, 'Internal Server Error');
           },
         },
       });
@@ -222,7 +222,7 @@ describe('data routes activity log', () => {
       const response = await request(app.callback()).post('/agent/v1/users/list').send({});
       await activityLogs.drain();
 
-      expect(response.status).toBe(502);
+      expect(response.status).toBe(503);
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );

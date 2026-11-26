@@ -1,47 +1,27 @@
 import type { AgentDispatcher } from '../../src/agent/in-process-transport';
 
-import createInProcessTransport from '../../src/agent/in-process-transport';
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
-function dispatcherReturning(response: { status: number; body: unknown }): AgentDispatcher & {
-  request: jest.Mock;
-} {
-  return { request: jest.fn().mockResolvedValue(response) };
-}
+import createInProcessTransport from '../../src/agent/in-process-transport';
 
 describe('createInProcessTransport', () => {
   it('should dispatch with the bearer token and the configured timeout', async () => {
-    const dispatcher = dispatcherReturning({ status: 200, body: { data: [] } });
-    const requester = createInProcessTransport({ dispatcher, timeoutMs: 2500 }).createRequester(
-      'tok',
+    const dispatcher: AgentDispatcher & { request: jest.Mock } = {
+      request: jest.fn().mockResolvedValue({ status: 200, body: { count: 0 } }),
+    };
+    const transport = createInProcessTransport({ dispatcher, timeoutMs: 2500 });
+
+    await createRemoteAgentClient({ ...transport, token: 'tok' })
+      .collection('users')
+      .count();
+
+    expect(dispatcher.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'get',
+        path: '/forest/users/count',
+        headers: expect.objectContaining({ Authorization: 'Bearer tok' }),
+        timeoutMs: 2500,
+      }),
     );
-
-    await requester.query({ method: 'post', path: '/forest/users', body: { a: 1 } });
-
-    expect(dispatcher.request).toHaveBeenCalledWith({
-      method: 'post',
-      path: '/forest/users',
-      headers: {
-        Authorization: 'Bearer tok',
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      query: { timezone: 'Europe/Paris' },
-      payload: { a: 1 },
-      timeoutMs: 2500,
-    });
-  });
-
-  it('should refuse to stream with a 501, since there is no socket to stream from', async () => {
-    const dispatcher = dispatcherReturning({ status: 200, body: {} });
-    const requester = createInProcessTransport({ dispatcher }).createRequester('tok');
-
-    const stream = requester.stream as () => Promise<void>;
-
-    await expect(stream()).rejects.toMatchObject({
-      name: 'BffHttpError',
-      status: 501,
-      type: 'streaming_unsupported',
-      message: 'Streaming is not supported over the in-process transport',
-    });
   });
 });

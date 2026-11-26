@@ -6,6 +6,8 @@ import HttpRequester from '../src/http-requester';
 import {
   type ActionEndpointsByCollection,
   ActivityLogSource,
+  type AgentDispatchRequest,
+  type AgentDispatcher,
   createRemoteAgentClient,
 } from '../src/index';
 
@@ -232,5 +234,72 @@ describe('createRemoteAgentClient', () => {
 
     const relation = collection.relation('categories', 1);
     expect(relation).toBeDefined();
+  });
+
+  describe('when the agent lives in the same process', () => {
+    const answeringDispatcher = () => {
+      const requests: AgentDispatchRequest[] = [];
+      const dispatcher: AgentDispatcher = {
+        request: async request => {
+          requests.push(request);
+
+          return { status: 200, body: request.path.endsWith('/count') ? { count: 3 } : {} };
+        },
+      };
+
+      return { dispatcher, requests };
+    };
+
+    it('should reach the agent through the dispatcher, without an url', async () => {
+      const { dispatcher, requests } = answeringDispatcher();
+
+      const client = createRemoteAgentClient({ token: 'test-token', dispatcher });
+
+      await expect(client.collection('users').count()).resolves.toBe(3);
+      expect(requests).toEqual([
+        expect.objectContaining({
+          method: 'get',
+          path: '/forest/users/count',
+          headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+        }),
+      ]);
+    });
+
+    it("should bound a call with the client's timeout, and an execute with its own", async () => {
+      const { dispatcher, requests } = answeringDispatcher();
+      const client = createRemoteAgentClient({
+        token: 'test-token',
+        dispatcher,
+        timeoutMs: 2500,
+        schema: [
+          {
+            name: 'users',
+            actions: [
+              {
+                id: 'users-ban',
+                name: 'Ban',
+                endpoint: '/forest/_actions/users/0/ban',
+                hooks: { load: false, change: [] },
+                fields: [],
+              },
+            ],
+          },
+        ],
+      });
+
+      await client.collection('users').count();
+      await client.collection('users').executeAction('Ban', { recordIds: ['1'] });
+
+      expect(requests.map(({ path, timeoutMs }) => ({ path, timeoutMs }))).toEqual([
+        { path: '/forest/users/count', timeoutMs: 2500 },
+        { path: '/forest/_actions/users/0/ban', timeoutMs: 30_000 },
+      ]);
+    });
+  });
+
+  it('should refuse a client with neither the agent url nor a dispatcher', () => {
+    expect(() => createRemoteAgentClient({ token: 'test-token' })).toThrow(
+      'An agent client needs the agent url or an in-process dispatcher',
+    );
   });
 });

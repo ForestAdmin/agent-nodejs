@@ -1,11 +1,10 @@
-import {
-  ActivityLogSource,
-  HttpRequester,
-  createRemoteAgentClient,
-} from '@forestadmin/agent-client';
+import type { AgentDispatcher } from '@forestadmin/agent-client';
+
+import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import createAgentActionClient from '../../src/action/agent-action-client';
 import { createHttpTransport } from '../../src/agent/agent-transport';
+import createInProcessTransport from '../../src/agent/in-process-transport';
 
 function transportTo(agentUrl: string, timeoutMs?: number) {
   return createHttpTransport({ agentUrl, timeoutMs });
@@ -13,22 +12,14 @@ function transportTo(agentUrl: string, timeoutMs?: number) {
 
 jest.mock('@forestadmin/agent-client', () => ({
   ...jest.requireActual('@forestadmin/agent-client'),
-  HttpRequester: jest.fn(),
   createRemoteAgentClient: jest.fn(),
 }));
 
 const createRemoteAgentClientMock = createRemoteAgentClient as jest.Mock;
-const mockedHttpRequester = jest.mocked(HttpRequester);
 
 describe('createAgentActionClient', () => {
-  const query = jest.fn();
-  const stream = jest.fn();
-
   beforeEach(() => {
-    query.mockReset();
     createRemoteAgentClientMock.mockReset();
-    mockedHttpRequester.mockReset();
-    mockedHttpRequester.mockImplementation(() => ({ query, stream } as unknown as HttpRequester));
   });
 
   it('loads the action via createRemoteAgentClient().collection(name).action(name, { recordIds, timezone })', async () => {
@@ -50,12 +41,11 @@ describe('createAgentActionClient', () => {
       timezone: 'America/New_York',
     });
 
-    expect(HttpRequester).toHaveBeenCalledWith('jwt-token', { url: 'https://agent.example.com' });
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith({
       url: 'https://agent.example.com',
+      timeoutMs: undefined,
       token: 'jwt-token',
       actionEndpoints,
-      httpRequester: expect.objectContaining({ query: expect.any(Function) }),
     });
     expect(collectionFn).toHaveBeenCalledWith('users');
     expect(actionFn).toHaveBeenCalledWith('approve', {
@@ -65,7 +55,7 @@ describe('createAgentActionClient', () => {
     expect(result).toBe(loadedAction);
   });
 
-  it('should inject an HttpRequester that applies the configured timeout', async () => {
+  it('should give the client the configured timeout', () => {
     createRemoteAgentClientMock.mockReturnValue({
       collection: jest.fn(() => ({ action: jest.fn() })),
     });
@@ -76,15 +66,9 @@ describe('createAgentActionClient', () => {
       actionEndpoints: {} as never,
     });
 
-    const httpRequester = createRemoteAgentClientMock.mock.calls[0][0]
-      .httpRequester as HttpRequester;
-    await httpRequester.query({ method: 'get', path: '/forest/_actions/users/0/approve' });
-
-    expect(query).toHaveBeenCalledWith({
-      method: 'get',
-      path: '/forest/_actions/users/0/approve',
-      maxTimeAllowed: 2500,
-    });
+    expect(createRemoteAgentClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://agent', timeoutMs: 2500 }),
+    );
   });
 
   it('executes through agent-client with the Forest server connection, the approval message and the timeout', async () => {
@@ -128,10 +112,12 @@ describe('createAgentActionClient', () => {
     createRemoteAgentClientMock.mockImplementation(
       jest.requireActual('@forestadmin/agent-client').createRemoteAgentClient,
     );
-    query.mockResolvedValue({ success: 'done' });
+    const dispatcher: AgentDispatcher & { request: jest.Mock } = {
+      request: jest.fn().mockResolvedValue({ status: 200, body: { success: 'done' } }),
+    };
 
     await createAgentActionClient({
-      transport: transportTo('https://agent.example.com'),
+      transport: createInProcessTransport({ dispatcher }),
       token: 'jwt-token',
       actionEndpoints: {
         users: {
@@ -153,7 +139,7 @@ describe('createAgentActionClient', () => {
       fill: async () => undefined,
     });
 
-    expect(query).toHaveBeenCalledWith(
+    expect(dispatcher.request).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'post',
         path: '/forest/_actions/users/0/approve',

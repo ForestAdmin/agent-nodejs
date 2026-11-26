@@ -6,6 +6,8 @@ import type {
   SmartActionPermissionsOverride,
 } from './domains/remote-agent-client';
 import type { ForestServerConnection } from './forest-server';
+import type { AgentDispatcher } from './in-process-http-requester';
+import type { SchemaCollectionWithActions } from './schema/action-endpoints';
 
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
@@ -26,6 +28,8 @@ import AgentHttpError, {
   UnknownActionFieldError,
 } from './errors';
 import HttpRequester from './http-requester';
+import InProcessHttpRequester from './in-process-http-requester';
+import actionEndpointsFromSchema from './schema/action-endpoints';
 
 export {
   ActionFieldJson,
@@ -54,11 +58,47 @@ export type {
 };
 export type { ApprovalRequestPayload, CreateApprovalRequest } from './approval-request-creator';
 
+const actionEndpointsBySchema = new WeakMap<
+  readonly SchemaCollectionWithActions[],
+  ActionEndpointsByCollection
+>();
+
+function actionEndpointsOf(
+  schema: readonly SchemaCollectionWithActions[],
+): ActionEndpointsByCollection {
+  if (!actionEndpointsBySchema.has(schema)) {
+    actionEndpointsBySchema.set(schema, actionEndpointsFromSchema(schema));
+  }
+
+  return actionEndpointsBySchema.get(schema);
+}
+
+function requesterOf(params: {
+  token?: string;
+  url?: string;
+  dispatcher?: AgentDispatcher;
+  timeoutMs?: number;
+  timezone?: string;
+}): HttpRequester {
+  const { token, url, dispatcher, timeoutMs, timezone } = params;
+
+  if (dispatcher) {
+    return new InProcessHttpRequester(token, dispatcher, { timezone, defaultTimeoutMs: timeoutMs });
+  }
+
+  if (!url) throw new Error('An agent client needs the agent url or an in-process dispatcher');
+
+  return new HttpRequester(token, { url, timezone, defaultTimeoutMs: timeoutMs });
+}
+
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
+  schema?: readonly SchemaCollectionWithActions[];
   actionEndpoints?: ActionEndpointsByCollection;
   token?: string;
-  url: string;
+  url?: string;
+  dispatcher?: AgentDispatcher;
+  timeoutMs?: number;
   /**
    * Connection to the Forest Admin server. Provide it to enable server-side features that call the
    * Forest server (e.g. creating approval requests); omit it for a client that only talks to the
@@ -76,12 +116,11 @@ export function createRemoteAgentClient(params: {
     throw new Error('An activity log needs the Forest server connection it is written to');
   }
 
-  const httpRequester =
-    params.httpRequester ??
-    new HttpRequester(params.token, { url: params.url, timezone: params.timezone });
+  const httpRequester = params.httpRequester ?? requesterOf(params);
 
   return new RemoteAgentClient({
-    actionEndpoints: params.actionEndpoints,
+    actionEndpoints:
+      params.actionEndpoints ?? (params.schema ? actionEndpointsOf(params.schema) : undefined),
     httpRequester,
     overridePermissions: params.overridePermissions,
     activityLog: activityLog && toActivityLogContext({ forestServer, activityLog }),
@@ -99,11 +138,7 @@ export function createRemoteAgentClient(params: {
 export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
-export {
-  default as InProcessHttpRequester,
-  AGENT_DISPATCH_TIMEOUT_CODE,
-  IN_PROCESS_AGENT_URL,
-} from './in-process-http-requester';
+export { AGENT_DISPATCH_TIMEOUT_CODE, IN_PROCESS_AGENT_URL } from './in-process-http-requester';
 export { InProcessStreamingUnsupportedError } from './errors';
 export type {
   AgentDispatcher,
