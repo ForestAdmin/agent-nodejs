@@ -70,6 +70,15 @@ describe('toToolError', () => {
   });
 
   describe('when the operation itself failed', () => {
+    it('should log the detail of an agent 5xx it does not show', async () => {
+      const error = new AgentHttpError(500, { errors: [{ detail: 'hook crashed' }] });
+
+      await expect(toToolError(error, { logger })).resolves.toEqual(
+        new Error('Agent responded with HTTP 500'),
+      );
+      expect(logger).toHaveBeenCalledWith('Warn', 'Agent answered HTTP 500: hook crashed');
+    });
+
     it('should list the fields that keep an action from running', async () => {
       const error = new ActionValuesNotExecutableError(
         ['reason'],

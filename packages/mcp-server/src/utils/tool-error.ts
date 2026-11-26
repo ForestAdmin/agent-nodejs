@@ -7,6 +7,7 @@ import {
   AgentHttpError,
   AgentTimeoutError,
   classifyAgentError,
+  extractErrorDetail,
 } from '@forestadmin/agent-client';
 
 import parseAgentError from './error-parser';
@@ -72,6 +73,11 @@ export default async function toToolError(
   if (error instanceof ActivityLogBlockedError) return blockedOperationError(error);
 
   if (isUnanswered(error)) logger('Warn', `Agent call failed without an answer: ${error.message}`);
+
+  if (error instanceof AgentHttpError && error.status >= 500) {
+    const detail = extractErrorDetail(error) ?? error.responseText;
+    logger('Warn', `Agent answered HTTP ${error.status}: ${detail ?? 'no detail'}`);
+  }
 
   let errorMessage = messageOf(error);
 
