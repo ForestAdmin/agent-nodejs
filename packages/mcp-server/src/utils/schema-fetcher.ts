@@ -70,11 +70,16 @@ export function getCollectionNames(schema: ForestSchema): string[] {
   return schema.collections.map(collection => collection.name);
 }
 
+// A collection out of the caller's role must be refused exactly like a missing one.
+export function collectionNotFoundError(collectionName: string): Error {
+  return new Error(`Collection "${collectionName}" not found in schema`);
+}
+
 export function getFieldsOfCollection(schema: ForestSchema, collectionName: string): ForestField[] {
   const collection = schema.collections.find(col => col.name === collectionName);
 
   if (!collection) {
-    throw new Error(`Collection "${collectionName}" not found in schema`);
+    throw collectionNotFoundError(collectionName);
   }
 
   return collection.fields;
@@ -107,7 +112,7 @@ export function getActionsOfCollection(
   const collection = schema.collections.find(col => col.name === collectionName);
 
   if (!collection) {
-    throw new Error(`Collection "${collectionName}" not found in schema`);
+    throw collectionNotFoundError(collectionName);
   }
 
   return collection.actions || [];

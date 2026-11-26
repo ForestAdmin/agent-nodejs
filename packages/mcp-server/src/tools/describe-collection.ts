@@ -9,6 +9,7 @@ import { operatorEnum } from '../schemas/filter';
 import buildClient, { activityLogConfigOf } from '../utils/agent-caller';
 import getAuthContext from '../utils/auth-context';
 import {
+  collectionNotFoundError,
   fetchForestSchema,
   getActionsOfCollection,
   getFieldsOfCollection,
@@ -162,7 +163,7 @@ Check \`_meta\` for data availability context.`,
             );
 
             if (descriptions === UNREACHABLE) {
-              throw new Error(`Collection "${options.collectionName}" not found in schema`);
+              throw collectionNotFoundError(options.collectionName);
             }
 
             const fieldDescription = (name: string) =>

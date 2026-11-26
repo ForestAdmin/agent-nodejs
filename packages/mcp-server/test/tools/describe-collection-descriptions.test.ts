@@ -16,7 +16,12 @@ jest.mock('@forestadmin/agent-client', () => ({
   ...jest.requireActual('@forestadmin/agent-client'),
   withActivityLog: jest.fn((_config, _entry, operation) => operation()),
 }));
-jest.mock('../../src/utils/schema-fetcher');
+jest.mock('../../src/utils/schema-fetcher', () => ({
+  ...jest.requireActual('../../src/utils/schema-fetcher'),
+  fetchForestSchema: jest.fn(),
+  getFieldsOfCollection: jest.fn(),
+  getActionsOfCollection: jest.fn(),
+}));
 
 const described = (text: string): SemanticLayerDescription => ({ hasVersion: true, text });
 const neverDescribed: SemanticLayerDescription = { hasVersion: false, text: null };
@@ -163,6 +168,24 @@ describe('describeCollection serves the descriptions written in Forest', () => {
     ]);
   });
 
+  it('returns field descriptions on agents too old to announce capabilities', async () => {
+    (buildClient as jest.Mock).mockReturnValue({
+      rpcClient: {
+        collection: jest.fn().mockReturnValue({
+          capabilities: jest.fn().mockRejectedValue(new Error('404 Not Found')),
+        }),
+      },
+    });
+
+    const { body } = await call();
+
+    expect(body.fields).toEqual([
+      expect.objectContaining({ name: 'id' }),
+      expect.objectContaining({ name: 'status', description: 'Where the order is in its life' }),
+    ]);
+    expect(body.fields[0]).not.toHaveProperty('description');
+  });
+
   it("returns Forest's text over the code description of an action Forest describes", async () => {
     const { body } = await call();
 
@@ -218,7 +241,7 @@ describe('describeCollection serves the descriptions written in Forest', () => {
 
   it('answers with the same error as a missing collection when Forest says the caller cannot reach it', async () => {
     (schemaFetcher.getFieldsOfCollection as jest.Mock).mockImplementation((_schema, name) => {
-      throw new Error(`Collection "${name}" not found in schema`);
+      throw schemaFetcher.collectionNotFoundError(name);
     });
     const missing = await call('ghost');
     (schemaFetcher.getFieldsOfCollection as jest.Mock).mockReturnValue([]);

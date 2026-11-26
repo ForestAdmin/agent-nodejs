@@ -5,7 +5,12 @@ import parseFileReference from '../file-uploads/file-reference';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
 import { fetchForestSchema } from '../utils/schema-fetcher';
-import { UNREACHABLE, readSemanticLayer, withDescription } from '../utils/semantic-layer';
+import {
+  UNREACHABLE,
+  actionDescriptionText,
+  readSemanticLayer,
+  withDescription,
+} from '../utils/semantic-layer';
 import registerToolWithLogging from '../utils/tool-with-logging';
 
 interface GetActionFormArgument {
@@ -123,19 +128,14 @@ The response includes:
           actionName: options.actionName,
         }),
       );
-      const codeDescription = async () =>
-        (await fetchForestSchema(forestServerClient)).collections
-          ?.find(collection => collection.name === options.collectionName)
-          ?.actions?.find(schemaAction => schemaAction.name === options.actionName)?.description;
+      const codeDescription = (await fetchForestSchema(forestServerClient)).collections
+        ?.find(collection => collection.name === options.collectionName)
+        ?.actions?.find(schemaAction => schemaAction.name === options.actionName)?.description;
       let actionDescription: string | undefined;
 
-      if (forestDescription === UNREACHABLE) {
-        actionDescription = undefined;
-      } else if (forestDescription?.hasVersion) {
-        actionDescription = forestDescription.text ?? undefined;
-      } else {
-        actionDescription = await codeDescription();
-      }
+      if (forestDescription === UNREACHABLE) actionDescription = undefined;
+      else if (forestDescription === undefined) actionDescription = codeDescription;
+      else actionDescription = actionDescriptionText(forestDescription, codeDescription);
 
       return {
         content: [
