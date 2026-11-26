@@ -35,6 +35,7 @@ import {
   createRemoteAgentClient,
   extractErrorDetail,
   isApprovalRequested,
+  recordKey,
   withActivityLog,
 } from '@forestadmin/agent-client';
 
@@ -91,22 +92,6 @@ type RawRecordBody = {
   };
 };
 
-// Transcribes inflected's `underscore` + `camelize(_, false)` — the inflection agent-client's
-// jsonapi-serializer deserializer applies to every response key. Divergence = silent lookup miss.
-function toCamelCase(name: string): string {
-  const underscored = name
-    .replace(/([A-Z\d]+)([A-Z][a-z])/g, '$1_$2')
-    .replace(/([a-z\d])([A-Z])/g, '$1_$2')
-    .replace(/-/g, '_')
-    .toLowerCase();
-
-  return underscored.replace(
-    /(?:_|(\/))([a-z\d]*)/gi,
-    (_, slash: string | undefined, word: string) =>
-      (slash ?? '') + (word && word.charAt(0).toUpperCase() + word.slice(1)),
-  );
-}
-
 function restoreFieldNames(
   values: Record<string, unknown>,
   originalFieldNames: string[] | undefined,
@@ -116,7 +101,7 @@ function restoreFieldNames(
   const camelToOriginal: Record<string, string> = {};
 
   for (const name of originalFieldNames) {
-    camelToOriginal[toCamelCase(name)] = name;
+    camelToOriginal[recordKey(name)] = name;
   }
 
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));

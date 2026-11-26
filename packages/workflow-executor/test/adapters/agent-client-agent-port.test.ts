@@ -93,6 +93,7 @@ jest.mock('@forestadmin/agent-client', () => {
     extractErrorDetail: jest.requireActual('@forestadmin/agent-client').extractErrorDetail,
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
+    recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
     ActivityLogBlockedError: jest.requireActual('@forestadmin/agent-client')
       .ActivityLogBlockedError,
     withActivityLog: jest.fn((_config, _entry, operation) => operation()),
