@@ -28,7 +28,7 @@ Depends on `@forestadmin/datasource-toolkit` (for `PlainFilter`/`PlainSortClause
 Every server-side package reaches an agent through this package only (see the root `CLAUDE.md`).
 
 - A new audit or approval rule goes here, in `activity-log/` or `approval-request-creator.ts`, never in a surface. `with-activity-log.ts` runs a call inside its entry and is the public face; `create-pending-activity-log.ts` opens the entry and decides what blocks a write; `mark-activity-log.ts` moves it to its final status.
-- The rules of an action call live here too: `describeActionForm` describes a form, `findActionValueProblems` lists the values left empty or of the wrong type, and `executeAction` refuses such a form before sending it, `classifyAgentError` reads a failure, `mayHaveRun` tells an execute that may have run, `actionEndpointsFromSchema` and `relationTargetOf` read the schema. A surface renders their result, never re-derives it.
+- The rules of an action call live here too: `describeActionForm` describes a form with its required fields left empty and its invalid values, `executeAction` refuses such a form before sending it, `classifyAgentError` reads a failure, `mayHaveRun` tells an execute that may have run, `actionEndpointsFromSchema` and `relationTargetOf` read the schema. A surface renders their result, never re-derives it.
 - The API stays business-level. A caller passes filters, sort, pagination, fields, search and time zone through `SelectOptions`; only `QuerySerializer` knows the wire parameters.
 - Logging is off unless the caller enables it. `agent-testing` leaves it off.
 
