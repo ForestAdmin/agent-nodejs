@@ -1,4 +1,8 @@
+import type { InvalidActionValue } from './action-values-check';
 import type { PlainField } from './types';
+
+import expectedValueOf from './action-values-check';
+import { ActionValuesNotExecutableError } from '../errors';
 
 export type AllowedValue = { value: string | number | null; label: string };
 
@@ -17,6 +21,7 @@ export type ActionFormFieldDescription = {
 export type ActionFormDescription = {
   fields: ActionFormFieldDescription[];
   requiredFields: string[];
+  invalidValues: InvalidActionValue[];
   canExecute: boolean;
 };
 
@@ -28,6 +33,7 @@ export interface DescribableField {
   isRequired(): boolean | undefined;
   getPlainField(): Partial<PlainField> | undefined;
   getMultipleChoiceField(): { getOptions(): unknown[] | null | undefined };
+  getReference?(): string | null | undefined;
 }
 
 export interface DescribableForm {
@@ -96,6 +102,24 @@ export default function describeActionForm(
   const requiredFields = fields
     .filter(field => field.isRequired && (field.value === undefined || field.value === null))
     .map(field => field.name);
+  const invalidValues = form.getFields().flatMap(field => {
+    const expected = expectedValueOf(form, field, valueOf(field));
 
-  return { fields, requiredFields, canExecute: requiredFields.length === 0 };
+    return expected ? [{ field: field.getName(), expected }] : [];
+  });
+
+  return {
+    fields,
+    requiredFields,
+    invalidValues,
+    canExecute: requiredFields.length === 0 && invalidValues.length === 0,
+  };
+}
+
+export function assertActionValuesExecutable(form: DescribableForm): void {
+  const { requiredFields, invalidValues } = describeActionForm(form);
+
+  if (requiredFields.length > 0 || invalidValues.length > 0) {
+    throw new ActionValuesNotExecutableError(requiredFields, invalidValues);
+  }
 }

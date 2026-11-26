@@ -115,7 +115,6 @@ function restoreFieldNames(
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
 }
 
-// Options may be {value,label} objects or bare primitives — normalize to a consistent shape.
 // The statuses a change hook answers with when it refuses the submitted value. Auth, rate limiting
 // and timeouts are also 4xx but say nothing about the value, so they must not reach the form fallback.
 const FORM_VALIDATION_STATUSES = [400, 422];

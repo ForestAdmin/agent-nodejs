@@ -112,4 +112,15 @@ describe('describeActionForm', () => {
 
     expect(describeActionForm(action).requiredFields).toEqual(['toString']);
   });
+
+  it('should not let a form with an invalid value execute', async () => {
+    const action = await actionWithFields([field({ field: 'amount', type: 'Number' })]);
+    await action.setFields({ amount: '12' });
+
+    expect(describeActionForm(action)).toMatchObject({
+      requiredFields: [],
+      invalidValues: [{ field: 'amount', expected: 'a number' }],
+      canExecute: false,
+    });
+  });
 });

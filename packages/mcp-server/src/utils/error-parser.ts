@@ -1,7 +1,5 @@
 import { AgentHttpError, classifyAgentError } from '@forestadmin/agent-client';
 
-// Turn an agent RPC error into a human-readable message: the agent's own 4xx message with its HTTP
-// status when it has one, else the generic message (which already carries the status).
 export default function parseAgentError(error: unknown, depth = 0): string | null {
   if (error instanceof AgentHttpError) {
     const { agentMessage } = classifyAgentError(error);

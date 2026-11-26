@@ -15,8 +15,8 @@ import Action from './action';
 import CollectionChart from './collection-chart';
 import Relation from './relation';
 import Segment from './segment';
-import { assertActionValuesExecutable } from '../action-fields/action-values-check';
 import FieldFormStates from '../action-fields/field-form-states';
+import { assertActionValuesExecutable } from '../action-fields/form-description';
 import withActivityLogContext, {
   logApprovalRequest,
   runCall,

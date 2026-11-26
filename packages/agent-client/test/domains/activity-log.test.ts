@@ -442,7 +442,7 @@ describe('activity logging inside agent-client calls', () => {
       );
     });
 
-    it('should refuse to execute a form the agent would refuse, and mark the entry failed', async () => {
+    it('should refuse to execute a form whose values are left empty, and mark the entry failed', async () => {
       const { httpRequester, service, query } = setup();
       const collection = new Collection(
         'users',
@@ -564,6 +564,39 @@ describe('activity logging inside agent-client calls', () => {
 
         return { collection, service, entries, logger, createApprovalRequest };
       }
+
+      it('should file the request of a form with a required field filled', async () => {
+        const { httpRequester, query, service } = setup();
+        query.mockRejectedValue(approvalGated);
+        const createApprovalRequest = jest.fn(async () => ({ id: 'req_1' }));
+        const collection = new Collection(
+          'users',
+          httpRequester,
+          {
+            users: {
+              refund: {
+                ...actionEndpoints.users.refund,
+                fields: [{ field: 'amount', type: 'Number', isRequired: true, isReadOnly: false }],
+              },
+            },
+          } as unknown as ActionEndpointsByCollection,
+          createApprovalRequest,
+          {
+            service: service as unknown as ActivityLogsServiceInterface,
+            credentials: () => ({ forestServerToken: 'server-token', renderingId: 1 }),
+          },
+        );
+
+        const result = await collection.executeAction('refund', {
+          recordIds: [1],
+          fill: action => action.setFields({ amount: 12 }),
+        });
+
+        expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_1' } });
+        expect(createApprovalRequest).toHaveBeenCalledWith(
+          expect.objectContaining({ inputs: [{ name: 'amount', type: 'Number', value: 12 }] }),
+        );
+      });
 
       it('should file no request and write no createApproval entry when the caller skips it', async () => {
         const { collection, service, entries, createApprovalRequest } = setupApproval();

@@ -22,7 +22,6 @@ interface GetActionFormArgument {
   values?: Record<string, unknown>;
 }
 
-// Options may be {value,label} objects or bare primitives — normalize to a consistent shape.
 // Setting a field that declares a change hook posts every field value to the agent, and a change
 // hook reading `.buffer` off a handle string throws — a 500 on the very sequence executeAction's
 // description prescribes. Handles are not resolved on this path on purpose (the bytes would land
@@ -68,8 +67,9 @@ Workflow:
 The response includes:
 - description: what the action does, when one is written
 - fields: Array of form fields with name, type, current value, isRequired flag, description (hint), enumValues (Enum fields), and allowedValues (choice widgets — submit the value, not the label)
-- canExecute: Boolean indicating if all required fields have values (ready to execute)
-- requiredFields: Array of field names that are required but missing values (empty when canExecute is true)
+- canExecute: Boolean indicating if all required fields have values and every value is valid (ready to execute)
+- requiredFields: Array of field names that are required but missing values
+- invalidValues: Present when a value has the wrong type or is not one of its options: each entry names the field and what it expects
 - skippedFields: Array of field names that were skipped because they no longer exist in the form (due to dynamic form behavior)`,
       inputSchema: argumentShape,
     },
@@ -93,7 +93,10 @@ The response includes:
         skippedFields = await action.tryToSetFields(split.forAgent);
       }
 
-      const { fields, requiredFields, canExecute } = describeActionForm(action, withheld);
+      const { fields, requiredFields, invalidValues, canExecute } = describeActionForm(
+        action,
+        withheld,
+      );
 
       const forestDescription = await readSemanticLayer(extra, logger, caller =>
         forestServerClient.getSemanticLayerActionDescription({
@@ -138,6 +141,7 @@ The response includes:
               ),
               canExecute,
               requiredFields,
+              ...(invalidValues.length > 0 && { invalidValues }),
               skippedFields,
             }),
           },

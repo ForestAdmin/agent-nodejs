@@ -1,6 +1,6 @@
 import type HttpRequester from '../../src/http-requester';
 
-import { findActionValueProblems } from '../../src/action-fields/action-values-check';
+import describeActionForm from '../../src/action-fields/form-description';
 import Collection from '../../src/domains/collection';
 
 async function formWith(fields: Record<string, unknown>[], values: Record<string, unknown> = {}) {
@@ -22,16 +22,17 @@ async function formWith(fields: Record<string, unknown>[], values: Record<string
   return action;
 }
 
-describe('findActionValueProblems', () => {
+describe('the values check of describeActionForm', () => {
   it('should list the required fields left empty', async () => {
     const form = await formWith([
       { field: 'reason', type: 'String', isRequired: true },
       { field: 'note', type: 'String' },
     ]);
 
-    expect(findActionValueProblems(form)).toEqual({
-      missingRequiredFields: ['reason'],
+    expect(describeActionForm(form)).toMatchObject({
+      requiredFields: ['reason'],
       invalidValues: [],
+      canExecute: false,
     });
   });
 
@@ -42,22 +43,35 @@ describe('findActionValueProblems', () => {
     ['an Enum', { type: 'Enum', enums: ['low', 'high'] }, 'mid', 'one of: low, high'],
     ['a list', { type: ['Number'] }, 3, 'an array of a number'],
     ['an item of a list', { type: ['Number'] }, [1, 'x'], 'index 1 to be a number'],
-    ['a reference', { type: 'String', reference: 'users.id' }, { id: 1 }, 'a record id'],
+    [
+      'a reference',
+      { type: 'String', reference: 'users.id' },
+      { id: 1 },
+      'a string holding a packed record id',
+    ],
+    [
+      'a reference by number',
+      { type: 'Number', reference: 'users.id' },
+      7,
+      'a string holding a packed record id',
+    ],
   ])('should refuse %s of the wrong type', async (_, declared, value, expected) => {
     const form = await formWith([{ field: 'value', ...declared }], { value });
 
-    expect(findActionValueProblems(form).invalidValues).toEqual([{ field: 'value', expected }]);
+    expect(describeActionForm(form)).toMatchObject({
+      invalidValues: [{ field: 'value', expected }],
+      canExecute: false,
+    });
   });
 
   it.each([
     ['a Number', { type: 'Number' }, 12],
     ['an Enum without options', { type: 'Enum' }, 'anything'],
-    ['a reference by number', { type: 'Number', reference: 'users.id' }, 7],
     ['a reference by string', { type: 'String', reference: 'users.id' }, 'a|b'],
     ['a Json', { type: 'Json' }, { any: 'thing' }],
   ])('should accept %s', async (_, declared, value) => {
     const form = await formWith([{ field: 'value', ...declared }], { value });
 
-    expect(findActionValueProblems(form).invalidValues).toEqual([]);
+    expect(describeActionForm(form)).toMatchObject({ invalidValues: [], canExecute: true });
   });
 });

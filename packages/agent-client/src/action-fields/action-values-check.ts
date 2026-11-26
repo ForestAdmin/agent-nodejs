@@ -1,29 +1,19 @@
 import type { DescribableField, DescribableForm } from './form-description';
 import type { FieldType, PrimitiveShape } from '../schema/field-type';
 
-import describeActionForm from './form-description';
-import { ActionValuesNotExecutableError } from '../errors';
-import { enumOptionsOf, normalizeFieldType, primitiveShapeOf } from '../schema/field-type';
-
-export interface CheckableField extends DescribableField {
-  getReference(): string | null | undefined;
-}
-
-export interface CheckableForm extends DescribableForm {
-  getFields(): CheckableField[];
-}
+import {
+  enumOptionsOf,
+  isEnumFieldType,
+  normalizeFieldType,
+  primitiveShapeOf,
+} from '../schema/field-type';
 
 export interface InvalidActionValue {
   field: string;
   expected: string;
 }
 
-export interface ActionValueProblems {
-  missingRequiredFields: string[];
-  invalidValues: InvalidActionValue[];
-}
-
-const RECORD_ID_EXPECTATION = 'a record id';
+const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
 
 interface ValueCheck {
   expected: string;
@@ -79,46 +69,19 @@ function expectedWhenViolated(
   return check.matches(value) ? undefined : check.expected;
 }
 
-function isRecordId(value: unknown): boolean {
-  return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value));
-}
+export default function expectedValueOf(
+  form: DescribableForm,
+  field: DescribableField,
+  value: unknown,
+): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (field.getReference?.()) return typeof value === 'string' ? undefined : PACKED_ID_EXPECTATION;
 
-export function findActionValueProblems(form: CheckableForm): ActionValueProblems {
-  const { requiredFields } = describeActionForm(form);
-  const invalidValues: InvalidActionValue[] = [];
+  const type = normalizeFieldType(field.getType());
 
-  for (const field of form.getFields()) {
-    const name = field.getName();
-    const value = field.getValue();
+  const options = isEnumFieldType(type)
+    ? enumOptionsOf(type, form.getEnumField(field.getName()).getOptions())
+    : undefined;
 
-    if (value !== undefined && value !== null) {
-      let expected: string | undefined;
-
-      if (field.getReference()) {
-        expected = isRecordId(value) ? undefined : RECORD_ID_EXPECTATION;
-      } else {
-        const type = normalizeFieldType(field.getType());
-        expected = expectedWhenViolated(
-          type,
-          value,
-          enumOptionsOf(type, form.getEnumField(name).getOptions()),
-        );
-      }
-
-      if (expected) invalidValues.push({ field: name, expected });
-    }
-  }
-
-  return { missingRequiredFields: requiredFields, invalidValues };
-}
-
-export function assertActionValuesExecutable(form: CheckableForm): void {
-  const problems = findActionValueProblems(form);
-
-  if (problems.missingRequiredFields.length > 0 || problems.invalidValues.length > 0) {
-    throw new ActionValuesNotExecutableError(
-      problems.missingRequiredFields,
-      problems.invalidValues,
-    );
-  }
+  return expectedWhenViolated(type, value, options);
 }

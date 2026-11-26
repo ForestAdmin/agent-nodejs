@@ -23,15 +23,13 @@ export interface ActionFormResponse {
   layout: ForestServerActionFormLayoutElement[];
 }
 
-// A required field is "missing a value" only when its resolved value is null/undefined; an explicit
-// empty string or 0 counts as present.
 export function mapActionForm(
   action: ActionForm,
   skippedFields: string[],
   layout: ForestServerActionFormLayoutElement[],
   logger: Logger,
 ): ActionFormResponse {
-  const { fields, requiredFields, canExecute } = describeActionForm(action);
+  const { fields, requiredFields } = describeActionForm(action);
 
   return {
     fields: fields.map(({ name, type, value, isRequired, enumValues }) => ({
@@ -41,7 +39,7 @@ export function mapActionForm(
       isRequired,
       ...(enumValues !== undefined && { enumValues }),
     })),
-    canExecute,
+    canExecute: requiredFields.length === 0,
     requiredFields,
     skippedFields,
     layout: sanitizeActionLayout(layout, logger),

@@ -1008,6 +1008,41 @@ describe('declareGetActionFormTool', () => {
       expect(mockGetEnumField).toHaveBeenCalledWith('status');
     });
 
+    it('should not let a form with an invalid value execute, and name it', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'amount',
+            getType: () => 'Number',
+            getTypeName: () => 'Number',
+            getEffectiveTypeName: () => 'Number',
+            getValue: () => '12',
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => undefined }),
+          },
+        ]),
+        tryToSetFields: jest.fn().mockResolvedValue([]),
+        getEnumField: jest.fn().mockReturnValue({ getOptions: () => undefined }),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'refund', recordIds: [1], values: { amount: '12' } },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult).toMatchObject({
+        canExecute: false,
+        requiredFields: [],
+        invalidValues: [{ field: 'amount', expected: 'a number' }],
+      });
+    });
+
     it('should return enumValues for a list of Enum', async () => {
       const mockAction = jest.fn().mockResolvedValue({
         getFields: jest.fn().mockReturnValue([
