@@ -2,9 +2,12 @@ import type { ForestServerClient } from '../../src/http-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActivityLogSource,
+  InProcessHttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 
-import InProcessHttpRequester from '../../src/in-process-http-requester';
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
 import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
 import createMockForestServerClient from '../helpers/forest-server-client';
@@ -218,6 +221,21 @@ describe('buildClient', () => {
 
       expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
+      );
+    });
+
+    it('reaches the same agent path in-process as over HTTP for a record id holding a space', async () => {
+      agentDispatcher.request.mockResolvedValue({ status: 200, body: {}, text: '{}' });
+      const request = {
+        authInfo: { token: 'test-token', extra: { ...caller } },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      buildClient(request, { ...toolContext(), agentDispatcher });
+      const { httpRequester } = mockCreateRemoteAgentClient.mock.calls[0][0];
+      await httpRequester.query({ method: 'get', path: '/forest/orders/A B' });
+
+      expect(agentDispatcher.request).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/orders/A%20B' }),
       );
     });
 

@@ -4,10 +4,13 @@ import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
-import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActivityLogSource,
+  InProcessHttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 
 import getAuthContext from './auth-context';
-import InProcessHttpRequester from '../in-process-http-requester';
 import { fetchForestSchema, getActionEndpoints } from './schema-fetcher';
 
 type McpRequest = RequestHandlerExtra<ServerRequest, ServerNotification>;

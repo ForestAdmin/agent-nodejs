@@ -92,6 +92,17 @@ export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
 export { default as classifyAgentError } from './agent-error';
+export {
+  default as InProcessHttpRequester,
+  AGENT_DISPATCH_TIMEOUT_CODE,
+  IN_PROCESS_AGENT_URL,
+} from './in-process-http-requester';
+export { InProcessStreamingUnsupportedError } from './errors';
+export type {
+  AgentDispatcher,
+  AgentDispatchRequest,
+  AgentDispatchResponse,
+} from './in-process-http-requester';
 export type { AgentErrorClassification, AgentFailureKind } from './agent-error';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
 export { default as relationTargetOf } from './schema/relation-target';

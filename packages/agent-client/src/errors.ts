@@ -19,6 +19,13 @@ export class AgentTimeoutError extends Error {
   }
 }
 
+export class InProcessStreamingUnsupportedError extends Error {
+  constructor() {
+    super('Streaming is not supported over the in-process transport');
+    this.name = 'InProcessStreamingUnsupportedError';
+  }
+}
+
 // Semantic action errors: agent-client interprets the failure once so callers route on meaning, not
 // status/body. `message` carries the agent's detail when available.
 export class ActionRequiresApprovalError extends Error {
