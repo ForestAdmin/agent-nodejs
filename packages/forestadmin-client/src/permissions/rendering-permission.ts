@@ -92,6 +92,18 @@ export default class RenderingPermissionService {
     );
   }
 
+  public async scopeAppliesToRelatedRecords({
+    renderingId,
+    collectionName,
+  }: {
+    renderingId: number | string;
+    collectionName: string;
+  }): Promise<boolean> {
+    const permissions = await this.permissionsByRendering.fetch(`${renderingId}`);
+
+    return permissions?.collections?.[collectionName]?.appliesToRelatedRecords === true;
+  }
+
   public async canExecuteSegmentQuery({
     renderingId,
     collectionName,

@@ -81,6 +81,38 @@ describe('RenderingPermissionService', () => {
     };
   }
 
+  describe('scopeAppliesToRelatedRecords', () => {
+    const fetchFlag = async (collections: Record<string, unknown>) => {
+      const { renderingPermission, serverInterface } = setup();
+      serverInterface.getRenderingPermissions = jest
+        .fn()
+        .mockResolvedValue({ team: { id: 1, name: 'dream' }, collections, stats: [] });
+
+      return renderingPermission.scopeAppliesToRelatedRecords({
+        renderingId: '42',
+        collectionName: 'books',
+      });
+    };
+
+    it('should return true when the server flags the collection scope', async () => {
+      expect(await fetchFlag({ books: { scope: null, appliesToRelatedRecords: true } })).toBe(true);
+    });
+
+    it('should return false when the server sends the flag off', async () => {
+      expect(await fetchFlag({ books: { scope: null, appliesToRelatedRecords: false } })).toBe(
+        false,
+      );
+    });
+
+    it('should return false when the server sends no flag', async () => {
+      expect(await fetchFlag({ books: { scope: null } })).toBe(false);
+    });
+
+    it('should return false when the collection is unknown', async () => {
+      expect(await fetchFlag({})).toBe(false);
+    });
+  });
+
   describe('getScope', () => {
     it('should retrieve the users and rendering info, generate scope and return it', async () => {
       const { renderingPermission, getUserInfoMock, serverInterface, options } = setup();

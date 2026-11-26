@@ -8,6 +8,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   verifySignedActionParameters: jest.fn(),
   canExecuteChart: jest.fn(),
   getScope: jest.fn(),
+  scopeAppliesToRelatedRecords: jest.fn(),
   markScopesAsUpdated: jest.fn(),
   getIpWhitelistConfiguration: jest.fn(),
   postSchema: jest.fn(),

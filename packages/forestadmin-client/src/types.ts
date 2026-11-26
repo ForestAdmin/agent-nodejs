@@ -66,6 +66,11 @@ export interface ForestAdminClient {
     userId: number | string;
     collectionName: string;
   }): Promise<RawTree>;
+  /** Optional so that clients built before servers sent the flag keep compiling. */
+  scopeAppliesToRelatedRecords?(params: {
+    renderingId: number | string;
+    collectionName: string;
+  }): Promise<boolean>;
   markScopesAsUpdated(renderingId: number | string): void;
 
   subscribeToServerEvents(): Promise<void>;
