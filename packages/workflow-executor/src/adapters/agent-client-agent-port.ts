@@ -51,7 +51,7 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
-import { serializeRecordId } from '../record-id';
+import { deserializeRecordId, serializeRecordId } from '../record-id';
 
 // agent-client keeps the agent's own wording as the message only when the body had one; otherwise
 // the message is its generic fallback and unstructuredCause holds the raw response.
@@ -241,7 +241,7 @@ export default class AgentClientAgentPort implements AgentPort {
         // like getSingleRelatedData, so it round-trips through the by-id route.
         const recordId =
           relatedSchema.primaryKeyFields.length > 1
-            ? String(row.id).split('|')
+            ? deserializeRecordId(String(row.id))
             : relatedSchema.primaryKeyFields.map(f => restored[f] as string | number);
 
         return {
@@ -326,7 +326,9 @@ export default class AgentClientAgentPort implements AgentPort {
         // would unpack into the wrong number of key parts. That surfaces as an AgentPortError naming
         // the value, which is cryptic but loud; naming the relation too would need a domain error.
         const recordId =
-          relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
+          relatedSchema.primaryKeyFields.length > 1
+            ? deserializeRecordId(String(raw))
+            : [String(raw)];
 
         // The target is read even when the caller projected nothing, on its first PK alone. Skipping
         // the read to save the round trip also skipped the readability check below, so a relation

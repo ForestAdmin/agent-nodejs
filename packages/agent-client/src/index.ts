@@ -90,6 +90,7 @@ export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
+export { default as serializeRecordId, deserializeRecordId } from './record-id';
 export { default as recordKey, groupByRecordKey, publishedRecordKeys } from './record-key';
 export type { PublishedRecordKey } from './record-key';
 export type { RecordId, SelectOptions } from './types';

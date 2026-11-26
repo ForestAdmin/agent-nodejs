@@ -35,7 +35,7 @@ export type ExecuteActionOptions = BaseActionContext &
 
 function serializeActionIds(context?: BaseActionContext): string[] {
   return (context?.recordIds ?? [context?.recordId])
-    .filter((id): id is RecordId => Boolean(id))
+    .filter((id): id is RecordId => id !== undefined && id !== null && id !== '')
     .map(serializeRecordId);
 }
 

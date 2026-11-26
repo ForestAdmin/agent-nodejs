@@ -959,11 +959,8 @@ export class UnsupportedStepTypeError extends WorkflowExecutorError {
 }
 
 export class RecordIdSerializationError extends WorkflowExecutorError {
-  constructor(part: string) {
-    super(
-      `Composite record id part "${part}" cannot contain the "|" separator`,
-      'A record identifier contains an unsupported character and cannot be processed.',
-    );
+  constructor(reason: string) {
+    super(reason, 'A record identifier contains an unsupported character and cannot be processed.');
   }
 }
 

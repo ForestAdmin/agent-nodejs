@@ -94,6 +94,8 @@ jest.mock('@forestadmin/agent-client', () => {
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
     recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
+    serializeRecordId: jest.requireActual('@forestadmin/agent-client').serializeRecordId,
+    deserializeRecordId: jest.requireActual('@forestadmin/agent-client').deserializeRecordId,
     ActivityLogBlockedError: jest.requireActual('@forestadmin/agent-client')
       .ActivityLogBlockedError,
     withActivityLog: jest.fn((_config, _entry, operation) => operation()),
