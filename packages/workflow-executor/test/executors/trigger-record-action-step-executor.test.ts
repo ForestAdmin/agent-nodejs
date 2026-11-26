@@ -1090,6 +1090,134 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(prompt).toContain('allowed: low, high');
     });
 
+    it('tells the AI which fields take HTML in the fill prompt', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [
+            { name: 'body', type: 'String', isRequired: true, isRichText: true },
+            { name: 'subject', type: 'String', isRequired: false },
+          ],
+          canExecute: false,
+          requiredFields: ['body'],
+          skippedFields: [],
+        })
+        .mockResolvedValueOnce({
+          fields: [
+            {
+              name: 'body',
+              type: 'String',
+              isRequired: true,
+              isRichText: true,
+              value: '<p>Hi</p>',
+            },
+            { name: 'subject', type: 'String', isRequired: false },
+          ],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      const mockModel = makeMockModel({ values: { body: '<p>Hi</p>' } }, 'fill_action_form');
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      const prompt = (mockModel.invoke.mock.calls[0][0] as { content: unknown }[])
+        .map(m => m.content)
+        .filter((c): c is string => typeof c === 'string')
+        .join('\n');
+      expect(prompt).toContain('- body (String, rich text, required)');
+      expect(prompt).toContain('- subject (String)');
+      expect(prompt).toContain('A field marked "rich text" takes HTML');
+      expect(prompt).toContain('Any other text field takes plain text');
+    });
+
+    it('turns HTML into text for a plain field and keeps it for a rich text field', async () => {
+      const agentPort = makeMockAgentPort();
+      const fields = [
+        { name: 'body', type: 'String', isRequired: true, isRichText: true },
+        { name: 'note', type: 'String', isRequired: true },
+      ];
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields,
+          canExecute: false,
+          requiredFields: ['body', 'note'],
+          skippedFields: [],
+        })
+        .mockResolvedValueOnce({ fields, canExecute: true, requiredFields: [], skippedFields: [] });
+      const html = '<p>Refund <strong>approved</strong></p>';
+      const mockModel = makeMockModel({ values: { body: html, note: html } }, 'fill_action_form');
+      const logger = jest.fn();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        logger,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+          approvalMessage: 'Send a welcome email to the customer',
+          values: { body: html, note: 'Refund approved' },
+        },
+        {
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            firstName: 'Test',
+            lastName: 'User',
+            team: 'admin',
+            renderingId: 1,
+            role: 'admin',
+            permissionLevel: 'admin',
+            tags: {},
+          },
+          forestServerToken: undefined,
+        },
+        {
+          call: { beforeCall: expect.any(Function) },
+          context: {
+            activityLog: { source: 'WorkflowExecutor', collectionIdOf: expect.any(Function) },
+            forestServer: {
+              renderingId: 1,
+              serverToken: 'forest-token',
+              serverUrl: 'https://api.forestadmin.com',
+            },
+          },
+        },
+      );
+      const conversionLogs = logger.mock.calls.filter(
+        ([, message]) => message === 'AI form-fill: HTML turned into text for a plain field',
+      );
+      expect(conversionLogs).toEqual([
+        ['Debug', expect.any(String), expect.objectContaining({ field: 'note' })],
+      ]);
+    });
+
     it('lets the AI fill the optional fields a change hook reveals once the required ones are set', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock)

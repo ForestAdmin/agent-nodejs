@@ -69,6 +69,13 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     });
   }
 
+  public async scopeAppliesToRelatedRecords(params: {
+    renderingId: number | string;
+    collectionName: string;
+  }): Promise<boolean> {
+    return this.renderingPermissionService.scopeAppliesToRelatedRecords(params);
+  }
+
   public markScopesAsUpdated(renderingId: number | string) {
     if (!this.options.instantCacheRefresh) {
       this.renderingPermissionService.invalidateCache(renderingId);

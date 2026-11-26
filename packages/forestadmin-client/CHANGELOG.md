@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.49.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.48.0...@forestadmin/forestadmin-client@1.49.0) (2026-11-26)
+
+
+### Features
+
+* **agent:** apply a related collection's scope only when the server flags it ([#2107](https://github.com/ForestAdmin/agent-nodejs/issues/2107)) ([3474dcb](https://github.com/ForestAdmin/agent-nodejs/commit/3474dcbdb0478565f78f78bbc82a624ec0f654a7))
+
 # @forestadmin/forestadmin-client [1.48.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.47.0...@forestadmin/forestadmin-client@1.48.0) (2026-11-24)
 
 

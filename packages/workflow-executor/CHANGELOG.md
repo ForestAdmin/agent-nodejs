@@ -1,3 +1,21 @@
+## @forestadmin/workflow-executor [1.44.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.44.2...@forestadmin/workflow-executor@1.44.3) (2026-11-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.21.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.49.0
+
+## @forestadmin/workflow-executor [1.44.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.44.1...@forestadmin/workflow-executor@1.44.2) (2026-11-26)
+
+
+### Bug Fixes
+
+* **workflow-executor:** keep the formatting when the AI fills a rich text action form field ([#2114](https://github.com/ForestAdmin/agent-nodejs/issues/2114)) ([0c5f0f9](https://github.com/ForestAdmin/agent-nodejs/commit/0c5f0f95b46ad9f79d077b90ddccea5807f051db))
+
 ## @forestadmin/workflow-executor [1.44.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.44.0...@forestadmin/workflow-executor@1.44.1) (2026-11-25)
 
 

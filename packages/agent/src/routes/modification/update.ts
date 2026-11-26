@@ -37,13 +37,24 @@ export default class UpdateRoute extends CollectionRoute {
 
     // Perform the update and return the updated record.
     await this.collection.update(caller, new Filter({ conditionTree }), record);
-    const [updateResult] = await this.collection.list(
+    const projection = await this.services.authorization.redactProjection(
+      context,
+      this.collection,
+      { projection: ProjectionFactory.all(this.collection), namedByCaller: false },
+    );
+    const relationScopes = await this.services.authorization.getRelationScopes(
+      context,
+      this.collection,
+      projection,
+    );
+    const [updateResult] = await relationScopes.redact(
+      await this.collection.list(
+        caller,
+        new Filter({ conditionTree }),
+        relationScopes.withRelatedKeys(projection),
+      ),
+      projection,
       caller,
-      new Filter({ conditionTree }),
-      await this.services.authorization.redactProjection(context, this.collection, {
-        projection: ProjectionFactory.all(this.collection),
-        namedByCaller: false,
-      }),
     );
 
     context.response.body = this.services.serializer.serialize(this.collection, updateResult);

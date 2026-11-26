@@ -31,10 +31,17 @@ export default class ListRoute extends CollectionRoute {
       QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context),
     );
 
-    const records = await this.collection.list(
-      QueryStringParser.parseCaller(context),
-      paginatedFilter,
-      projection.withPks(this.collection),
+    const caller = QueryStringParser.parseCaller(context);
+    const queried = projection.withPks(this.collection);
+    const relationScopes = await this.services.authorization.getRelationScopes(
+      context,
+      this.collection,
+      queried,
+    );
+    const records = await relationScopes.redact(
+      await this.collection.list(caller, paginatedFilter, relationScopes.withRelatedKeys(queried)),
+      queried,
+      caller,
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(

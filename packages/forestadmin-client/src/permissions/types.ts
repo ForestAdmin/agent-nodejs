@@ -153,6 +153,8 @@ export type DynamicScopesValues = {
 
 export type CollectionRenderingPermissionV4 = {
   scope: RawTree | null;
+  /** Whether the scope also hides a record of this collection reached through a relation. */
+  appliesToRelatedRecords?: boolean;
   liveQuerySegments?: { connectionName: string; query: string }[];
   segments: string[];
 };

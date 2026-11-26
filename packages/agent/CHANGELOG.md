@@ -1,3 +1,31 @@
+# @forestadmin/agent [1.117.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.116.2...@forestadmin/agent@1.117.0) (2026-11-26)
+
+
+### Features
+
+* **agent:** apply a related collection's scope only when the server flags it ([#2107](https://github.com/ForestAdmin/agent-nodejs/issues/2107)) ([3474dcb](https://github.com/ForestAdmin/agent-nodejs/commit/3474dcbdb0478565f78f78bbc82a624ec0f654a7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.49.0
+* **@forestadmin/mcp-server:** upgraded to 1.30.1
+* **@forestadmin/agent-bff:** upgraded to 1.47.1
+* **@forestadmin/workflow-executor:** upgraded to 1.44.3
+
+## @forestadmin/agent [1.116.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.116.1...@forestadmin/agent@1.116.2) (2026-11-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.44.2
+
 ## @forestadmin/agent [1.116.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.116.0...@forestadmin/agent@1.116.1) (2026-11-25)
 
 

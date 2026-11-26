@@ -254,6 +254,42 @@ describe('ForestAdminClientWithCache', () => {
     });
   });
 
+  describe('scopeAppliesToRelatedRecords', () => {
+    it('should return the flag from the rendering service', async () => {
+      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        renderingPermissionService,
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        factories.activityLogs.build(),
+        factories.auth.build(),
+        factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
+        factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
+        factories.workflows.build(),
+      );
+      (renderingPermissionService.scopeAppliesToRelatedRecords as jest.Mock).mockResolvedValue(
+        true,
+      );
+
+      const result = await forestAdminClient.scopeAppliesToRelatedRecords({
+        renderingId: 666,
+        collectionName: 'jedis',
+      });
+
+      expect(renderingPermissionService.scopeAppliesToRelatedRecords).toHaveBeenCalledWith({
+        renderingId: 666,
+        collectionName: 'jedis',
+      });
+      expect(result).toBe(true);
+    });
+  });
+
   describe('subscribeToServerEvents', () => {
     it('should subscribes to Server Events service', async () => {
       const eventsSubscriptionService = factories.eventsSubscription.mockAllMethods().build();
