@@ -102,6 +102,19 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it('should forward multi-field preRecordedArgs on an update-data task', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.UpdateData,
+        prompt: 'update it',
+        preRecordedArgs: { fieldNames: ['status', 'age'], values: { status: 'active', age: 7 } },
+      } as Partial<ServerWorkflowTask>);
+
+      expect(toStepDefinition(task)).toMatchObject({
+        type: StepType.UpdateRecord,
+        preRecordedArgs: { fieldNames: ['status', 'age'], values: { status: 'active', age: 7 } },
+      });
+    });
+
     it('should map task with trigger-action taskType to trigger-action', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.TriggerAction, prompt: 'trigger it' });
 

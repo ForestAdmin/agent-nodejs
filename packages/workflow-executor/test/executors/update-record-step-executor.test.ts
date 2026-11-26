@@ -12,6 +12,8 @@ import activityLogContext from './activity-log-context';
 import {
   ActivityLogCreationError,
   AgentPortError,
+  InvalidPreRecordedArgsError,
+  RecordNotFoundError,
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
@@ -1877,6 +1879,12 @@ describe('UpdateRecordStepExecutor', () => {
           isRelationship: false,
           type: { street: 'String' },
         },
+        {
+          fieldName: 'addresses',
+          displayName: 'Addresses',
+          isRelationship: false,
+          type: [{ street: 'String' }],
+        },
       ];
 
       function makePrerecordedContext(
@@ -2192,6 +2200,38 @@ describe('UpdateRecordStepExecutor', () => {
         );
       });
 
+      it.each([[[{ street: 'Main St' }, { street: 'Elm St' }]], [['{"street":"Main St"}']], [[]]])(
+        'writes the embedded documents %p as is',
+        async value => {
+          const { executor, agentPort, context } = makePrerecordedContext('addresses', value);
+
+          await executor.execute();
+
+          expect(agentPort.updateRecord).toHaveBeenCalledWith(
+            { collection: 'customers', id: [42], values: { addresses: value } },
+            context.user,
+            { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+          );
+        },
+      );
+
+      it.each([[['not json']], ['{"street":"Main St"}'], [{ street: 'Main St' }]])(
+        'fails as a configuration error naming the field on the embedded documents %p',
+        async value => {
+          const { executor, agentPort, context } = makePrerecordedContext('addresses', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(context.logger).toHaveBeenCalledWith(
+            'Error',
+            expect.stringMatching(/^Invalid pre-recorded value for field "Addresses": /),
+            expect.anything(),
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
+
       it('fails as a configuration error on a Json string that is not valid JSON', async () => {
         const { executor, agentPort } = makePrerecordedContext('metadata', '{not json');
 
@@ -2251,6 +2291,1066 @@ describe('UpdateRecordStepExecutor', () => {
           expect.anything(),
         );
       });
+    });
+  });
+
+  describe('multi-field pre-recorded args', () => {
+    const multiFieldSchema = makeCollectionSchema({
+      fields: [
+        {
+          fieldName: 'status',
+          displayName: 'Status',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: ['active', 'inactive'],
+        },
+        { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+        { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
+        { fieldName: 'note', displayName: 'Note', isRelationship: false, type: 'String' },
+        { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
+        {
+          fieldName: 'constructor',
+          displayName: 'Constructor',
+          isRelationship: false,
+          type: 'String',
+        },
+      ],
+    });
+
+    function makeMultiFieldContext(
+      preRecordedArgs: UpdateRecordStepDefinition['preRecordedArgs'],
+      executionType: UpdateRecordStepDefinition['executionType'] = StepExecutionMode.FullyAutomated,
+    ) {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
+      const workflowPort = makeMockWorkflowPort({ customers: multiFieldSchema });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        workflowPort,
+        stepDefinition: makeStep({ executionType, preRecordedArgs }),
+      });
+
+      return {
+        executor: new UpdateRecordStepExecutor(context),
+        mockModel,
+        runStore,
+        agentPort,
+        workflowPort,
+        context,
+      };
+    }
+
+    it('writes every field, coerced to its type, in a single updateRecord call without AI', async () => {
+      const { executor, mockModel, agentPort, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'age', 'isActive'],
+        values: { status: 'inactive', age: '42', isActive: 'true' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          id: [42],
+          values: { status: 'inactive', age: 42, isActive: true },
+        },
+        context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
+    });
+
+    it('lists every written field in executionParams', async () => {
+      const { executor, runStore } = makeMultiFieldContext({
+        fieldNames: ['status', 'age'],
+        values: { status: 'active', age: 7 },
+      });
+
+      await executor.execute();
+
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionParams: {
+            fields: [
+              { displayName: 'Status', name: 'status', value: 'active' },
+              { displayName: 'Age', name: 'age', value: 7 },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('creates a single activity log entry for the step', async () => {
+      const { executor, agentPort, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'age', 'note'],
+        values: { status: 'active', age: 7, note: 'vip' },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active', age: 7, note: 'vip' } },
+        context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
+    });
+
+    it('writes null to clear a field', async () => {
+      const { executor, agentPort, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'note'],
+        values: { status: 'active', note: null },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active', note: null } },
+        context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
+    });
+
+    it('fails without writing nor asking the AI when values are set without fieldNames', async () => {
+      const { executor, mockModel, agentPort } = makeMultiFieldContext({
+        values: { status: 'active' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        new InvalidPreRecordedArgsError('values were provided without fieldNames').userMessage,
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('writes a field listed twice only once, and ignores values of unlisted fields', async () => {
+      const { executor, agentPort, runStore, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'status'],
+        values: { status: 'active', note: 'stale row' },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { fields: [{ displayName: 'Status', name: 'status', value: 'active' }] },
+        }),
+      );
+    });
+
+    it('uses fieldNames and ignores a legacy fieldName/value left on the definition', async () => {
+      const { executor, agentPort, context } = makeMultiFieldContext({
+        fieldName: 'note',
+        value: 'legacy',
+        fieldNames: ['status'],
+        values: { status: 'active' },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        context.user,
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
+    });
+
+    it('fails as a configuration error naming the field when a value cannot be coerced, writing nothing', async () => {
+      const { executor, agentPort, runStore } = makeMultiFieldContext({
+        fieldNames: ['status', 'age', 'isActive'],
+        values: { status: 'active', age: 'forty-two', isActive: true },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The value set on this step can\'t be written to the "Age" field. ' +
+          'Edit the step to set a valid value.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails with the pinned field not found error when a field no longer exists', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'removed'],
+        values: { status: 'active', removed: 'x' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails as a configuration error naming the field when its value is missing', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'age'],
+        values: { status: 'active' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'No value is set for the "Age" field on this step. Edit the step to set one.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails as a configuration error naming the first field when values is absent', async () => {
+      const { executor, mockModel, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'age'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'No value is set for the "Status" field on this step. Edit the step to set one.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails when a pinned field is a relationship', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'orders'],
+        values: { status: 'active', orders: null },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The "Orders" field is a relationship, which this step can\'t update. ' +
+          'Edit the step to pick another field.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('treats a field named after an Object.prototype member as missing when values lacks it', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'constructor'],
+        values: { status: 'active' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.error).toBe(
+        'No value is set for the "Constructor" field on this step. Edit the step to set one.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('keeps the single-field executionParams shape for a legacy definition', async () => {
+      const { executor, runStore } = makeMultiFieldContext({ fieldName: 'age', value: '7' });
+
+      await executor.execute();
+
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Age', name: 'age', value: 7 },
+        }),
+      );
+    });
+  });
+
+  describe('AI-suggested values for pinned fields (AutomatedWithConfirmation)', () => {
+    const suggestionSchema = makeCollectionSchema({
+      fields: [
+        {
+          fieldName: 'status',
+          displayName: 'Status',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: ['active', 'inactive'],
+        },
+        { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+        { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
+        { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
+        { fieldName: 'legacy', displayName: 'Legacy', isRelationship: false, type: null },
+      ],
+    });
+
+    const currentValues = { status: 'active', age: 30, isActive: true };
+
+    function makeSuggestionContext(
+      preRecordedArgs: UpdateRecordStepDefinition['preRecordedArgs'],
+      aiValues?: Record<string, unknown>,
+    ) {
+      const mockModel = makeMockModel(
+        aiValues ? { values: aiValues, reasoning: 'r' } : undefined,
+        'set-record-field-values',
+      );
+      const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
+      (agentPort.getRecord as jest.Mock).mockResolvedValue({
+        collectionName: 'customers',
+        recordId: [42],
+        values: currentValues,
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({ customers: suggestionSchema }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Deactivate the customer',
+          preRecordedArgs,
+        }),
+      });
+
+      return {
+        executor: new UpdateRecordStepExecutor(context),
+        mockModel,
+        runStore,
+        agentPort,
+        context,
+      };
+    }
+
+    function boundTool(mockModel: ReturnType<typeof makeMockModel>) {
+      return mockModel.bindTools.mock.calls[0][0][0];
+    }
+
+    it('pauses with one suggestion per pinned field, coerced to its type, without writing', async () => {
+      const { executor, runStore, agentPort } = makeSuggestionContext(
+        { fieldNames: ['status', 'age', 'isActive'] },
+        { field_0: 'inactive', field_1: '42', field_2: 'false' },
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: {
+          fields: [
+            { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+            { displayName: 'Age', name: 'age', value: 42, previousValue: 30 },
+            { displayName: 'Is Active', name: 'isActive', value: false, previousValue: true },
+          ],
+        },
+        selectedRecordRef: makeRecordRef(),
+      });
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('asks for every value in a single tool call with one typed property per field', async () => {
+      const { executor, mockModel } = makeSuggestionContext(
+        { fieldNames: ['status', 'age', 'isActive'] },
+        { field_0: 'inactive', field_1: 42, field_2: false },
+      );
+
+      await executor.execute();
+
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+      expect(mockModel.invoke).toHaveBeenCalledTimes(1);
+
+      const tool = boundTool(mockModel);
+      const valuesShape = tool.schema.shape.values.shape;
+
+      expect(tool.name).toBe('set-record-field-values');
+      expect(Object.keys(valuesShape)).toEqual(['field_0', 'field_1', 'field_2']);
+      expect(valuesShape.field_0.description).toBe('New value of the "Status" field');
+      expect(valuesShape.field_2.description).toBe('New value of the "Is Active" field');
+      expect(() => valuesShape.field_0.parse('unknown')).toThrow();
+      expect(() => valuesShape.field_2.parse('true')).toThrow();
+      expect(valuesShape.field_1.parse(null)).toBeNull();
+    });
+
+    it('gives the AI the step instructions and the display name of every field', async () => {
+      const { executor, mockModel } = makeSuggestionContext(
+        { fieldNames: ['status', 'isActive'] },
+        { field_0: 'inactive', field_1: false },
+      );
+
+      await executor.execute();
+
+      const prompt = JSON.stringify(mockModel.invoke.mock.calls[0][0]);
+
+      expect(prompt).toContain('updating several fields on a record');
+      expect(prompt).toContain(
+        'Set the value of each of these fields: \\"Status\\", \\"Is Active\\".',
+      );
+      expect(prompt).toContain('**Request**: Deactivate the customer');
+    });
+
+    it('fails like a single-field AI value when a suggestion cannot be coerced, saving nothing', async () => {
+      const { executor, runStore, context } = makeSuggestionContext(
+        { fieldNames: ['status', 'age'] },
+        { field_0: 'inactive', field_1: 'forty-two' },
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Invalid value for field "Age": expected a number or a decimal string, e.g. 12, -3 or 12.5',
+        expect.anything(),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails naming the field when the AI leaves one out, reading and saving nothing', async () => {
+      const { executor, runStore, context, agentPort } = makeSuggestionContext(
+        { fieldNames: ['status', 'age'] },
+        { field_0: 'inactive' },
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Invalid value for field "Age": missing from the AI response',
+        expect.anything(),
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('keeps the pinned values and asks the AI only for the others, in fieldNames order', async () => {
+      const { executor, mockModel, runStore } = makeSuggestionContext(
+        { fieldNames: ['status', 'age', 'isActive'], values: { age: '7' } },
+        { field_0: 'inactive', field_1: true },
+      );
+
+      await executor.execute();
+
+      const valuesShape = boundTool(mockModel).schema.shape.values.shape;
+
+      expect(Object.keys(valuesShape)).toEqual(['field_0', 'field_1']);
+      expect(valuesShape.field_0.description).toBe('New value of the "Status" field');
+      expect(valuesShape.field_1.description).toBe('New value of the "Is Active" field');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: {
+            fields: [
+              { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+              { displayName: 'Age', name: 'age', value: 7, previousValue: 30 },
+              { displayName: 'Is Active', name: 'isActive', value: true, previousValue: true },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('pauses without calling the AI when every field has a pinned value, still reading the record', async () => {
+      const { executor, context, mockModel, runStore, agentPort } = makeSuggestionContext({
+        fieldNames: ['status', 'age'],
+        values: { status: 'active', age: null },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['status', 'age'] },
+        expect.objectContaining({ id: 1 }),
+        { context: context.activityLog },
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: {
+            fields: [
+              { displayName: 'Status', name: 'status', value: 'active', previousValue: 'active' },
+              { displayName: 'Age', name: 'age', value: null, previousValue: 30 },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('rejects an invalid pinned value before calling the AI', async () => {
+      const { executor, mockModel } = makeSuggestionContext({
+        fieldNames: ['status', 'age'],
+        values: { age: 'forty-two' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The value set on this step can\'t be written to the "Age" field. ' +
+          'Edit the step to set a valid value.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('rejects a pinned relationship before calling the AI or reading the record', async () => {
+      const { executor, mockModel, agentPort } = makeSuggestionContext({
+        fieldNames: ['status', 'orders'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The "Orders" field is a relationship, which this step can\'t update. ' +
+          'Edit the step to pick another field.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    it('rejects a pinned field missing from the schema before calling the AI', async () => {
+      const { executor, mockModel } = makeSuggestionContext({ fieldNames: ['status', 'removed'] });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('rejects a type-less pinned field before calling the AI', async () => {
+      const { executor, mockModel } = makeSuggestionContext({ fieldNames: ['status', 'legacy'] });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.error).toBe(
+        "This field can't be updated because its type is missing from the schema. " +
+          'Contact your administrator if the problem persists.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('asks once for a field listed twice', async () => {
+      const { executor, mockModel, runStore } = makeSuggestionContext(
+        { fieldNames: ['age', 'age'] },
+        { field_0: 3 },
+      );
+
+      await executor.execute();
+
+      expect(Object.keys(boundTool(mockModel).schema.shape.values.shape)).toEqual(['field_0']);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: {
+            fields: [{ displayName: 'Age', name: 'age', value: 3, previousValue: 30 }],
+          },
+        }),
+      );
+    });
+
+    it('keeps the single-field tool and pending data shape for a legacy fieldName', async () => {
+      const mockModel = makeMockModel({ value: '42', reasoning: 'r' }, 'set-record-field-value');
+      const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({ customers: suggestionSchema }),
+        stepDefinition: makeStep({ preRecordedArgs: { fieldName: 'age' } }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(boundTool(mockModel).name).toBe('set-record-field-value');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: { displayName: 'Age', name: 'age', value: 42 },
+        }),
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    describe('current value of each field', () => {
+      it('reads every pinned field in one projection after the AI answers', async () => {
+        const { executor, context, mockModel, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age', 'isActive'] },
+          { field_0: 'inactive', field_1: 42, field_2: false },
+        );
+
+        await executor.execute();
+
+        expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+        expect(agentPort.getRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], fields: ['status', 'age', 'isActive'] },
+          expect.objectContaining({ id: 1 }),
+          { context: context.activityLog },
+        );
+        expect(mockModel.invoke.mock.invocationCallOrder[0]).toBeLessThan(
+          (agentPort.getRecord as jest.Mock).mock.invocationCallOrder[0],
+        );
+      });
+
+      it('stores null for a field that is empty or absent from the read record', async () => {
+        const { executor, runStore, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+        (agentPort.getRecord as jest.Mock).mockResolvedValue({
+          collectionName: 'customers',
+          recordId: [42],
+          values: { status: null },
+        });
+
+        await executor.execute();
+
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: {
+              fields: [
+                { displayName: 'Status', name: 'status', value: 'inactive', previousValue: null },
+                { displayName: 'Age', name: 'age', value: 42, previousValue: null },
+              ],
+            },
+          }),
+        );
+      });
+
+      it('keeps a current value of 0, false or an empty string instead of storing null', async () => {
+        const { executor, runStore, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age', 'isActive'] },
+          { field_0: 'inactive', field_1: 42, field_2: true },
+        );
+        (agentPort.getRecord as jest.Mock).mockResolvedValue({
+          collectionName: 'customers',
+          recordId: [42],
+          values: { status: '', age: 0, isActive: false },
+        });
+
+        await executor.execute();
+
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: {
+              fields: [
+                { displayName: 'Status', name: 'status', value: 'inactive', previousValue: '' },
+                { displayName: 'Age', name: 'age', value: 42, previousValue: 0 },
+                { displayName: 'Is Active', name: 'isActive', value: true, previousValue: false },
+              ],
+            },
+          }),
+        );
+      });
+
+      it('fails like a failed update when the read fails, saving and writing nothing', async () => {
+        const { executor, runStore, agentPort, context } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+        (agentPort.getRecord as jest.Mock).mockRejectedValue(
+          new AgentPortError('getRecord', new Error('DB connection lost')),
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBeUndefined();
+        expect(result.stepOutcome.error).toBe(
+          'An error occurred while accessing your data. Please try again.',
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Agent port "getRecord" failed: DB connection lost',
+          expect.objectContaining({ cause: 'DB connection lost' }),
+        );
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails as an operator error when the record was deleted before the pause', async () => {
+        const { executor, runStore, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+        (agentPort.getRecord as jest.Mock).mockRejectedValue(
+          new RecordNotFoundError('customers', [42]),
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('operator');
+        expect(result.stepOutcome.error).toBe(
+          'The record no longer exists. It may have been deleted.',
+        );
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      });
+
+      it('logs the read in the activity log against the selected record', async () => {
+        const { executor, agentPort, context } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+
+        await executor.execute();
+
+        expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+        expect(agentPort.getRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], fields: ['status', 'age'] },
+          context.user,
+          { context: context.activityLog },
+        );
+      });
+    });
+
+    describe('confirmation of a multi-field pending update', () => {
+      const pendingFields = [
+        { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+        { displayName: 'Age', name: 'age', value: 42, previousValue: 30 },
+        { displayName: 'Is Active', name: 'isActive', value: false, previousValue: true },
+      ];
+
+      function makeConfirmationContext(
+        incomingPendingData: unknown,
+        schema: CollectionSchema = suggestionSchema,
+      ) {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { fields: pendingFields },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const updatedValues = { status: 'inactive', age: 50, isActive: false };
+        const agentPort = makeMockAgentPort(updatedValues);
+        const context = makeContext({
+          runStore,
+          agentPort,
+          incomingPendingData,
+          workflowPort: makeMockWorkflowPort({ customers: schema }),
+        });
+
+        return {
+          executor: new UpdateRecordStepExecutor(context),
+          runStore,
+          agentPort,
+          execution,
+          context,
+          updatedValues,
+        };
+      }
+
+      it('writes the override and the kept suggestions in one update, then completes the step', async () => {
+        const { executor, context, runStore, agentPort, updatedValues } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { age: '50' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: 'inactive', age: 50, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+        );
+        expect((runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1]).toEqual({
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { fields: pendingFields },
+          userConfirmation: { userConfirmed: true, values: { age: '50' } },
+          selectedRecordRef: makeRecordRef(),
+          executionParams: {
+            fields: [
+              { displayName: 'Status', name: 'status', value: 'inactive' },
+              { displayName: 'Age', name: 'age', value: 50 },
+              { displayName: 'Is Active', name: 'isActive', value: false },
+            ],
+          },
+          executionResult: { updatedValues },
+          idempotencyPhase: 'done',
+        });
+      });
+
+      it('writes every suggestion when the user confirms without overriding any field', async () => {
+        const { executor, context, agentPort } = makeConfirmationContext({ userConfirmed: true });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: 'inactive', age: 42, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+        );
+      });
+
+      it('writes every suggestion when values is empty', async () => {
+        const { executor, context, agentPort } = makeConfirmationContext({
+          userConfirmed: true,
+          values: {},
+        });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: 'inactive', age: 42, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+        );
+      });
+
+      it('clears a field the user overrides with null', async () => {
+        const { executor, context, agentPort } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { status: null },
+        });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: null, age: 42, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+          { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+        );
+      });
+
+      it('coerces an override strictly, rejecting a fraction a number cannot hold', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { age: '4503599627370496.5' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Invalid value for field "Age": expected a number or a decimal string, e.g. 12, -3 or 12.5',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails naming the field and writes nothing when an override cannot be coerced', async () => {
+        const { executor, runStore, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { status: 'archived', age: 'forty' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          expect.stringMatching(/^Invalid value for field "Status": /),
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ idempotencyPhase: expect.anything() }),
+        );
+      });
+
+      it('fails as an operator error naming every field whose override cannot be coerced', async () => {
+        const { executor, agentPort } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { status: 'archived', age: 'forty', isActive: true },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('operator');
+        expect(result.stepOutcome.error).toBe(
+          'The values entered for "Status", "Age" aren\'t valid for these fields. Please review them and try again.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails naming the key and writes nothing when values holds a field the step does not update', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { age: 50, email: 'john@doe.com' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Cannot confirm field "email": this step does not update it',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails and writes nothing when a single value is sent for a multi-field update', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          value: 'inactive',
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'A multi-field update must be confirmed with "values", not "value"',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails and writes nothing when a null single value is sent for a multi-field update', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          value: null,
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'A multi-field update must be confirmed with "values", not "value"',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('escapes and truncates an unknown key before echoing it in the error', async () => {
+        const forgedKey = `x\n[Error] forged line${'a'.repeat(200)}`;
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { [forgedKey]: 1 },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          `Cannot confirm field ${JSON.stringify(
+            forgedKey.slice(0, 100),
+          )}: this step does not update it`,
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails as a configuration error when a pending field left the schema during the pause', async () => {
+        const { executor, agentPort } = makeConfirmationContext(
+          { userConfirmed: true },
+          makeCollectionSchema({
+            fields: suggestionSchema.fields.filter(field => field.fieldName !== 'age'),
+          }),
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(result.stepOutcome.error).toBe(
+          'The "Age" field this step was about to update no longer exists on this record.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('skips the step when the user rejects it, writing nothing', async () => {
+        const { executor, runStore, agentPort, execution } = makeConfirmationContext({
+          userConfirmed: false,
+          values: { age: 50 },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+          ...execution,
+          userConfirmation: { userConfirmed: false, values: { age: 50 } },
+          executionResult: { skipped: true },
+        });
+      });
+    });
+  });
+
+  describe('confirmation of a single-field pending update with values', () => {
+    it('fails and writes nothing, since values belongs to a multi-field update', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'inactive' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore: makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        }),
+        incomingPendingData: { userConfirmed: true, values: { status: 'active' } },
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'A single-field update must be confirmed with "value", not "values"',
+        expect.anything(),
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
   });
 
@@ -2319,6 +3419,27 @@ describe('UpdateRecordStepExecutor', () => {
         { collection: 'customers', id: [42], values: { [field.fieldName]: aiValue } },
         expect.objectContaining({ id: 1 }),
         expect.anything(),
+      );
+    });
+
+    it('writes AI embedded documents given as JSON strings as is', async () => {
+      const { executor, context, agentPort } = makeAiContext(
+        {
+          fieldName: 'addresses',
+          displayName: 'Addresses',
+          isRelationship: false,
+          type: [{ street: 'String' }],
+        },
+        ['{"street":"Main St"}'],
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { addresses: ['{"street":"Main St"}'] } },
+        expect.objectContaining({ id: 1 }),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
       );
     });
 
@@ -2643,6 +3764,26 @@ describe('UpdateRecordStepExecutor', () => {
       ).toThrow();
     });
 
+    it('type [{ ... }] (embedded documents): treats as array of JSON strings', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'addresses',
+          displayName: 'Addresses',
+          isRelationship: false,
+          type: [{ street: 'String' }],
+        },
+      ]);
+
+      expect(
+        schema.parse({
+          input: { fieldName: 'Addresses', value: ['{"street":"Main St"}'], reasoning: 'r' },
+        }).input.value,
+      ).toEqual(['{"street":"Main St"}']);
+      expect(() =>
+        schema.parse({ input: { fieldName: 'Addresses', value: ['not json'], reasoning: 'r' } }),
+      ).toThrow();
+    });
+
     it('root schema is ZodObject (not union) — satisfies OpenAI type:object requirement', async () => {
       const schema = await getToolSchema([
         { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
@@ -2802,7 +3943,7 @@ describe('UpdateRecordStepExecutor', () => {
         workflowPort: makeMockWorkflowPort({ customers: schema }),
       });
 
-      return { executor: new UpdateRecordStepExecutor(context), agentPort };
+      return { executor: new UpdateRecordStepExecutor(context), agentPort, context };
     }
 
     const booleanField = {
@@ -2829,6 +3970,12 @@ describe('UpdateRecordStepExecutor', () => {
       isRelationship: false,
       type: ['Enum'] as ['Enum'],
       enumValues: ['red', 'green', 'blue'],
+    };
+    const embeddedDocumentsField = {
+      fieldName: 'addresses',
+      displayName: 'Addresses',
+      isRelationship: false,
+      type: [{ street: 'String' }],
     };
 
     it('coerces a native boolean user override', async () => {
@@ -2966,7 +4113,7 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
-    it('fails with a StepStateError on coercion mismatch without updating', async () => {
+    it('fails as an operator error naming the field on coercion mismatch without updating', async () => {
       const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
         userConfirmed: true,
         value: ['abc'],
@@ -2975,8 +4122,44 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The value entered for "Scores" isn\'t valid for this field. Please review it and try again.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('writes embedded documents a user confirmed as is', async () => {
+      const { executor, context, agentPort } = makeCoercionContext(embeddedDocumentsField, null, {
+        userConfirmed: true,
+        value: [{ street: 'Main St' }, '{"street":"Elm St"}'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          id: [42],
+          values: { addresses: [{ street: 'Main St' }, '{"street":"Elm St"}'] },
+        },
+        expect.objectContaining({ id: 1 }),
+        { context: context.activityLog, call: { beforeCall: expect.any(Function) } },
+      );
+    });
+
+    it('fails as an operator error naming the field on an embedded document that is not JSON', async () => {
+      const { executor, agentPort } = makeCoercionContext(embeddedDocumentsField, null, {
+        userConfirmed: true,
+        value: [{ street: 'Main St' }, 'not json'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
+      expect(result.stepOutcome.error).toBe(
+        'The value entered for "Addresses" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
@@ -2996,8 +4179,9 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The value entered for "Age" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
@@ -3217,7 +4401,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
-        'The field this step was about to update no longer exists on this record.',
+        'The "Status" field this step was about to update no longer exists on this record.',
       );
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
@@ -3236,8 +4420,9 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The value entered for "Is Active" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
