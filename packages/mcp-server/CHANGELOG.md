@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.30.1...@forestadmin/mcp-server@1.31.0) (2026-11-26)
+
+
+### Features
+
+* **mcp-server:** serve the descriptions written in Forest to AI agents ([#2117](https://github.com/ForestAdmin/agent-nodejs/issues/2117)) ([f187de6](https://github.com/ForestAdmin/agent-nodejs/commit/f187de60ea47e4b258586678a36cc1b1405454a2))
+
 ## @forestadmin/mcp-server [1.30.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.30.0...@forestadmin/mcp-server@1.30.1) (2026-11-26)
 
 
