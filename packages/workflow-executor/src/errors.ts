@@ -509,14 +509,21 @@ export class McpToolCallLimitError extends WorkflowExecutorError {
 }
 
 export class AgentPortError extends WorkflowExecutorError {
-  constructor(operation: string, cause: unknown, agentMessage?: string) {
+  constructor(
+    operation: string,
+    cause: unknown,
+    agentMessage?: string,
+    { retryable = true }: { retryable?: boolean } = {},
+  ) {
     const causeText = cause instanceof Error ? cause.message : String(cause);
 
     super(
       `Agent port "${operation}" failed: ${causeText}${
         agentMessage ? ` | agent error: ${agentMessage}` : ''
       }`,
-      'An error occurred while accessing your data. Please try again.',
+      retryable
+        ? 'An error occurred while accessing your data. Please try again.'
+        : 'An error occurred while accessing your data.',
     );
     this.cause = cause;
   }

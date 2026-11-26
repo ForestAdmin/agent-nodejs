@@ -93,6 +93,26 @@ describe('segmentReadError', () => {
 });
 
 describe('agentPortError', () => {
+  it.each([
+    ['a 503', answered(503)],
+    ['a 429', answered(429)],
+    ['a refused connection', withCode('ECONNREFUSED')],
+  ])('asks the user to try again after %s', (_, cause) => {
+    expect(agentPortError('getRecord', cause).userMessage).toBe(
+      'An error occurred while accessing your data. Please try again.',
+    );
+  });
+
+  it.each([
+    ['a 403', answered(403)],
+    ['a 400', answered(400)],
+    ['a 500', answered(500)],
+  ])('does not ask the user to try again after %s', (_, cause) => {
+    expect(agentPortError('getRecord', cause).userMessage).toBe(
+      'An error occurred while accessing your data.',
+    );
+  });
+
   it('keeps the technical message unchanged when the cause carries no HTTP response', () => {
     const cause = new Error('ECONNREFUSED');
 

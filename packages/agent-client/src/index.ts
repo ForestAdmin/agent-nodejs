@@ -91,6 +91,8 @@ export function createRemoteAgentClient(params: {
 export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
+export { default as classifyAgentError } from './agent-error';
+export type { AgentErrorClassification, AgentFailureKind } from './agent-error';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
 export { default as relationTargetOf } from './schema/relation-target';
 export type { RelationTarget } from './schema/relation-target';

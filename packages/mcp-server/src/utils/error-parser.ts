@@ -1,29 +1,12 @@
-import { AgentHttpError } from '@forestadmin/agent-client';
+import { AgentHttpError, classifyAgentError } from '@forestadmin/agent-client';
 
-// Extract the JSON:API detail message from a parsed body or its raw text.
-function jsonApiDetail(body: unknown, text?: string): string | null {
-  const fromBody = (body as { errors?: Array<{ detail?: string }> })?.errors?.[0]?.detail;
-  if (fromBody) return fromBody;
-
-  if (typeof text === 'string') {
-    try {
-      const parsed = JSON.parse(text) as { errors?: Array<{ detail?: string }> };
-      if (parsed.errors?.[0]?.detail) return parsed.errors[0].detail;
-    } catch {
-      // not JSON:API → fall through
-    }
-  }
-
-  return null;
-}
-
-// Turn an agent RPC error into a human-readable message: the JSON:API detail with its HTTP status
-// when one can be extracted, else the raw message (which already carries the status).
+// Turn an agent RPC error into a human-readable message: the agent's own 4xx message with its HTTP
+// status when it has one, else the generic message (which already carries the status).
 export default function parseAgentError(error: unknown, depth = 0): string | null {
   if (error instanceof AgentHttpError) {
-    const detail = jsonApiDetail(error.body, error.responseText);
+    const { agentMessage } = classifyAgentError(error);
 
-    return detail ? `${detail} (HTTP ${error.status})` : error.message;
+    return agentMessage ? `${agentMessage} (HTTP ${error.status})` : error.message;
   }
 
   if (error && typeof error === 'object' && 'message' in error) {

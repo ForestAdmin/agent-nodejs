@@ -1,4 +1,8 @@
-import { ActivityLogBlockedError, AgentHttpError } from '@forestadmin/agent-client';
+import {
+  ActivityLogBlockedError,
+  AgentHttpError,
+  AgentTimeoutError,
+} from '@forestadmin/agent-client';
 import { ForbiddenError, HttpError } from '@forestadmin/forestadmin-client';
 
 import toToolError, { AUDIT_UNAVAILABLE_MESSAGE } from '../../src/utils/tool-error';
@@ -64,6 +68,21 @@ describe('toToolError', () => {
   });
 
   describe('when the operation itself failed', () => {
+    it.each([
+      [
+        'a refused connection',
+        Object.assign(new Error('connect ECONNREFUSED 10.0.0.4:3310'), { code: 'ECONNREFUSED' }),
+        'The agent could not be reached.',
+      ],
+      [
+        'a timeout',
+        new AgentTimeoutError('Timeout of 10000ms exceeded', 10_000),
+        'The agent did not answer in time.',
+      ],
+    ])('should name %s without its host', async (_label, cause, message) => {
+      await expect(toToolError(cause, { logger })).resolves.toEqual(new Error(message));
+    });
+
     it('should use the agent error detail as the message', async () => {
       const error = new AgentHttpError(400, { errors: [{ detail: 'Invalid sort' }] });
 

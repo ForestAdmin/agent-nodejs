@@ -36,18 +36,6 @@ const railsBody = JSON.parse(
 ) as { data: unknown; included: { id: string }[] };
 
 jest.mock('@forestadmin/agent-client', () => {
-  // Real class so `instanceof AgentHttpError` in the adapter matches errors built by these tests.
-  class MockAgentHttpError extends Error {
-    constructor(
-      public readonly status: number,
-      public readonly body: unknown,
-      public readonly responseText?: string,
-    ) {
-      super(`Agent responded with HTTP ${status}`);
-      this.name = 'AgentHttpError';
-    }
-  }
-
   // Semantic action errors agent-client throws from execute(); real classes so the adapter's
   // `instanceof` checks match errors built by these tests.
   class MockActionRequiresApprovalError extends Error {
@@ -83,7 +71,8 @@ jest.mock('@forestadmin/agent-client', () => {
   }
 
   return {
-    AgentHttpError: MockAgentHttpError,
+    AgentHttpError: jest.requireActual('@forestadmin/agent-client').AgentHttpError,
+    classifyAgentError: jest.requireActual('@forestadmin/agent-client').classifyAgentError,
     ActionRequiresApprovalError: MockActionRequiresApprovalError,
     ActionFormValidationError: MockActionFormValidationError,
     ApprovalRequestCreationError: MockApprovalRequestCreationError,
