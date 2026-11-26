@@ -62,8 +62,8 @@ jest.mock('@forestadmin/agent-client', () => {
   }
 
   return {
+    AgentCallError: jest.requireActual('@forestadmin/agent-client').AgentCallError,
     AgentHttpError: jest.requireActual('@forestadmin/agent-client').AgentHttpError,
-    classifyAgentError: jest.requireActual('@forestadmin/agent-client').classifyAgentError,
     ActionOutcomeUnknownError: jest.requireActual('@forestadmin/agent-client')
       .ActionOutcomeUnknownError,
     ActionRequiresApprovalError: MockActionRequiresApprovalError,

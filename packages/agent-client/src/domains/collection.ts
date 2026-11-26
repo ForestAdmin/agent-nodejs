@@ -21,7 +21,7 @@ import withActivityLogContext, {
   logApprovalRequest,
   runCall,
 } from '../activity-log/with-activity-log';
-import { mayHaveRun } from '../agent-error';
+import mayHaveRun from '../agent-error';
 import { isApprovalRequested } from '../approval-requested';
 import toCount from '../count-response';
 import { ActionOutcomeUnknownError } from '../errors';

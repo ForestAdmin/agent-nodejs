@@ -3,12 +3,31 @@ import type { WriteStream } from 'fs';
 import { Deserializer } from 'jsonapi-serializer';
 import superagent from 'superagent';
 
-import AgentHttpError, { AgentTimeoutError } from './errors';
+import AgentHttpError, { AgentTimeoutError, AgentUnreachableError } from './errors';
 
 function isSuperagentTimeout(error: unknown): error is Error & { timeout: number } {
   const { code, timeout } = (error ?? {}) as { code?: unknown; timeout?: unknown };
 
   return error instanceof Error && code === 'ECONNABORTED' && typeof timeout === 'number';
+}
+
+// Any other failure without an HTTP answer (a JWT that cannot be signed, a malformed agent URL) is a
+// fault on the caller's side, not an agent to restart, so it propagates raw.
+const UNREACHABLE_ERROR_CODES: ReadonlySet<string> = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EAI_AGAIN',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EPIPE',
+  'ETIMEDOUT',
+]);
+
+function isUnreachable(error: unknown): error is Error & { code: string } {
+  const { code } = (error ?? {}) as { code?: unknown };
+
+  return error instanceof Error && typeof code === 'string' && UNREACHABLE_ERROR_CODES.has(code);
 }
 
 function parseJson(text: string | undefined): unknown {
@@ -100,6 +119,7 @@ export default class HttpRequester {
       const res = (error as { response?: { status?: number; body?: unknown; text?: string } })
         .response;
       if (isSuperagentTimeout(error)) throw new AgentTimeoutError(error.message, error.timeout);
+      if (isUnreachable(error)) throw new AgentUnreachableError(error);
       if (!res) throw error;
 
       const text = typeof res.text === 'string' ? res.text : undefined;

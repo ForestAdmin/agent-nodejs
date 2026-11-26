@@ -2,8 +2,9 @@ import type { Action, AgentActionClient } from '../../src/action/agent-action-cl
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
-import { ActionOutcomeUnknownError, mayHaveRun } from '@forestadmin/agent-client';
+import { ActionOutcomeUnknownError } from '@forestadmin/agent-client';
 import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
+import mayHaveRun from '@forestadmin/agent-client/dist/agent-error';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 

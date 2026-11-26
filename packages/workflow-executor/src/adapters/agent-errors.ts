@@ -1,7 +1,7 @@
 import type { SegmentReadFailureKind } from '../errors';
 import type { AgentHttpError } from '@forestadmin/agent-client';
 
-import { classifyAgentError, extractErrorDetail } from '@forestadmin/agent-client';
+import { AgentCallError, extractErrorDetail } from '@forestadmin/agent-client';
 
 import { AgentPortError, SegmentReadError } from '../errors';
 
@@ -39,7 +39,7 @@ function agentErrorMessage(cause: unknown): string | undefined {
 
 export function agentPortError(operation: string, cause: unknown): AgentPortError {
   return new AgentPortError(operation, cause, agentErrorMessage(cause), {
-    retryable: classifyAgentError(cause).retryable,
+    retryable: cause instanceof AgentCallError && cause.retryable,
   });
 }
 
@@ -47,7 +47,9 @@ export function classifyAgentFailure(cause: unknown): {
   failure: SegmentReadFailureKind;
   httpStatus?: number;
 } {
-  const { kind, httpStatus } = classifyAgentError(cause);
+  if (!(cause instanceof AgentCallError)) return { failure: 'failed' };
+
+  const { kind, httpStatus } = cause;
 
   return { failure: kind, ...(httpStatus !== undefined && { httpStatus }) };
 }

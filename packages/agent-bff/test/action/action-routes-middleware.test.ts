@@ -5,6 +5,7 @@ import {
   ActionFormValidationError,
   AgentHttpError,
   AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -909,7 +910,12 @@ describe('action execute', () => {
     });
 
     it.each([
-      ['a connection reset', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+      [
+        'a connection reset',
+        new AgentUnreachableError(
+          Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+        ),
+      ],
       ['a gateway 502', new AgentHttpError(502, null, '<html>Bad Gateway</html>')],
       ['a gateway 504', new AgentHttpError(504, null, '<html>Gateway Timeout</html>')],
     ])('says the outcome is unknown on %s, since the agent may have run it', async (_, cause) => {
@@ -953,7 +959,9 @@ describe('action execute', () => {
     it('keeps a refused connection a failure, since the agent was never reached', async () => {
       const form = makeAction({
         execute: jest.fn(async () => {
-          throw Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+          throw new AgentUnreachableError(
+            Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }),
+          );
         }),
       });
 

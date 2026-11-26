@@ -1,21 +1,101 @@
 /* eslint-disable max-classes-per-file */
 
+export type AgentFailureKind = 'forbidden' | 'unreachable' | 'overloaded' | 'failed';
+
+const FORBIDDEN_STATUSES: ReadonlySet<number> = new Set([401, 403]);
+const UNREACHABLE_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
+const OVERLOADED_STATUSES: ReadonlySet<number> = new Set([408, 429]);
+
+const isRetryable = (kind: AgentFailureKind): boolean =>
+  kind === 'unreachable' || kind === 'overloaded';
+
+type ErrorBody = {
+  errors?: { detail?: unknown; message?: unknown; title?: unknown }[];
+  error?: unknown;
+  message?: unknown;
+};
+
+function firstNonEmptyString(candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim() !== '') return candidate.trim();
+  }
+
+  return undefined;
+}
+
+// Only a recognised error shape yields a detail. A raw body or responseText is whatever the agent's
+// host emitted -- an HTML error page, a proxy notice, a stack trace -- and it would reach the client
+// verbatim as the action error message, so it is left out and callers use their own wording.
+export function errorDetailOf(body: unknown): string | undefined {
+  const { errors, error, message } = (body ?? {}) as ErrorBody;
+  const first = errors?.[0];
+
+  return firstNonEmptyString([first?.detail, first?.message, first?.title, error, message]);
+}
+
+export abstract class AgentCallError extends Error {
+  abstract readonly kind: AgentFailureKind;
+
+  get retryable(): boolean {
+    return isRetryable(this.kind);
+  }
+
+  get httpStatus(): number | undefined {
+    return undefined;
+  }
+}
+
 // Typed transport error: status + parsed body (JSON:API `{ errors: [...] }` when available, else
 // raw text). Callers read fields directly instead of parsing a stringified message.
-export default class AgentHttpError extends Error {
+export default class AgentHttpError extends AgentCallError {
   constructor(readonly status: number, readonly body: unknown, readonly responseText?: string) {
     super(`Agent responded with HTTP ${status}`);
     this.name = 'AgentHttpError';
   }
+
+  override get httpStatus(): number | undefined {
+    return this.status >= 100 && this.status <= 599 ? this.status : undefined;
+  }
+
+  get kind(): AgentFailureKind {
+    if (this.httpStatus === undefined) return 'unreachable';
+    if (FORBIDDEN_STATUSES.has(this.status)) return 'forbidden';
+    if (UNREACHABLE_STATUSES.has(this.status)) return 'unreachable';
+    if (OVERLOADED_STATUSES.has(this.status)) return 'overloaded';
+
+    return 'failed';
+  }
+
+  get detail(): string | undefined {
+    return errorDetailOf(this.body);
+  }
+
+  get agentMessage(): string | undefined {
+    return this.httpStatus !== undefined && this.status < 500 ? this.detail : undefined;
+  }
 }
 
 // `code` stays superagent's timeout code so a caller that classifies on it keeps working.
-export class AgentTimeoutError extends Error {
+export class AgentTimeoutError extends AgentCallError {
   readonly code = 'ECONNABORTED';
+
+  readonly kind = 'unreachable';
 
   constructor(message: string, readonly timeoutMs?: number) {
     super(message);
     this.name = 'AgentTimeoutError';
+  }
+}
+
+export class AgentUnreachableError extends AgentCallError {
+  readonly kind = 'unreachable';
+
+  readonly code: string;
+
+  constructor(readonly cause: Error & { code: string }) {
+    super(cause.message);
+    this.name = 'AgentUnreachableError';
+    this.code = cause.code;
   }
 }
 

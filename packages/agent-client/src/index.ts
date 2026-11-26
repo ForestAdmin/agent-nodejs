@@ -18,7 +18,9 @@ import AgentHttpError, {
   ActionRequiresApprovalError,
   ActionValuesNotExecutableError,
   ActivityLogBlockedError,
+  AgentCallError,
   AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -37,7 +39,9 @@ export {
   ActionOutcomeUnknownError,
   ActionValuesNotExecutableError,
   ActivityLogBlockedError,
+  AgentCallError,
   AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -95,7 +99,6 @@ export function createRemoteAgentClient(params: {
 export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
-export { default as classifyAgentError, mayHaveRun } from './agent-error';
 export {
   default as InProcessHttpRequester,
   AGENT_DISPATCH_TIMEOUT_CODE,
@@ -107,7 +110,7 @@ export type {
   AgentDispatchRequest,
   AgentDispatchResponse,
 } from './in-process-http-requester';
-export type { AgentErrorClassification, AgentFailureKind } from './agent-error';
+export type { AgentFailureKind } from './errors';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
 export { default as relationTargetOf } from './schema/relation-target';
 export type { RelationTarget } from './schema/relation-target';

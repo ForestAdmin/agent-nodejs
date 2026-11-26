@@ -1,8 +1,8 @@
-import { AgentHttpError, classifyAgentError } from '@forestadmin/agent-client';
+import { AgentHttpError } from '@forestadmin/agent-client';
 
 export default function parseAgentError(error: unknown, depth = 0): string | null {
   if (error instanceof AgentHttpError) {
-    const { agentMessage } = classifyAgentError(error);
+    const { agentMessage } = error;
 
     return agentMessage ? `${agentMessage} (HTTP ${error.status})` : error.message;
   }

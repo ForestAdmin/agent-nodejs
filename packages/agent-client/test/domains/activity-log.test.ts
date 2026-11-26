@@ -10,6 +10,7 @@ import AgentHttpError, {
   ActionRequiresApprovalError,
   ActionValuesNotExecutableError,
   AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
 } from '../../src/errors';
 
@@ -476,7 +477,12 @@ describe('activity logging inside agent-client calls', () => {
     describe('when the execute got no answer', () => {
       it.each([
         ['a timeout', new AgentTimeoutError('Timeout of 30000ms exceeded', 30_000)],
-        ['a reset connection', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+        [
+          'a reset connection',
+          new AgentUnreachableError(
+            Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+          ),
+        ],
         ['a 502 from a gateway', new AgentHttpError(502, {})],
         ['a 504 from a gateway', new AgentHttpError(504, {})],
       ])(

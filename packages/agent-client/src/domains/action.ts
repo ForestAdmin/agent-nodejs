@@ -26,6 +26,7 @@ import AgentHttpError, {
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
   UnknownActionFieldError,
+  errorDetailOf,
 } from '../errors';
 
 // JSON:API error body the agent returns on a rejected action.
@@ -43,28 +44,8 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
-function firstNonEmptyString(candidates: unknown[]): string | undefined {
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim() !== '') return candidate.trim();
-  }
-
-  return undefined;
-}
-
-// Only a recognised error shape yields a detail. A raw body or responseText is whatever the agent's
-// host emitted -- an HTML error page, a proxy notice, a stack trace -- and it would reach the client
-// verbatim as the action error message, so it is left out and callers use their own wording.
 export function extractErrorDetail(error: Pick<AgentHttpError, 'body'>): string | undefined {
-  const body = (error.body ?? {}) as ActionErrorBody;
-  const first = body.errors?.[0];
-
-  return firstNonEmptyString([
-    first?.detail,
-    first?.message,
-    first?.title,
-    body.error,
-    body.message,
-  ]);
+  return errorDetailOf(error.body);
 }
 
 // Translate the transport AgentHttpError into a semantic action error so callers route on meaning.

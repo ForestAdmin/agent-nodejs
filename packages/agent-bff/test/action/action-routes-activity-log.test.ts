@@ -3,7 +3,12 @@ import type { Logger } from '../../src/ports/logger-port';
 import type { HttpRequester } from '@forestadmin/agent-client';
 import type { Middleware } from 'koa';
 
-import { AgentHttpError, AgentTimeoutError, drainActivityLogs } from '@forestadmin/agent-client';
+import {
+  AgentHttpError,
+  AgentTimeoutError,
+  AgentUnreachableError,
+  drainActivityLogs,
+} from '@forestadmin/agent-client';
 import { ActivityLogsService, HttpError, ServerUtils } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
@@ -200,7 +205,12 @@ describe('action routes activity log', () => {
     describe('when the execute gets no answer', () => {
       it.each([
         ['a timeout', new AgentTimeoutError('Timeout of 30000ms exceeded')],
-        ['a connection reset', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+        [
+          'a connection reset',
+          new AgentUnreachableError(
+            Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+          ),
+        ],
       ])(
         'should leave the log pending on %s, since the action may still have run',
         async (_, cause) => {

@@ -1,6 +1,6 @@
 import superagent from 'superagent';
 
-import AgentHttpError, { AgentTimeoutError } from '../src/errors';
+import AgentHttpError, { AgentTimeoutError, AgentUnreachableError } from '../src/errors';
 import HttpRequester from '../src/http-requester';
 
 jest.mock('superagent');
@@ -307,6 +307,29 @@ describe('HttpRequester', () => {
         code: 'ECONNABORTED',
         timeoutMs: 1500,
       });
+    });
+
+    it.each([
+      'ECONNREFUSED',
+      'ECONNRESET',
+      'EAI_AGAIN',
+      'EHOSTUNREACH',
+      'ENETUNREACH',
+      'ENOTFOUND',
+      'EPIPE',
+      'ETIMEDOUT',
+    ])('should throw a typed AgentUnreachableError on %s', async code => {
+      const error = Object.assign(new Error(`agent failure: ${code}`), { code });
+      mockRequest.then = jest.fn((_onFulfilled: any, onRejected: any) =>
+        Promise.resolve(onRejected(error)),
+      );
+
+      const caught = await requester
+        .query({ method: 'get', path: '/forest/users' })
+        .catch(failure => failure);
+
+      expect(caught).toBeInstanceOf(AgentUnreachableError);
+      expect(caught).toMatchObject({ code, kind: 'unreachable', cause: error });
     });
 
     it('should leave an aborted request without timeout untouched', async () => {

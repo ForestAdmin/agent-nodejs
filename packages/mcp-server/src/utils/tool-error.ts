@@ -6,8 +6,7 @@ import {
   ActivityLogBlockedError,
   AgentHttpError,
   AgentTimeoutError,
-  classifyAgentError,
-  extractErrorDetail,
+  AgentUnreachableError,
 } from '@forestadmin/agent-client';
 
 import parseAgentError from './error-parser';
@@ -41,8 +40,8 @@ const ACTION_OUTCOME_UNKNOWN_MESSAGE =
   'before running it again.';
 
 // A failure without an HTTP answer names the host and port it tried; the model gets the kind only.
-function isUnanswered(error: unknown): error is Error {
-  return !(error instanceof AgentHttpError) && classifyAgentError(error).kind === 'unreachable';
+function isUnanswered(error: unknown): error is AgentTimeoutError | AgentUnreachableError {
+  return error instanceof AgentTimeoutError || error instanceof AgentUnreachableError;
 }
 
 function messageOf(error: unknown): string {
@@ -77,7 +76,7 @@ export default async function toToolError(
   if (isUnanswered(error)) logger('Warn', `Agent call failed without an answer: ${error.message}`);
 
   if (error instanceof AgentHttpError && error.status >= 500) {
-    const detail = (extractErrorDetail(error) ?? error.responseText)?.slice(0, LOGGED_DETAIL_MAX);
+    const detail = (error.detail ?? error.responseText)?.slice(0, LOGGED_DETAIL_MAX);
     logger('Warn', `Agent answered HTTP ${error.status}: ${detail || 'no detail'}`);
   }
 

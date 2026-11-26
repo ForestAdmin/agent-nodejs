@@ -4,6 +4,7 @@ import {
   ActivityLogBlockedError,
   AgentHttpError,
   AgentTimeoutError,
+  AgentUnreachableError,
 } from '@forestadmin/agent-client';
 import { ForbiddenError, HttpError } from '@forestadmin/forestadmin-client';
 
@@ -123,7 +124,9 @@ describe('toToolError', () => {
     it.each([
       [
         'a refused connection',
-        Object.assign(new Error('connect ECONNREFUSED 10.0.0.4:3310'), { code: 'ECONNREFUSED' }),
+        new AgentUnreachableError(
+          Object.assign(new Error('connect ECONNREFUSED 10.0.0.4:3310'), { code: 'ECONNREFUSED' }),
+        ),
         'The agent could not be reached.',
       ],
       [
