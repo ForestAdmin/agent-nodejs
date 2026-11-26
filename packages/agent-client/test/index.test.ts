@@ -2,9 +2,7 @@ import nock from 'nock';
 
 import makeCreateApprovalRequest from '../src/approval-request-creator';
 import RemoteAgentClient from '../src/domains/remote-agent-client';
-import HttpRequester from '../src/http-requester';
 import {
-  type ActionEndpointsByCollection,
   ActivityLogSource,
   type AgentDispatchRequest,
   type AgentDispatcher,
@@ -44,27 +42,32 @@ describe('createRemoteAgentClient', () => {
     expect(client).toBeInstanceOf(RemoteAgentClient);
   });
 
-  it('should pass action endpoints to the client', () => {
-    const actionEndpoints: ActionEndpointsByCollection = {
-      users: {
-        sendEmail: {
-          name: 'Send Email',
-          endpoint: '/forest/actions/send-email',
-          id: 'Send@@@Email',
-          hooks: { load: false, change: [] },
-          fields: [],
-        },
-      },
-    };
-
+  it('should expose the schema it was given', () => {
     const client = createRemoteAgentClient({
       url: 'https://api.example.com',
       token: 'test-token',
-      actionEndpoints,
+      schema: [
+        {
+          name: 'users',
+          fields: [{ field: 'address', reference: 'User.address.id' }],
+          actions: [
+            {
+              id: 'users-send-email',
+              name: 'Send Email',
+              endpoint: '/forest/actions/send-email',
+              hooks: { load: false, change: [] },
+              fields: [],
+            },
+          ],
+        },
+      ],
     });
 
-    const collection = client.collection('users');
-    expect(collection).toBeDefined();
+    const users = client.schema.collection('users');
+    expect(users.actions['Send Email'].endpoint).toBe('/forest/actions/send-email');
+    expect(users.relation('address')).toEqual({ polymorphic: false, target: 'User.address' });
+    expect(users.relation('ghost')).toBeNull();
+    expect(client.schema.collection('ghost').actions).toEqual({});
   });
 
   it('should pass overridePermissions function to the client', async () => {
@@ -182,48 +185,24 @@ describe('createRemoteAgentClient', () => {
     );
   });
 
-  it('should keep using an injected httpRequester over the timezone option', async () => {
-    const scope = nock('https://injected.example.com')
-      .get('/forest/users/count')
-      .query(true)
-      .reply(200, function handler(this: { req: { path: string } }) {
-        requestPath = this.req.path;
-
-        return { count: 0 };
-      });
-
-    const client = createRemoteAgentClient({
-      url: 'https://api.example.com',
-      token: 'test-token',
-      timezone: 'Asia/Tokyo',
-      httpRequester: new HttpRequester('injected-token', {
-        url: 'https://injected.example.com',
-        timezone: 'America/New_York',
-      }),
-    });
-    await client.collection('users').count();
-
-    scope.done();
-    expect(new URL(requestPath, 'https://injected.example.com').searchParams.get('timezone')).toBe(
-      'America/New_York',
-    );
-  });
-
   it('should provide a working client that can access collections', () => {
     const client = createRemoteAgentClient({
       url: 'https://api.example.com',
       token: 'test-token',
-      actionEndpoints: {
-        products: {
-          archive: {
-            name: 'Archive',
-            endpoint: '/forest/actions/archive',
-            id: 'Archive',
-            hooks: { load: false, change: [] },
-            fields: [],
-          },
+      schema: [
+        {
+          name: 'products',
+          actions: [
+            {
+              name: 'Archive',
+              endpoint: '/forest/actions/archive',
+              id: 'Archive',
+              hooks: { load: false, change: [] },
+              fields: [],
+            },
+          ],
         },
-      },
+      ],
     });
 
     const collection = client.collection('products');

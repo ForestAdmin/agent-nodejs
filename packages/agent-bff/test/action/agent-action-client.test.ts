@@ -28,11 +28,11 @@ describe('createAgentActionClient', () => {
     const collectionFn = jest.fn(() => ({ action: actionFn }));
     createRemoteAgentClientMock.mockReturnValue({ collection: collectionFn });
 
-    const actionEndpoints = { users: { approve: {} } } as never;
+    const schema = [{ name: 'users', actions: [] }];
     const client = createAgentActionClient({
       transport: transportTo('https://agent.example.com'),
       token: 'jwt-token',
-      actionEndpoints,
+      schema,
     });
     const result = await client.loadAction({
       collection: 'users',
@@ -45,7 +45,7 @@ describe('createAgentActionClient', () => {
       url: 'https://agent.example.com',
       timeoutMs: undefined,
       token: 'jwt-token',
-      actionEndpoints,
+      schema,
     });
     expect(collectionFn).toHaveBeenCalledWith('users');
     expect(actionFn).toHaveBeenCalledWith('approve', {
@@ -63,7 +63,7 @@ describe('createAgentActionClient', () => {
     createAgentActionClient({
       transport: transportTo('https://agent', 2500),
       token: 'tok',
-      actionEndpoints: {} as never,
+      schema: [],
     });
 
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith(
@@ -84,7 +84,7 @@ describe('createAgentActionClient', () => {
     await createAgentActionClient({
       transport: transportTo('https://agent.example.com'),
       token: 'jwt-token',
-      actionEndpoints: {} as never,
+      schema: [],
       activityLog,
     }).executeAction({
       collection: 'users',
@@ -119,17 +119,20 @@ describe('createAgentActionClient', () => {
     await createAgentActionClient({
       transport: createInProcessTransport({ dispatcher }),
       token: 'jwt-token',
-      actionEndpoints: {
-        users: {
-          approve: {
-            id: 'users-approve',
-            name: 'approve',
-            endpoint: '/forest/_actions/users/0/approve',
-            hooks: { load: false, change: [] },
-            fields: [],
-          },
+      schema: [
+        {
+          name: 'users',
+          actions: [
+            {
+              id: 'users-approve',
+              name: 'approve',
+              endpoint: '/forest/_actions/users/0/approve',
+              hooks: { load: false, change: [] },
+              fields: [],
+            },
+          ],
         },
-      } as never,
+      ],
     }).executeAction({
       collection: 'users',
       actionName: 'approve',

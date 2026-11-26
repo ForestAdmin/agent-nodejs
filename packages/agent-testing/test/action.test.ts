@@ -1,7 +1,6 @@
 import type { TestableAgent } from '../src';
 import type { Agent } from '@forestadmin/agent';
 
-import { ActionFieldJson, ActionFieldStringList } from '@forestadmin/agent-client';
 import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
 import { DataTypes } from 'sequelize';
 
@@ -154,10 +153,10 @@ describe('action', () => {
         .action('Leave a review', { recordId: restaurantId });
 
       const jsonField = action.getField('Metadata');
-      expect(jsonField).toBeInstanceOf(ActionFieldJson);
+      expect(jsonField.getTypeName()).toBe('Json');
 
       const stringListField = action.getField('Why do you like us?');
-      expect(stringListField).toBeInstanceOf(ActionFieldStringList);
+      expect(stringListField.getTypeName()).toBe('StringList');
     });
   });
 

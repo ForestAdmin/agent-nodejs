@@ -29,7 +29,8 @@ Every server-side package reaches an agent through this package only (see the ro
 
 - A new audit or approval rule goes here, in `activity-log/` or `approval-request-creator.ts`, never in a surface. `with-activity-log.ts` runs a call inside its entry and is the public face; `create-pending-activity-log.ts` opens the entry and decides what blocks a write; `mark-activity-log.ts` moves it to its final status.
 - The rules of an action call live here too, behind the business methods: `action.describeForm()` describes a form with its required fields left empty and its invalid values, `executeAction` refuses such a form before sending it and throws `ActionOutcomeUnknownError` when the execute may have run, and a failed call's error carries its `kind`, `retryable`, `httpStatus` and `agentMessage`. A surface renders their result, never re-derives it.
-- A caller gives the client its agent (`url` or `dispatcher`), `timeoutMs` and `schema`; it never builds a requester or the action endpoints. `relationTargetOf`, `actionEndpointsFromSchema` (the Gateway's read model indexes its actions with it), `serializeRecordId` and the column type helpers stay exported until the schema has a reading API.
+- A caller gives the client its agent (`url` or `dispatcher`), `timeoutMs` and `schema`; it never builds a requester or the action endpoints. It reads the schema through `client.schema`, or `agentSchemaOf(collections)` where it holds no client: `.collection(c).actions` and `.collection(c).relation(r)`.
+- `serializeRecordId` stays exported: the workflow executor stores record ids in that format. `HttpRequester` and `RemoteAgentClient` stay exported for `agent-testing`, which drives a running agent over HTTP.
 - The API stays business-level. A caller passes filters, sort, pagination, fields, search and time zone through `SelectOptions`; only `QuerySerializer` knows the wire parameters.
 - Logging is off unless the caller enables it. `agent-testing` leaves it off.
 

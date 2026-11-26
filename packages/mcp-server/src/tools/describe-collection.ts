@@ -3,8 +3,8 @@ import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import {
+  agentSchemaOf,
   publishedRecordKeys,
-  relationTargetOf,
   toWireOperator,
   withActivityLog,
 } from '@forestadmin/agent-client';
@@ -226,7 +226,9 @@ Check \`_meta\` for data availability context.`,
             const relations = schemaFields
               .filter(f => f.relationship)
               .map(f => {
-                const target = relationTargetOf(f);
+                const target = agentSchemaOf(schema.collections)
+                  .collection(options.collectionName)
+                  .relation(f.field);
 
                 return {
                   name: f.field,

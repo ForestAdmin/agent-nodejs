@@ -7,10 +7,8 @@ import type {
 } from './domains/remote-agent-client';
 import type { ForestServerConnection } from './forest-server';
 import type { AgentDispatcher } from './in-process-http-requester';
-import type { SchemaCollectionWithActions } from './schema/action-endpoints';
+import type { SchemaCollection } from './schema/agent-schema';
 
-import ActionFieldJson from './action-fields/action-field-json';
-import ActionFieldStringList from './action-fields/action-field-string-list';
 import { toActivityLogContext } from './activity-log/with-activity-log';
 import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
@@ -29,12 +27,9 @@ import AgentHttpError, {
 } from './errors';
 import HttpRequester from './http-requester';
 import InProcessHttpRequester from './in-process-http-requester';
-import actionEndpointsFromSchema from './schema/action-endpoints';
+import agentSchemaOf from './schema/agent-schema';
 
 export {
-  ActionFieldJson,
-  ActionFieldStringList,
-  makeCreateApprovalRequest,
   RemoteAgentClient,
   HttpRequester,
   AgentHttpError,
@@ -58,21 +53,6 @@ export type {
 };
 export type { ApprovalRequestPayload, CreateApprovalRequest } from './approval-request-creator';
 
-const actionEndpointsBySchema = new WeakMap<
-  readonly SchemaCollectionWithActions[],
-  ActionEndpointsByCollection
->();
-
-function actionEndpointsOf(
-  schema: readonly SchemaCollectionWithActions[],
-): ActionEndpointsByCollection {
-  if (!actionEndpointsBySchema.has(schema)) {
-    actionEndpointsBySchema.set(schema, actionEndpointsFromSchema(schema));
-  }
-
-  return actionEndpointsBySchema.get(schema);
-}
-
 function requesterOf(params: {
   token?: string;
   url?: string;
@@ -93,8 +73,7 @@ function requesterOf(params: {
 
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
-  schema?: readonly SchemaCollectionWithActions[];
-  actionEndpoints?: ActionEndpointsByCollection;
+  schema?: readonly SchemaCollection[];
   token?: string;
   url?: string;
   dispatcher?: AgentDispatcher;
@@ -107,7 +86,6 @@ export function createRemoteAgentClient(params: {
   forestServer?: ForestServerConnection;
   /** Default timezone sent on every agent request. Defaults to `Europe/Paris`. */
   timezone?: string;
-  httpRequester?: HttpRequester;
   activityLog?: ActivityLogOptions;
 }) {
   const { forestServer, activityLog } = params;
@@ -116,11 +94,10 @@ export function createRemoteAgentClient(params: {
     throw new Error('An activity log needs the Forest server connection it is written to');
   }
 
-  const httpRequester = params.httpRequester ?? requesterOf(params);
+  const httpRequester = requesterOf(params);
 
   return new RemoteAgentClient({
-    actionEndpoints:
-      params.actionEndpoints ?? (params.schema ? actionEndpointsOf(params.schema) : undefined),
+    schema: params.schema && agentSchemaOf(params.schema),
     httpRequester,
     overridePermissions: params.overridePermissions,
     activityLog: activityLog && toActivityLogContext({ forestServer, activityLog }),
@@ -137,7 +114,6 @@ export function createRemoteAgentClient(params: {
 
 export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
-export { extractErrorDetail } from './domains/action';
 export { AGENT_DISPATCH_TIMEOUT_CODE, IN_PROCESS_AGENT_URL } from './in-process-http-requester';
 export { InProcessStreamingUnsupportedError } from './errors';
 export type {
@@ -147,9 +123,15 @@ export type {
 } from './in-process-http-requester';
 export type { AgentFailureKind } from './errors';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
-export { default as relationTargetOf } from './schema/relation-target';
 export type { RelationTarget } from './schema/relation-target';
-export { default as actionEndpointsFromSchema } from './schema/action-endpoints';
+export { default as agentSchemaOf } from './schema/agent-schema';
+export type {
+  AgentSchema,
+  AgentSchemaCollection,
+  SchemaActions,
+  SchemaCollection,
+  SchemaField,
+} from './schema/agent-schema';
 export type { SchemaAction, SchemaCollectionWithActions } from './schema/action-endpoints';
 export { default as serializeRecordId, deserializeRecordId } from './record-id';
 export { default as recordKey, groupByRecordKey, publishedRecordKeys } from './record-key';

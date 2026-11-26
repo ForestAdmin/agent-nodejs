@@ -1,8 +1,8 @@
 import type { AgentTransport } from '../agent/agent-transport';
 import type {
-  ActionEndpointsByCollection,
   ActionFormDescription,
   ActivityLogConfig,
+  SchemaCollection,
 } from '@forestadmin/agent-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
@@ -45,7 +45,7 @@ export interface AgentActionClient {
 export interface AgentActionClientOptions {
   transport: AgentTransport;
   token: string;
-  actionEndpoints: ActionEndpointsByCollection;
+  schema: readonly SchemaCollection[];
   activityLog?: ActivityLogConfig;
 }
 
@@ -68,13 +68,13 @@ export function extractRawLayout(action: ActionForm): ForestServerActionFormLayo
 export default function createAgentActionClient({
   transport,
   token,
-  actionEndpoints,
+  schema,
   activityLog,
 }: AgentActionClientOptions): AgentActionClient {
   const client = createRemoteAgentClient({
     ...transport,
     token,
-    actionEndpoints,
+    schema,
     ...activityLog,
   });
 

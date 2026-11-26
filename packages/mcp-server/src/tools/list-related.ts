@@ -5,7 +5,7 @@ import type { ToolContext } from '../tool-context';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { relationTargetOf } from '@forestadmin/agent-client';
+import { agentSchemaOf } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import { createListArgumentShape } from './list';
@@ -78,11 +78,9 @@ async function readListedCollectionName(
   logger: Logger,
 ): Promise<string | undefined> {
   try {
-    const relation = getFieldsOfCollection(
-      await fetchForestSchema(forestServerClient),
-      options.collectionName,
-    ).find(field => field.field === options.relationName);
-    const target = relation && relationTargetOf(relation);
+    const target = agentSchemaOf((await fetchForestSchema(forestServerClient)).collections)
+      .collection(options.collectionName)
+      .relation(options.relationName);
 
     return target && 'target' in target ? target.target : undefined;
   } catch (schemaError) {

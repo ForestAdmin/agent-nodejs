@@ -263,9 +263,15 @@ describe('declareListRelatedTool', () => {
         rpcClient: { collection: jest.fn().mockReturnValue({ relation: mockRelation }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
       } as unknown as ReturnType<typeof buildClient>);
-      mockGetFieldsOfCollection.mockReturnValue([
-        { field: 'reports', reference: 'employees.id', relationship: 'HasMany' },
-      ] as unknown as ReturnType<typeof schemaFetcher.getFieldsOfCollection>);
+      mockFetchForestSchema.mockResolvedValue({
+        collections: [
+          {
+            name: 'employees',
+            fields: [{ field: 'reports', reference: 'employees.id', relationship: 'HasMany' }],
+            actions: [],
+          },
+        ],
+      } as unknown as Awaited<ReturnType<typeof schemaFetcher.fetchForestSchema>>);
 
       await registeredToolHandler(
         { collectionName: 'employees', relationName: 'reports', parentRecordId: 42 },

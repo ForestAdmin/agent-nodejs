@@ -1,7 +1,6 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
-import type { HttpRequester } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -58,18 +57,21 @@ function collectionRunning(mockAction: jest.Mock) {
 function realClientFor(query: jest.Mock, fields: Record<string, unknown>[] = []) {
   return createRemoteAgentClient({
     url: 'http://agent',
-    httpRequester: { query, stream: jest.fn() } as unknown as HttpRequester,
-    actionEndpoints: {
-      users: {
-        refund: {
-          id: 'users-refund',
-          name: 'refund',
-          endpoint: '/forest/actions/refund',
-          hooks: { load: false, change: [] },
-          fields,
-        },
+    dispatcher: { request: async request => ({ status: 200, body: await query(request) }) },
+    schema: [
+      {
+        name: 'users',
+        actions: [
+          {
+            id: 'users-refund',
+            name: 'refund',
+            endpoint: '/forest/actions/refund',
+            hooks: { load: false, change: [] },
+            fields,
+          },
+        ],
       },
-    } as never,
+    ] as never,
   });
 }
 
@@ -108,7 +110,7 @@ describe('declareExecuteActionTool', () => {
 
     expect(query).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: expect.objectContaining({
+        payload: expect.objectContaining({
           data: expect.objectContaining({
             attributes: expect.objectContaining({ ids: ['0'] }),
           }),

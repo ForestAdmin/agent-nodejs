@@ -299,7 +299,7 @@ export default function createActionRoutesMiddleware({
     const client = createClient({
       transport,
       token,
-      actionEndpoints: readModel.getActionEndpoints(),
+      schema: readModel.getSchema(),
       activityLog:
         verb === EXECUTE_VERB ? activityLogConfigOf(ctx, forestServerUrl, logger) : undefined,
     });

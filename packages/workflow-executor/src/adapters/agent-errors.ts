@@ -1,17 +1,10 @@
 import type { SegmentReadFailureKind } from '../errors';
-import type { AgentHttpError } from '@forestadmin/agent-client';
 
-import { AgentCallError, extractErrorDetail } from '@forestadmin/agent-client';
+import { AgentCallError, AgentHttpError } from '@forestadmin/agent-client';
 
 import { AgentPortError, SegmentReadError } from '../errors';
 
 const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
-
-type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
-
-function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
-  return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
-}
 
 export function flattenAgentMessage(detail: string): string {
   const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
@@ -27,14 +20,15 @@ export function flattenAgentMessage(detail: string): string {
 }
 
 export function agentErrorDetail(cause: unknown): string | undefined {
-  if (!isAgentHttpResponse(cause)) return undefined;
-  const detail = extractErrorDetail(cause);
+  const detail = cause instanceof AgentHttpError ? cause.detail : undefined;
 
   return detail ? flattenAgentMessage(detail) : undefined;
 }
 
 function agentErrorMessage(cause: unknown): string | undefined {
-  return isAgentHttpResponse(cause) && cause.status >= 500 ? agentErrorDetail(cause) : undefined;
+  return cause instanceof AgentHttpError && cause.status >= 500
+    ? agentErrorDetail(cause)
+    : undefined;
 }
 
 export function agentPortError(operation: string, cause: unknown): AgentPortError {

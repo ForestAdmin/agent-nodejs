@@ -31,10 +31,8 @@ import {
   ActionOutcomeUnknownError as ClientActionOutcomeUnknownError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
-  HttpRequester,
   UnknownActionFieldError,
   createRemoteAgentClient,
-  extractErrorDetail,
   isApprovalRequested,
   recordKey,
   withActivityLog,
@@ -63,7 +61,7 @@ function backendRefusalMessage(cause: unknown): string | undefined {
   if (cause instanceof ClientActionFormValidationError) {
     detail = cause.unstructuredCause ? undefined : cause.message;
   } else if (cause instanceof AgentHttpError) {
-    detail = extractErrorDetail(cause);
+    detail = cause.detail;
   }
 
   return detail ? flattenAgentMessage(detail) : undefined;
@@ -166,7 +164,7 @@ export default class AgentClientAgentPort implements AgentPort {
             { activityLog: audit?.call },
           );
       } catch (error) {
-        if (HttpRequester.is404Error(error)) {
+        if (error instanceof AgentHttpError && error.status === 404) {
           throw new RecordNotFoundError(collection, id);
         }
 
@@ -285,7 +283,9 @@ export default class AgentClientAgentPort implements AgentPort {
               { skipDeserialization: true },
             );
         } catch (error) {
-          if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
+          if (error instanceof AgentHttpError && error.status === 404) {
+            throw new RecordNotFoundError(collection, id);
+          }
 
           throw error;
         }

@@ -9,7 +9,6 @@ import {
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   ActionFormValidationError as ClientFormValidationError,
   UnknownActionFieldError as ClientUnknownActionFieldError,
-  HttpRequester,
   createRemoteAgentClient,
   withActivityLog,
 } from '@forestadmin/agent-client';
@@ -74,8 +73,6 @@ jest.mock('@forestadmin/agent-client', () => {
     ApprovalRequestCreationError: MockApprovalRequestCreationError,
     UnknownActionFieldError: MockUnknownActionFieldError,
     createRemoteAgentClient: jest.fn(),
-    HttpRequester: { is404Error: jest.fn() },
-    extractErrorDetail: jest.requireActual('@forestadmin/agent-client').extractErrorDetail,
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
     recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
@@ -89,9 +86,6 @@ jest.mock('@forestadmin/agent-client', () => {
 
 const mockedCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
   typeof createRemoteAgentClient
->;
-const mockedIs404Error = HttpRequester.is404Error as jest.MockedFunction<
-  typeof HttpRequester.is404Error
 >;
 
 function createMockClient() {
@@ -240,8 +234,7 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('maps a 404 from the agent to RecordNotFoundError', async () => {
-      mockedIs404Error.mockReturnValue(true);
-      mockCollection.getOne.mockRejectedValue(new Error('not found'));
+      mockCollection.getOne.mockRejectedValue(new AgentHttpError(404, {}, ''));
 
       await expect(port.getRecord({ collection: 'users', id: [999] }, user)).rejects.toThrow(
         RecordNotFoundError,
@@ -250,7 +243,6 @@ describe('AgentClientAgentPort', () => {
 
     it('rethrows non-404 errors instead of masking them as RecordNotFoundError', async () => {
       // A 500 / auth / network failure must surface as a real error, not "record not found".
-      mockedIs404Error.mockReturnValue(false);
       mockCollection.getOne.mockRejectedValue(new Error('boom'));
 
       await expect(port.getRecord({ collection: 'users', id: [1] }, user)).rejects.toThrow(
@@ -861,10 +853,9 @@ describe('AgentClientAgentPort', () => {
     // unreadable target loaded anyway — the same relation reporting no record once its collection
     // gained a reference field.
     it('returns null when the target is unreadable and no field is projected', async () => {
-      mockedIs404Error.mockReturnValue(true);
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
-        .mockRejectedValueOnce(new Error('not found'));
+        .mockRejectedValueOnce(new AgentHttpError(404, {}, ''));
 
       const result = await port.getSingleRelatedData(
         {
@@ -883,10 +874,9 @@ describe('AgentClientAgentPort', () => {
     // The by-id route intersects the caller's scope; the relation projected on the parent does not.
     // A linkage to a record this caller cannot see is "no related record", not a broken run.
     it('returns null when the target is unreadable, instead of failing the step', async () => {
-      mockedIs404Error.mockReturnValue(true);
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
-        .mockRejectedValueOnce(new Error('not found'));
+        .mockRejectedValueOnce(new AgentHttpError(404, {}, ''));
 
       const result = await port.getSingleRelatedData(
         {
@@ -904,7 +894,6 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('rethrows a non-404 on the target read', async () => {
-      mockedIs404Error.mockReturnValue(false);
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
         .mockRejectedValueOnce(new Error('boom'));
@@ -1109,8 +1098,7 @@ describe('AgentClientAgentPort', () => {
     );
 
     it('maps a 404 on the parent to RecordNotFoundError', async () => {
-      mockedIs404Error.mockReturnValue(true);
-      mockCollection.getOne.mockRejectedValue(new Error('not found'));
+      mockCollection.getOne.mockRejectedValue(new AgentHttpError(404, {}, ''));
 
       await expect(
         port.getSingleRelatedData(
@@ -1121,7 +1109,6 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('rethrows a non-404 on the parent instead of masking it as RecordNotFoundError', async () => {
-      mockedIs404Error.mockReturnValue(false);
       mockCollection.getOne.mockRejectedValue(new Error('boom'));
 
       await expect(

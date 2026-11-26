@@ -1,12 +1,7 @@
-import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, AgentSchema } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
-import {
-  actionEndpointsFromSchema,
-  groupByRecordKey,
-  recordKey,
-  relationTargetOf,
-} from '@forestadmin/agent-client';
+import { agentSchemaOf, groupByRecordKey, recordKey } from '@forestadmin/agent-client';
 
 export const RELATIONSHIP_TYPES = [
   'BelongsTo',
@@ -46,10 +41,14 @@ function toListableTarget(target: RelationTarget): string | null {
   return target.target;
 }
 
-function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
+function toRelationTarget(
+  schema: AgentSchema,
+  collection: string,
+  field: ForestSchemaField,
+): RelationTarget | null {
   if (!field.relationship) return null;
 
-  const target = relationTargetOf(field);
+  const target = schema.collection(collection).relation(field.field);
 
   return target && { type: field.relationship, ...target };
 }
@@ -74,18 +73,24 @@ export default class ReadModel {
   private readonly relations: Map<string, Map<string, RelationTarget>>;
   private readonly listableRelations: Map<string, Map<string, string>>;
   private readonly actionEndpoints: ActionEndpointsByCollection;
+  private readonly schema: readonly ForestSchemaCollection[];
   private readonly primaryKeys: Map<string, PrimaryKeyField[]>;
 
   constructor(collections: ForestSchemaCollection[]) {
     this.collections = new Set();
     this.relations = new Map();
     this.listableRelations = new Map();
-    this.actionEndpoints = actionEndpointsFromSchema(collections);
+    this.schema = collections;
+    this.actionEndpoints = Object.create(null);
     this.primaryKeys = new Map();
+    const schema = agentSchemaOf(collections);
 
     for (const collection of collections) {
+      const { actions } = schema.collection(collection.name);
+      if (Object.keys(actions).length > 0) this.actionEndpoints[collection.name] = actions;
+
       this.collections.add(collection.name);
-      this.buildRelations(collection);
+      this.buildRelations(schema, collection);
       this.buildPrimaryKeys(collection);
     }
 
@@ -95,12 +100,12 @@ export default class ReadModel {
     this.primaryKeys.forEach(deepFreeze);
   }
 
-  private buildRelations(collection: ForestSchemaCollection): void {
+  private buildRelations(schema: AgentSchema, collection: ForestSchemaCollection): void {
     const relations = new Map<string, RelationTarget>();
     const listable = new Map<string, string>();
 
     for (const field of collection.fields ?? []) {
-      const target = toRelationTarget(field);
+      const target = toRelationTarget(schema, collection.name, field);
 
       if (target) {
         relations.set(field.field, target);
@@ -203,6 +208,10 @@ export default class ReadModel {
 
   isActionAllowed(collection: string, action: string): boolean {
     return this.actionEndpoints[collection]?.[action] !== undefined;
+  }
+
+  getSchema(): readonly ForestSchemaCollection[] {
+    return this.schema;
   }
 
   getActionEndpoints(): ActionEndpointsByCollection {
