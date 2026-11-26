@@ -1,9 +1,8 @@
 import type { AgentDispatcher } from '../../src/agent/in-process-transport';
 
-import { AgentHttpError, HttpRequester } from '@forestadmin/agent-client';
+import { AgentHttpError, AgentTimeoutError, HttpRequester } from '@forestadmin/agent-client';
 import nock from 'nock';
 
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createInProcessTransport, {
   AGENT_DISPATCH_TIMEOUT_CODE,
 } from '../../src/agent/in-process-transport';

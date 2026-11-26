@@ -2,9 +2,7 @@ import type { WriteStream } from 'fs';
 
 import { HttpRequester } from '@forestadmin/agent-client';
 
-import createAgentHttpRequester, {
-  AgentTimeoutError,
-} from '../../src/agent/create-agent-http-requester';
+import createAgentHttpRequester from '../../src/agent/create-agent-http-requester';
 
 jest.mock('@forestadmin/agent-client');
 
@@ -34,38 +32,6 @@ describe('createAgentHttpRequester', () => {
       path: '/forest/users',
       maxTimeAllowed: undefined,
     });
-  });
-
-  it.each([
-    ['no timeout is configured', undefined],
-    ['a timeout is configured', 2500],
-  ])('should raise a typed AgentTimeoutError when %s', async (_label, timeoutMs) => {
-    query.mockRejectedValue(
-      Object.assign(new Error('Timeout of 1500ms exceeded'), {
-        code: 'ECONNABORTED',
-        errno: 'ETIME',
-        timeout: 1500,
-      }),
-    );
-
-    const requester = createAgentHttpRequester('tok', 'https://agent', timeoutMs);
-
-    await expect(requester.query({ method: 'get', path: '/forest/users' })).rejects.toMatchObject({
-      name: 'AgentTimeoutError',
-      message: 'Timeout of 1500ms exceeded',
-    });
-  });
-
-  it('should leave any other transport failure untouched', async () => {
-    const refused = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
-    query.mockRejectedValue(refused);
-
-    const requester = createAgentHttpRequester('tok', 'https://agent', 2500);
-
-    await expect(requester.query({ method: 'get', path: '/forest/users' })).rejects.toBe(refused);
-    await expect(
-      requester.query({ method: 'get', path: '/forest/users' }),
-    ).rejects.not.toBeInstanceOf(AgentTimeoutError);
   });
 
   it('should default maxTimeAllowed to the configured timeout on query', async () => {

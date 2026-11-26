@@ -9,6 +9,16 @@ export default class AgentHttpError extends Error {
   }
 }
 
+// `code` stays superagent's timeout code so a caller that classifies on it keeps working.
+export class AgentTimeoutError extends Error {
+  readonly code = 'ECONNABORTED';
+
+  constructor(message: string, readonly timeoutMs?: number) {
+    super(message);
+    this.name = 'AgentTimeoutError';
+  }
+}
+
 // Semantic action errors: agent-client interprets the failure once so callers route on meaning, not
 // status/body. `message` carries the agent's detail when available.
 export class ActionRequiresApprovalError extends Error {

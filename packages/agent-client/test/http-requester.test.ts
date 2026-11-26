@@ -1,6 +1,6 @@
 import superagent from 'superagent';
 
-import AgentHttpError from '../src/errors';
+import AgentHttpError, { AgentTimeoutError } from '../src/errors';
 import HttpRequester from '../src/http-requester';
 
 jest.mock('superagent');
@@ -286,6 +286,36 @@ describe('HttpRequester', () => {
       await expect(requester.query({ method: 'get', path: '/forest/users' })).rejects.toThrow(
         'Network error',
       );
+    });
+
+    it('should throw a typed AgentTimeoutError when the request runs out of time', async () => {
+      const error = Object.assign(new Error('Timeout of 1500ms exceeded'), {
+        code: 'ECONNABORTED',
+        timeout: 1500,
+      });
+      mockRequest.then = jest.fn((_onFulfilled: any, onRejected: any) =>
+        Promise.resolve(onRejected(error)),
+      );
+
+      const caught = await requester
+        .query({ method: 'get', path: '/forest/users' })
+        .catch(failure => failure);
+
+      expect(caught).toBeInstanceOf(AgentTimeoutError);
+      expect(caught).toMatchObject({
+        message: 'Timeout of 1500ms exceeded',
+        code: 'ECONNABORTED',
+        timeoutMs: 1500,
+      });
+    });
+
+    it('should leave an aborted request without timeout untouched', async () => {
+      const error = Object.assign(new Error('Aborted'), { code: 'ECONNABORTED' });
+      mockRequest.then = jest.fn((_onFulfilled: any, onRejected: any) =>
+        Promise.resolve(onRejected(error)),
+      );
+
+      await expect(requester.query({ method: 'get', path: '/forest/users' })).rejects.toBe(error);
     });
 
     it('should parse the JSON body from the response text when body is empty', async () => {

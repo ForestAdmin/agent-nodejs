@@ -1,8 +1,7 @@
 import type { AgentTransport } from './agent-transport';
 
-import { HttpRequester } from '@forestadmin/agent-client';
+import { AgentTimeoutError, HttpRequester } from '@forestadmin/agent-client';
 
-import { AgentTimeoutError } from './create-agent-http-requester';
 import { streamingUnsupported } from '../http/bff-local-errors';
 
 /** A sentinel that never reaches the network: `query` answers before any socket is opened. */

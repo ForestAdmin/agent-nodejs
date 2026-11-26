@@ -3,7 +3,13 @@ import type { WriteStream } from 'fs';
 import { Deserializer } from 'jsonapi-serializer';
 import superagent from 'superagent';
 
-import AgentHttpError from './errors';
+import AgentHttpError, { AgentTimeoutError } from './errors';
+
+function isSuperagentTimeout(error: unknown): error is Error & { timeout: number } {
+  const { code, timeout } = (error ?? {}) as { code?: unknown; timeout?: unknown };
+
+  return error instanceof Error && code === 'ECONNABORTED' && typeof timeout === 'number';
+}
 
 function parseJson(text: string | undefined): unknown {
   if (text === undefined) return undefined;
@@ -93,7 +99,8 @@ export default class HttpRequester {
     } catch (error) {
       const res = (error as { response?: { status?: number; body?: unknown; text?: string } })
         .response;
-      if (!res) throw error; // network/timeout/abort → no HTTP response, propagate raw
+      if (isSuperagentTimeout(error)) throw new AgentTimeoutError(error.message, error.timeout);
+      if (!res) throw error;
 
       const text = typeof res.text === 'string' ? res.text : undefined;
 

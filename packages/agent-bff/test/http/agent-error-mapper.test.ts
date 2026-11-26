@@ -1,6 +1,5 @@
-import { AgentHttpError } from '@forestadmin/agent-client';
+import { AgentHttpError, AgentTimeoutError } from '@forestadmin/agent-client';
 
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import { mapAgentError } from '../../src/http/agent-error-mapper';
 import { BffHttpError } from '../../src/http/bff-http-error';
 

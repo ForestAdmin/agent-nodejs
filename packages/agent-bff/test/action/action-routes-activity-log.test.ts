@@ -3,14 +3,13 @@ import type { Logger } from '../../src/ports/logger-port';
 import type { HttpRequester } from '@forestadmin/agent-client';
 import type { Middleware } from 'koa';
 
-import { AgentHttpError, drainActivityLogs } from '@forestadmin/agent-client';
+import { AgentHttpError, AgentTimeoutError, drainActivityLogs } from '@forestadmin/agent-client';
 import { ActivityLogsService, HttpError, ServerUtils } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import { TIMEZONE, readModel, storeOf } from '../helpers/action-routes';
 import {

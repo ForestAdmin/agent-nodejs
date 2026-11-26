@@ -1,9 +1,8 @@
 import type { Logger } from '../ports/logger-port';
 
-import { AgentHttpError } from '@forestadmin/agent-client';
+import { AgentHttpError, AgentTimeoutError } from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
-import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 
 const TYPE_INVALID_REQUEST = 'invalid_request';
 const TYPE_VALIDATION_ERROR = 'validation_error';

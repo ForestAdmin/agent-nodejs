@@ -13,6 +13,7 @@ import {
   ActionFormValidationError,
   ActivityLogBlockedError,
   AgentHttpError,
+  AgentTimeoutError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -24,7 +25,6 @@ import { mapActionForm } from './action-form-mapper';
 import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
-import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 import activityLogConfigOf from '../auth/activity-log-context';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {

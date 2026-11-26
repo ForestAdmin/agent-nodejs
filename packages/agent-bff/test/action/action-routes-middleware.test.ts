@@ -4,6 +4,7 @@ import type { Logger } from '../../src/ports/logger-port';
 import {
   ActionFormValidationError,
   AgentHttpError,
+  AgentTimeoutError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -14,7 +15,6 @@ import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import {
