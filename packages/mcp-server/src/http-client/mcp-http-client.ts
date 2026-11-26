@@ -8,10 +8,16 @@ import type {
   McpWorkflow,
   McpWorkflowLookup,
   SchemaServiceInterface,
+  SemanticLayerActionParams,
+  SemanticLayerCollection,
+  SemanticLayerCollectionParams,
+  SemanticLayerDescription,
   TriggerMcpWorkflowParams,
   WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 } from './types';
+
+import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 export default class ForestServerClientImpl implements ForestServerClient {
   constructor(
@@ -38,5 +44,42 @@ export default class ForestServerClientImpl implements ForestServerClient {
 
   async getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<HydratedWorkflowRun> {
     return this.workflowsService.getMcpWorkflowRun(params);
+  }
+
+  async getSemanticLayerCollection({
+    forestServerToken,
+    environmentId,
+    collectionName,
+  }: SemanticLayerCollectionParams): Promise<SemanticLayerCollection> {
+    return this.readSemanticLayer(
+      forestServerToken,
+      `/api/environments/${environmentId}/semantic-layer/collections/${encodeURIComponent(
+        collectionName,
+      )}`,
+    );
+  }
+
+  async getSemanticLayerActionDescription({
+    forestServerToken,
+    environmentId,
+    collectionName,
+    actionName,
+  }: SemanticLayerActionParams): Promise<SemanticLayerDescription> {
+    return this.readSemanticLayer(
+      forestServerToken,
+      `/api/environments/${environmentId}/semantic-layer/descriptions/collections/${encodeURIComponent(
+        collectionName,
+      )}/actions/${encodeURIComponent(actionName)}`,
+    );
+  }
+
+  private readSemanticLayer<T>(bearerToken: string, path: string): Promise<T> {
+    return ServerUtils.queryWithBearerToken<T>({
+      forestServerUrl: this.forestServerUrl,
+      method: 'get',
+      path,
+      bearerToken,
+      headers: { 'Forest-Application-Source': 'MCP' },
+    });
   }
 }

@@ -4,6 +4,8 @@ import type {
   WorkflowsServiceInterface,
 } from '../../src/http-client/types';
 
+import { ServerUtils } from '@forestadmin/forestadmin-client';
+
 import { createForestServerClient } from '../../src/http-client';
 import ForestServerClientImpl from '../../src/http-client/mcp-http-client';
 
@@ -45,6 +47,52 @@ describe('ForestServerClientImpl', () => {
 
       expect(mockSchemaService.getSchema).toHaveBeenCalledTimes(1);
       expect(result).toBe(mockSchema);
+    });
+  });
+
+  describe('semantic layer reads', () => {
+    let query: jest.SpyInstance;
+
+    beforeEach(() => {
+      query = jest
+        .spyOn(ServerUtils, 'queryWithBearerToken')
+        .mockResolvedValue({ hasVersion: false });
+    });
+
+    afterEach(() => query.mockRestore());
+
+    it('reads the descriptions of a collection with the caller token, its name encoded', async () => {
+      const result = await client.getSemanticLayerCollection({
+        forestServerToken: 'caller-token',
+        environmentId: 12345,
+        collectionName: 'order items',
+      });
+
+      expect(query).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        method: 'get',
+        path: '/api/environments/12345/semantic-layer/collections/order%20items',
+        bearerToken: 'caller-token',
+        headers: { 'Forest-Application-Source': 'MCP' },
+      });
+      expect(result).toEqual({ hasVersion: false });
+    });
+
+    it('reads the description of an action with the caller token, its names encoded', async () => {
+      await client.getSemanticLayerActionDescription({
+        forestServerToken: 'caller-token',
+        environmentId: 12345,
+        collectionName: 'orders',
+        actionName: 'Refund / all',
+      });
+
+      expect(query).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        method: 'get',
+        path: '/api/environments/12345/semantic-layer/descriptions/collections/orders/actions/Refund%20%2F%20all',
+        bearerToken: 'caller-token',
+        headers: { 'Forest-Application-Source': 'MCP' },
+      });
     });
   });
 

@@ -282,6 +282,7 @@ export default class ForestMCPServer {
       collectionNames: this.collectionNames,
       agentDispatcher: this.agentDispatcher,
       fileUploads: this.fileUploads,
+      enabledTools: this.enabledTools,
     };
 
     const allTools: Array<{ name: ToolName; register: () => string }> = [

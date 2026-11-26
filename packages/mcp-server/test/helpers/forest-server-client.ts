@@ -29,6 +29,15 @@ export default function createMockForestServerClient(
       updatedAt: '2024-01-01T00:00:00.000Z',
       workflowHistory: [],
     }),
+    getSemanticLayerCollection: jest.fn().mockResolvedValue({
+      collection: { hasVersion: false, text: null },
+      fields: {},
+      actions: {},
+      workflows: [],
+    }),
+    getSemanticLayerActionDescription: jest
+      .fn()
+      .mockResolvedValue({ hasVersion: false, text: null }),
     ...overrides,
   } as jest.Mocked<ForestServerClient>;
 }

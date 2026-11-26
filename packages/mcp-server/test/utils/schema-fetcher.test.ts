@@ -5,7 +5,9 @@ import {
   clearSchemaCache,
   fetchForestSchema,
   getActionEndpoints,
+  getActionsOfCollection,
   getCollectionNames,
+  getFieldsOfCollection,
   setSchemaCache,
 } from '../../src/utils/schema-fetcher';
 import createMockForestServerClient from '../helpers/forest-server-client';
@@ -166,6 +168,22 @@ describe('schema-fetcher', () => {
       expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result.collections).toHaveLength(1);
       expect(result.collections[0].name).toBe('new');
+    });
+  });
+
+  describe('a collection missing from the schema', () => {
+    const schema = { collections: [] } as ForestSchema;
+
+    it('is refused with the same error when reading its fields', () => {
+      expect(() => getFieldsOfCollection(schema, 'ghost')).toThrow(
+        'Collection "ghost" not found in schema',
+      );
+    });
+
+    it('is refused with the same error when reading its actions', () => {
+      expect(() => getActionsOfCollection(schema, 'ghost')).toThrow(
+        'Collection "ghost" not found in schema',
+      );
     });
   });
 

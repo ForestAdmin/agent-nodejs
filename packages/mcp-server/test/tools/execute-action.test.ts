@@ -21,6 +21,8 @@ const mockForestServerClient: ForestServerClient = {
   getMcpWorkflowById: jest.fn(),
   triggerMcpWorkflow: jest.fn(),
   getMcpWorkflowRun: jest.fn(),
+  getSemanticLayerCollection: jest.fn(),
+  getSemanticLayerActionDescription: jest.fn(),
 };
 
 const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction<

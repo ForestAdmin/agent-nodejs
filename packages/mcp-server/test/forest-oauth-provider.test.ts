@@ -1213,6 +1213,7 @@ describe('ForestOAuthProvider', () => {
         userId: 123,
         email: 'user@example.com',
         renderingId: 456,
+        environmentId: 12345,
         environmentApiEndpoint: 'https://api.example.com',
         forestServerToken: 'forest-server-token',
       });
@@ -1286,6 +1287,20 @@ describe('ForestOAuthProvider', () => {
           forestServerToken: 'saas-token',
         },
       });
+    });
+
+    it("should carry the environment's id once initialized", async () => {
+      mockServer.get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      });
+      global.fetch = mockServer.fetch;
+      mockAuthenticate.mockResolvedValue(AUTHENTICATED);
+      const provider = createProvider();
+      await provider.initialize();
+
+      const result = await provider.verifyAccessToken(CREDENTIAL);
+
+      expect(result.extra).toEqual(expect.objectContaining({ environmentId: 12345 }));
     });
 
     it('should not verify the credential as a JWT', async () => {
