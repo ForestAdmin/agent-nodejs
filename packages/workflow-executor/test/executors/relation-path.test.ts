@@ -342,7 +342,7 @@ describe('a record step whose source is reached through to-one relations', () =>
     it.each([
       ['the agent refuses the read', new AgentPortError('getRelatedRecordId', { status: 403 })],
       ['the activity log is refused', new ActivityLogCreationError({ reason: 'notAuthorized' })],
-    ])('fails the step naming the collection when %s', async (_case, refusal) => {
+    ])('fails the step naming the collection the hop leads to when %s', async (_case, refusal) => {
       const context = makeContext(
         readStep({
           selectedRecordStepId: WORKFLOW_START_STEP_ID,
@@ -361,7 +361,7 @@ describe('a record step whose source is reached through to-one relations', () =>
       expect(result.stepOutcome).toMatchObject({
         status: 'error',
         error:
-          'Couldn\'t run "Read address": the user running this workflow can\'t access Customers.',
+          'Couldn\'t run "Read address": the user running this workflow can\'t access Addresses.',
         errorKind: 'configuration',
       });
     });

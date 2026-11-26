@@ -78,8 +78,10 @@ export default async function followRelationPath(
         relatedSchema,
       });
     } catch (error) {
+      // The agent refuses a projection on the collection it ends on (`customer:id` needs read on
+      // customers), and the hop's own collection was already read by the hop before it.
       if (isAccessDenied(error)) {
-        return { status: 'forbidden', collectionDisplayName: currentSchema.collectionDisplayName };
+        return { status: 'forbidden', collectionDisplayName: relatedSchema.collectionDisplayName };
       }
 
       // The root is the step's own source, so losing it stays an error; a record further down the
