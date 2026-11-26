@@ -55,6 +55,24 @@ function collectionRunning(mockAction: jest.Mock) {
   };
 }
 
+function realClientFor(query: jest.Mock, fields: Record<string, unknown>[] = []) {
+  return createRemoteAgentClient({
+    url: 'http://agent',
+    httpRequester: { query, stream: jest.fn() } as unknown as HttpRequester,
+    actionEndpoints: {
+      users: {
+        refund: {
+          id: 'users-refund',
+          name: 'refund',
+          endpoint: '/forest/actions/refund',
+          hooks: { load: false, change: [] },
+          fields,
+        },
+      },
+    } as never,
+  });
+}
+
 describe('declareExecuteActionTool', () => {
   let mcpServer: McpServer;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
@@ -71,24 +89,40 @@ describe('declareExecuteActionTool', () => {
     } as unknown as McpServer;
   });
 
+  it('should run the action on the record whose id is 0', async () => {
+    const query = jest.fn().mockResolvedValue({ success: 'done' });
+    mockBuildClientWithActions.mockResolvedValue({
+      rpcClient: realClientFor(query),
+      authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+    } as unknown as Awaited<ReturnType<typeof buildClientWithActions>>);
+    declareExecuteActionTool(mcpServer, {
+      forestServerClient: mockForestServerClient,
+      logger: mockLogger,
+      collectionNames: [],
+    });
+
+    await registeredToolHandler(
+      { collectionName: 'users', actionName: 'refund', recordIds: [0] },
+      { authInfo: { token: 't' } },
+    );
+
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          data: expect.objectContaining({
+            attributes: expect.objectContaining({ ids: ['0'] }),
+          }),
+        }),
+      }),
+    );
+  });
+
   describe('when a required field is left empty', () => {
     it('should refuse with the missing fields and never send the execute', async () => {
       const query = jest.fn();
-      const rpcClient = createRemoteAgentClient({
-        url: 'http://agent',
-        httpRequester: { query, stream: jest.fn() } as unknown as HttpRequester,
-        actionEndpoints: {
-          users: {
-            refund: {
-              id: 'users-refund',
-              name: 'refund',
-              endpoint: '/forest/actions/refund',
-              hooks: { load: false, change: [] },
-              fields: [{ field: 'reason', type: 'String', isRequired: true, isReadOnly: false }],
-            },
-          },
-        } as never,
-      });
+      const rpcClient = realClientFor(query, [
+        { field: 'reason', type: 'String', isRequired: true, isReadOnly: false },
+      ]);
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient,
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
