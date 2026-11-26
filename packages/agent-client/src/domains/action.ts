@@ -129,6 +129,7 @@ export default class Action {
   private readonly actionId: string | undefined;
   private actionPath: string;
   private readonly createApprovalRequest?: CreateApprovalRequest;
+  private readonly timezone?: string;
 
   constructor(
     collectionName: string,
@@ -139,6 +140,7 @@ export default class Action {
     ids?: (string | number)[],
     actionId?: string,
     createApprovalRequest?: CreateApprovalRequest,
+    timezone?: string,
   ) {
     this.collectionName = collectionName;
     this.actionName = actionName;
@@ -148,6 +150,7 @@ export default class Action {
     this.fieldsFormStates = fieldsFormStates;
     this.actionId = actionId;
     this.createApprovalRequest = createApprovalRequest;
+    this.timezone = timezone;
   }
 
   async execute(options: ActionExecuteOptions = {}): Promise<ActionExecuteResult> {
@@ -171,6 +174,7 @@ export default class Action {
         method: 'post',
         path: this.actionPath,
         body: requestBody,
+        ...(this.timezone && { query: { timezone: this.timezone } }),
         ...(maxTimeAllowed !== undefined && { maxTimeAllowed }),
       });
     } catch (error) {

@@ -125,4 +125,43 @@ describe('createAgentActionClient', () => {
       activityLog: { beforeCall, isOutcomeUnknown },
     });
   });
+
+  it('executes the action in the timezone of the request', async () => {
+    createRemoteAgentClientMock.mockImplementation(
+      jest.requireActual('@forestadmin/agent-client').createRemoteAgentClient,
+    );
+    query.mockResolvedValue({ success: 'done' });
+
+    await createAgentActionClient({
+      transport: transportTo('https://agent.example.com'),
+      token: 'jwt-token',
+      actionEndpoints: {
+        users: {
+          approve: {
+            id: 'users-approve',
+            name: 'approve',
+            endpoint: '/forest/_actions/users/0/approve',
+            hooks: { load: false, change: [] },
+            fields: [],
+          },
+        },
+      } as never,
+    }).executeAction({
+      collection: 'users',
+      actionName: 'approve',
+      recordIds: ['1'],
+      timezone: 'America/New_York',
+      isOutcomeUnknown: () => false,
+      beforeCall: async () => undefined,
+      fill: async () => undefined,
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'post',
+        path: '/forest/_actions/users/0/approve',
+        query: { timezone: 'America/New_York' },
+      }),
+    );
+  });
 });
