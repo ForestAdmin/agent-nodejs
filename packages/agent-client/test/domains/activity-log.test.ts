@@ -8,6 +8,7 @@ import Collection from '../../src/domains/collection';
 import AgentHttpError, {
   ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
+  ActionValuesNotExecutableError,
   AgentTimeoutError,
   ApprovalRequestCreationError,
 } from '../../src/errors';
@@ -438,6 +439,37 @@ describe('activity logging inside agent-client calls', () => {
 
       expect(query).toHaveBeenCalledWith(
         expect.objectContaining({ method: 'post', maxTimeAllowed: 30_000 }),
+      );
+    });
+
+    it('should refuse to execute a form the agent would refuse, and mark the entry failed', async () => {
+      const { httpRequester, service, query } = setup();
+      const collection = new Collection(
+        'users',
+        httpRequester,
+        {
+          users: {
+            refund: {
+              ...actionEndpoints.users.refund,
+              fields: [{ field: 'amount', type: 'Number', isRequired: true, isReadOnly: false }],
+            },
+          },
+        } as unknown as ActionEndpointsByCollection,
+        undefined,
+        {
+          service: service as unknown as ActivityLogsServiceInterface,
+          credentials: () => ({ forestServerToken: 'server-token', renderingId: 1 }),
+        },
+      );
+
+      const error = await collection.executeAction('refund').catch(caught => caught);
+      await drainActivityLogs();
+
+      expect(error).toBeInstanceOf(ActionValuesNotExecutableError);
+      expect(error.missingRequiredFields).toEqual(['amount']);
+      expect(query).not.toHaveBeenCalled();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
       );
     });
 

@@ -48,6 +48,7 @@ yarn test:coverage      # Run tests with coverage
 - The business rules of an agent call live in agent-client, not in the surface:
   - Activity logs: one entry per action, write, delete and read. An action sent for approval leaves its entry `canceled` plus one `createApproval` entry. A write whose log cannot be created does not run; a read runs with a warning.
   - Approval requests: agent-client files them.
+  - Action calls: the form description, the check of its values before the execute is sent, the unknown outcome of an execute, the reading of a failed call, the in-process transport and the callable actions of a schema.
 - A surface only turns logging on with its `ActivityLogSource`, passes its context (Forest server connection, logger, workflow run), and maps agent-client's errors to its own answer.
 - agent-client's API stays business-level: filters, sort, pagination, fields, search, time zone. Never wire parameters such as `page[size]`, `fields[x]` or `searchExtended`.
 - The Forest UI does not use agent-client and keeps writing its own logs.

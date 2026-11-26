@@ -1,5 +1,6 @@
 import {
   ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
   AgentHttpError,
   AgentTimeoutError,
@@ -69,6 +70,20 @@ describe('toToolError', () => {
   });
 
   describe('when the operation itself failed', () => {
+    it('should list the fields that keep an action from running', async () => {
+      const error = new ActionValuesNotExecutableError(
+        ['reason'],
+        [{ field: 'amount', expected: 'a number' }],
+      );
+
+      await expect(toToolError(error, { logger })).resolves.toEqual(
+        new Error(
+          'The action cannot run: required fields left empty: reason; invalid values: amount ' +
+            '(expected a number).',
+        ),
+      );
+    });
+
     it('should say an action that got no answer may have run', async () => {
       const error = new ActionOutcomeUnknownError(new AgentTimeoutError('Timeout', 30_000));
 

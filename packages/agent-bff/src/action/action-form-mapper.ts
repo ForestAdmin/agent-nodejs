@@ -1,4 +1,4 @@
-import type { ActionForm, ActionFormField } from './agent-action-client';
+import type { ActionForm } from './agent-action-client';
 import type { Logger } from '../ports/logger-port';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
@@ -21,13 +21,6 @@ export interface ActionFormResponse {
   requiredFields: string[];
   skippedFields: string[];
   layout: ForestServerActionFormLayoutElement[];
-}
-
-export function missingRequiredFieldNames(fields: ActionFormField[]): string[] {
-  return fields
-    .filter(field => field.isRequired())
-    .filter(field => field.getValue() === undefined || field.getValue() === null)
-    .map(field => field.getName());
 }
 
 // A required field is "missing a value" only when its resolved value is null/undefined; an explicit

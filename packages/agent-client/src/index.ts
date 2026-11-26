@@ -16,6 +16,7 @@ import AgentHttpError, {
   ActionFormValidationError,
   ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
   AgentTimeoutError,
   ApprovalRequestCreationError,
@@ -34,6 +35,7 @@ export {
   ActionRequiresApprovalError,
   ActionFormValidationError,
   ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
   AgentTimeoutError,
   ApprovalRequestCreationError,
@@ -117,6 +119,22 @@ export type { PublishedRecordKey } from './record-key';
 export type { RecordId, SelectOptions } from './types';
 export type { ActionExecuteResult } from './domains/action';
 export { default as describeActionForm } from './action-fields/form-description';
+export {
+  assertActionValuesExecutable,
+  findActionValueProblems,
+} from './action-fields/action-values-check';
+export type {
+  ActionValueProblems,
+  CheckableForm,
+  InvalidActionValue,
+} from './action-fields/action-values-check';
+export {
+  enumOptionsOf,
+  isEnumFieldType,
+  normalizeFieldType,
+  primitiveShapeOf,
+} from './schema/field-type';
+export type { FieldType, PrimitiveShape } from './schema/field-type';
 export type {
   ActionFormDescription,
   ActionFormFieldDescription,

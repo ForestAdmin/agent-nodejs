@@ -53,6 +53,25 @@ export class ActionFormValidationError extends Error {
   }
 }
 
+export class ActionValuesNotExecutableError extends ActionFormValidationError {
+  constructor(
+    readonly missingRequiredFields: string[],
+    readonly invalidValues: { field: string; expected: string }[],
+  ) {
+    const reasons = [
+      missingRequiredFields.length > 0 &&
+        `required fields left empty: ${missingRequiredFields.join(', ')}`,
+      invalidValues.length > 0 &&
+        `invalid values: ${invalidValues
+          .map(({ field, expected }) => `${field} (expected ${expected})`)
+          .join(', ')}`,
+    ].filter(Boolean);
+
+    super(`The action cannot run: ${reasons.join('; ')}.`);
+    this.name = 'ActionValuesNotExecutableError';
+  }
+}
+
 export class UnknownActionFieldError extends Error {
   constructor(readonly fieldName: string) {
     super(`Field "${fieldName}" does not exist in this form`);

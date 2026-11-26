@@ -1,9 +1,12 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
+import type { HttpRequester } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
+
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import { UPLOADED_FILE_PREFIX } from '../../src/file-uploads/file-reference';
 import { signUploadHandle } from '../../src/file-uploads/handles';
@@ -66,6 +69,49 @@ describe('declareExecuteActionTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
+  });
+
+  describe('when a required field is left empty', () => {
+    it('should refuse with the missing fields and never send the execute', async () => {
+      const query = jest.fn();
+      const rpcClient = createRemoteAgentClient({
+        url: 'http://agent',
+        httpRequester: { query, stream: jest.fn() } as unknown as HttpRequester,
+        actionEndpoints: {
+          users: {
+            refund: {
+              id: 'users-refund',
+              name: 'refund',
+              endpoint: '/forest/actions/refund',
+              hooks: { load: false, change: [] },
+              fields: [{ field: 'reason', type: 'String', isRequired: true, isReadOnly: false }],
+            },
+          },
+        } as never,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient,
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as Awaited<ReturnType<typeof buildClientWithActions>>);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      await expect(
+        registeredToolHandler(
+          { collectionName: 'users', actionName: 'refund', recordIds: [1] },
+          { authInfo: { token: 't' } },
+        ),
+      ).resolves.toEqual({
+        content: [
+          { type: 'text', text: 'The action cannot run: required fields left empty: reason.' },
+        ],
+        isError: true,
+      });
+      expect(query).not.toHaveBeenCalled();
+    });
   });
 
   describe('tool registration', () => {

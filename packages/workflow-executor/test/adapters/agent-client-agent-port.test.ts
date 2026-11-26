@@ -46,17 +46,6 @@ jest.mock('@forestadmin/agent-client', () => {
     }
   }
 
-  class MockActionFormValidationError extends Error {
-    constructor(
-      message: string,
-      public readonly html?: string,
-      public readonly unstructuredCause?: Error,
-    ) {
-      super(message);
-      this.name = 'ActionFormValidationError';
-    }
-  }
-
   class MockUnknownActionFieldError extends Error {
     constructor(fieldName: string) {
       super(`Field "${fieldName}" does not exist in this form`);
@@ -77,7 +66,10 @@ jest.mock('@forestadmin/agent-client', () => {
     ActionOutcomeUnknownError: jest.requireActual('@forestadmin/agent-client')
       .ActionOutcomeUnknownError,
     ActionRequiresApprovalError: MockActionRequiresApprovalError,
-    ActionFormValidationError: MockActionFormValidationError,
+    ActionFormValidationError: jest.requireActual('@forestadmin/agent-client')
+      .ActionFormValidationError,
+    ActionValuesNotExecutableError: jest.requireActual('@forestadmin/agent-client')
+      .ActionValuesNotExecutableError,
     ApprovalRequestCreationError: MockApprovalRequestCreationError,
     UnknownActionFieldError: MockUnknownActionFieldError,
     createRemoteAgentClient: jest.fn(),
@@ -1283,6 +1275,21 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user }),
       ).rejects.toThrow('Action failed');
+    });
+
+    it('reports a form agent-client refuses to execute as a form validation error', async () => {
+      const { ActionValuesNotExecutableError: ClientActionValuesNotExecutableError } =
+        jest.requireActual('@forestadmin/agent-client');
+      mockCollection.executeAction.mockRejectedValueOnce(
+        new ClientActionValuesNotExecutableError(['reason'], []),
+      );
+
+      const error = await port
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, { user })
+        .catch(caught => caught);
+
+      expect(error).toBeInstanceOf(ActionFormValidationError);
+      expect(error.message).toContain('required fields left empty: reason');
     });
 
     it('tells an action that got no answer may have run, without asking to try again', async () => {
