@@ -1,4 +1,5 @@
 import {
+  ActionOutcomeUnknownError,
   ActivityLogBlockedError,
   AgentHttpError,
   AgentTimeoutError,
@@ -68,6 +69,17 @@ describe('toToolError', () => {
   });
 
   describe('when the operation itself failed', () => {
+    it('should say an action that got no answer may have run', async () => {
+      const error = new ActionOutcomeUnknownError(new AgentTimeoutError('Timeout', 30_000));
+
+      await expect(toToolError(error, { logger })).resolves.toEqual(
+        new Error(
+          'The action was sent but the agent gave no answer, so it may have run. Check whether ' +
+            'it did before running it again.',
+        ),
+      );
+    });
+
     it.each([
       [
         'a refused connection',

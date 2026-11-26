@@ -6,7 +6,9 @@ import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-clie
 import { drainActivityLogs } from '../../src/activity-log/with-activity-log';
 import Collection from '../../src/domains/collection';
 import AgentHttpError, {
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
+  AgentTimeoutError,
   ApprovalRequestCreationError,
 } from '../../src/errors';
 
@@ -428,32 +430,48 @@ describe('activity logging inside agent-client calls', () => {
       expect(query).toHaveBeenCalledWith(expect.objectContaining({ maxTimeAllowed: 30_000 }));
     });
 
-    describe('when the caller says the execute outcome is unknown', () => {
-      const noAnswer = new Error('Timeout of 30000ms exceeded');
-      const isOutcomeUnknown = (error: unknown) => error === noAnswer;
+    it('should allow the execute 30 seconds by default', async () => {
+      const { collection, query } = setup();
+      query.mockResolvedValue({ success: 'done' });
 
-      it('should leave the entry pending when the execute fails that way', async () => {
-        const { collection, service, query } = setup();
-        query.mockRejectedValue(noAnswer);
+      await collection.executeAction('refund');
 
-        await expect(
-          collection.executeAction('refund', { activityLog: { isOutcomeUnknown } }),
-        ).rejects.toBe(noAnswer);
-        await drainActivityLogs();
+      expect(query).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'post', maxTimeAllowed: 30_000 }),
+      );
+    });
 
-        expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
-        expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
-      });
+    describe('when the execute got no answer', () => {
+      it.each([
+        ['a timeout', new AgentTimeoutError('Timeout of 30000ms exceeded', 30_000)],
+        ['a reset connection', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+        ['a 502 from a gateway', new AgentHttpError(502, {})],
+        ['a 504 from a gateway', new AgentHttpError(504, {})],
+      ])(
+        'should say the action may have run and leave the entry pending after %s',
+        async (_, noAnswer) => {
+          const { collection, service, query } = setup();
+          query.mockRejectedValue(noAnswer);
+
+          const error = await collection.executeAction('refund').catch(caught => caught);
+          await drainActivityLogs();
+
+          expect(error).toBeInstanceOf(ActionOutcomeUnknownError);
+          expect(error.cause).toBe(noAnswer);
+          expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
+          expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+        },
+      );
 
       it('should mark the entry failed when filling the form fails that way, since nothing ran', async () => {
         const { collection, service, query } = setup();
+        const noAnswer = new AgentTimeoutError('Timeout of 10000ms exceeded', 10_000);
 
         await expect(
           collection.executeAction('refund', {
             fill: async () => {
               throw noAnswer;
             },
-            activityLog: { isOutcomeUnknown },
           }),
         ).rejects.toBe(noAnswer);
         await drainActivityLogs();
@@ -464,13 +482,12 @@ describe('activity logging inside agent-client calls', () => {
         );
       });
 
-      it('should mark the entry failed when the execute fails another way', async () => {
+      it('should mark the entry failed when the agent was never reached', async () => {
         const { collection, service, query } = setup();
-        query.mockRejectedValue(new Error('connect ECONNREFUSED'));
+        const refused = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+        query.mockRejectedValue(refused);
 
-        await expect(
-          collection.executeAction('refund', { activityLog: { isOutcomeUnknown } }),
-        ).rejects.toThrow('connect ECONNREFUSED');
+        await expect(collection.executeAction('refund')).rejects.toBe(refused);
         await drainActivityLogs();
 
         expect(service.updateActivityLogStatus).toHaveBeenCalledWith(

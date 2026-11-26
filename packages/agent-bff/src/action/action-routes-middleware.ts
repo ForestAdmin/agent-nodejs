@@ -11,9 +11,8 @@ import type { Context, Middleware } from 'koa';
 
 import {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActivityLogBlockedError,
-  AgentHttpError,
-  AgentTimeoutError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -45,19 +44,6 @@ import {
 const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
 
 const EXECUTE_VERB = 'execute';
-
-/**
- * Failures after which the execute may have reached the agent and run: a timeout, a connection reset
- * once the request was sent, or a gateway's 502 or 504 in front of the agent, which the agent itself
- * never answers. A refused connection or a 503 means the agent was never reached, so it stays a
- * failure.
- */
-function mayHaveRun(error: unknown): boolean {
-  if (error instanceof AgentTimeoutError) return true;
-  if (error instanceof AgentHttpError) return error.status === 502 || error.status === 504;
-
-  return (error as { code?: unknown } | null)?.code === 'ECONNRESET';
-}
 
 interface ActionRequestBody {
   recordIds?: unknown;
@@ -221,27 +207,22 @@ async function handleExecute({
   actionTimeoutMs,
 }: ExecuteHandlerArgs): Promise<void> {
   let raw: unknown;
-  let isExecuteSent = false;
 
   try {
     raw = await client.executeAction({
       ...params,
       maxTimeAllowed: actionTimeoutMs,
-      isOutcomeUnknown: mayHaveRun,
       beforeCall: async () => refusal?.(),
-      fill: async action => {
-        await fillValues(action, values, logger);
-        isExecuteSent = true;
-      },
+      fill: action => fillValues(action, values, logger),
     });
   } catch (error) {
-    if (isExecuteSent && mayHaveRun(error)) {
+    if (error instanceof ActionOutcomeUnknownError) {
       const { collection, actionName, recordIds } = params;
       logger('Warn', 'Action execute got no answer: outcome unknown', {
         collection,
         actionName,
         recordIds,
-        cause: error instanceof Error ? error.message : String(error),
+        cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
       });
 
       throw actionOutcomeUnknown();

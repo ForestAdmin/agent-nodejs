@@ -20,18 +20,20 @@ import withActivityLogContext, {
   logApprovalRequest,
   runCall,
 } from '../activity-log/with-activity-log';
+import { mayHaveRun } from '../agent-error';
 import { isApprovalRequested } from '../approval-requested';
 import toCount from '../count-response';
+import { ActionOutcomeUnknownError } from '../errors';
 import QuerySerializer, { hasFilters, searchOf } from '../query-serializer';
 import serializeRecordId from '../record-id';
 
 export type ExecuteActionOptions = BaseActionContext &
   ActionExecuteOptions & {
     fill?: (action: Action) => Promise<void>;
-    activityLog?: Pick<ActivityLogCallOptions, 'label' | 'beforeCall'> & {
-      isOutcomeUnknown?: (error: unknown) => boolean;
-    };
+    activityLog?: Pick<ActivityLogCallOptions, 'label' | 'beforeCall'>;
   };
+
+const DEFAULT_ACTION_TIMEOUT_MS = 30_000;
 
 function serializeActionIds(context?: BaseActionContext): string[] {
   return (context?.recordIds ?? [context?.recordId])
@@ -119,29 +121,37 @@ export default class Collection extends CollectionChart {
     const recordIds = serializeActionIds(context);
     let isExecuteSent = false;
 
-    const result = await withActivityLogContext(
-      this.activityLog,
-      {
-        action: 'action',
-        collectionName,
-        recordIds,
-        label: activityLog?.label ?? `triggered the action "${actionName}"`,
-      },
-      async () => {
-        const action = await this.action(actionName, context);
-        if (fill) await fill(action);
-        isExecuteSent = true;
+    const isOutcomeUnknown = (error: unknown) => isExecuteSent && mayHaveRun(error);
+    let result: ActionExecuteResult;
 
-        return action.execute({
-          signedApprovalRequest,
-          approvalRequestMessage,
-          skipApprovalRequest,
-          maxTimeAllowed,
-        });
-      },
-      activityLog?.beforeCall,
-      error => isExecuteSent && Boolean(activityLog?.isOutcomeUnknown?.(error)),
-    );
+    try {
+      result = await withActivityLogContext(
+        this.activityLog,
+        {
+          action: 'action',
+          collectionName,
+          recordIds,
+          label: activityLog?.label ?? `triggered the action "${actionName}"`,
+        },
+        async () => {
+          const action = await this.action(actionName, context);
+          if (fill) await fill(action);
+          isExecuteSent = true;
+
+          return action.execute({
+            signedApprovalRequest,
+            approvalRequestMessage,
+            skipApprovalRequest,
+            maxTimeAllowed: maxTimeAllowed ?? DEFAULT_ACTION_TIMEOUT_MS,
+          });
+        },
+        activityLog?.beforeCall,
+        isOutcomeUnknown,
+      );
+    } catch (error) {
+      if (isOutcomeUnknown(error)) throw new ActionOutcomeUnknownError(error);
+      throw error;
+    }
 
     if (isApprovalRequested(result)) {
       logApprovalRequest(this.activityLog, {

@@ -14,6 +14,7 @@ import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
 import AgentHttpError, {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
   ActivityLogBlockedError,
   AgentTimeoutError,
@@ -32,6 +33,7 @@ export {
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActivityLogBlockedError,
   AgentTimeoutError,
   ApprovalRequestCreationError,
@@ -91,7 +93,7 @@ export function createRemoteAgentClient(params: {
 export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
-export { default as classifyAgentError } from './agent-error';
+export { default as classifyAgentError, mayHaveRun } from './agent-error';
 export {
   default as InProcessHttpRequester,
   AGENT_DISPATCH_TIMEOUT_CODE,

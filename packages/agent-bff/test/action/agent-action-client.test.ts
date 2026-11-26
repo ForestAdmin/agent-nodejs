@@ -96,7 +96,6 @@ describe('createAgentActionClient', () => {
     };
     const beforeCall = jest.fn();
     const fill = jest.fn();
-    const isOutcomeUnknown = jest.fn();
 
     await createAgentActionClient({
       transport: transportTo('https://agent.example.com'),
@@ -110,7 +109,6 @@ describe('createAgentActionClient', () => {
       timezone: 'UTC',
       approvalRequestMessage: 'why',
       maxTimeAllowed: 30_000,
-      isOutcomeUnknown,
       beforeCall,
       fill,
     });
@@ -122,7 +120,7 @@ describe('createAgentActionClient', () => {
       approvalRequestMessage: 'why',
       maxTimeAllowed: 30_000,
       fill,
-      activityLog: { beforeCall, isOutcomeUnknown },
+      activityLog: { beforeCall },
     });
   });
 
@@ -151,7 +149,6 @@ describe('createAgentActionClient', () => {
       actionName: 'approve',
       recordIds: ['1'],
       timezone: 'America/New_York',
-      isOutcomeUnknown: () => false,
       beforeCall: async () => undefined,
       fill: async () => undefined,
     });

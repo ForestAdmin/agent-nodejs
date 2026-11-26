@@ -39,6 +39,7 @@ Every server-side package reaches an agent through this package only (see the ro
 - Entries go to the Forest server by collection name, or by collection id and workflow run when `collectionIdOf` is set.
 - A write whose entry cannot be created throws `ActivityLogBlockedError` and does not run. A read runs and the failure is logged. A 401 or 403 from the audit store refuses both, unless `onExpiredCredential` is set, in which case a 401 lets a read run.
 - An action sent for approval: its entry is marked `canceled`, and once the approval request is filed one `createApproval` entry is written and marked `completed`. Failing to write it is logged and changes nothing for the caller.
+- An execute that got no answer (timeout, connection reset, gateway 502/504) throws `ActionOutcomeUnknownError` and leaves its entry `pending`: the action may have run. The execute is allowed 30 s unless the caller sets `maxTimeAllowed`.
 - A call that reaches no agent method logs through the exported `withActivityLog(config, entry, operation)`.
 - Status transitions are fire-and-forget: call `drainActivityLogs()` on shutdown and in tests.
 

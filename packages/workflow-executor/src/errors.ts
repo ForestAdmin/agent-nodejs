@@ -267,6 +267,17 @@ export class ApprovalRequestCreationError extends WorkflowExecutorError {
   }
 }
 
+export class ActionOutcomeUnknownError extends WorkflowExecutorError {
+  constructor(actionName: string, cause?: unknown) {
+    super(
+      `Action "${actionName}" got no answer from the agent: it may have run`,
+      'The action was sent but the agent gave no answer, so it may have run. Check whether it ' +
+        'did before running it again.',
+    );
+    this.cause = cause;
+  }
+}
+
 export class RunStorePortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(

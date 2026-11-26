@@ -2,6 +2,7 @@ import type { Action, AgentActionClient } from '../../src/action/agent-action-cl
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
+import { ActionOutcomeUnknownError, mayHaveRun } from '@forestadmin/agent-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
@@ -101,12 +102,17 @@ export function clientOf(
 ): AgentActionClient & { loadAction: jest.Mock } {
   return {
     loadAction,
-    executeAction: async ({ beforeCall, fill, maxTimeAllowed, isOutcomeUnknown, ...params }) => {
+    executeAction: async ({ beforeCall, fill, maxTimeAllowed, ...params }) => {
       await beforeCall();
-      const loaded = await loadAction(params);
+      const loaded: Action = await loadAction(params);
       await fill(loaded);
 
-      return loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });
+      try {
+        return await loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });
+      } catch (error) {
+        if (mayHaveRun(error)) throw new ActionOutcomeUnknownError(error);
+        throw error;
+      }
     },
   };
 }

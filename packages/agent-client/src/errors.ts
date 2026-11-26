@@ -26,6 +26,13 @@ export class InProcessStreamingUnsupportedError extends Error {
   }
 }
 
+export class ActionOutcomeUnknownError extends Error {
+  constructor(readonly cause: unknown) {
+    super('The action was sent to the agent but no answer came back, so it may have run.');
+    this.name = 'ActionOutcomeUnknownError';
+  }
+}
+
 // Semantic action errors: agent-client interprets the failure once so callers route on meaning, not
 // status/body. `message` carries the agent's detail when available.
 export class ActionRequiresApprovalError extends Error {

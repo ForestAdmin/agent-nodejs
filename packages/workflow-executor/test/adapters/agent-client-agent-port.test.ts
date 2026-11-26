@@ -20,6 +20,7 @@ import { join } from 'path';
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
   ActivityLogCreationError,
   AgentPortError,
@@ -73,6 +74,8 @@ jest.mock('@forestadmin/agent-client', () => {
   return {
     AgentHttpError: jest.requireActual('@forestadmin/agent-client').AgentHttpError,
     classifyAgentError: jest.requireActual('@forestadmin/agent-client').classifyAgentError,
+    ActionOutcomeUnknownError: jest.requireActual('@forestadmin/agent-client')
+      .ActionOutcomeUnknownError,
     ActionRequiresApprovalError: MockActionRequiresApprovalError,
     ActionFormValidationError: MockActionFormValidationError,
     ApprovalRequestCreationError: MockApprovalRequestCreationError,
@@ -1279,6 +1282,27 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user }),
       ).rejects.toThrow('Action failed');
+    });
+
+    it('tells an action that got no answer may have run, without asking to try again', async () => {
+      const { ActionOutcomeUnknownError: ClientActionOutcomeUnknownError } = jest.requireActual(
+        '@forestadmin/agent-client',
+      );
+      const noAnswer = new Error('Timeout of 30000ms exceeded');
+      mockCollection.executeAction.mockRejectedValueOnce(
+        new ClientActionOutcomeUnknownError(noAnswer),
+      );
+
+      const error = await port
+        .executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user })
+        .catch(caught => caught);
+
+      expect(error).toBeInstanceOf(ActionOutcomeUnknownError);
+      expect(error.cause).toBe(noAnswer);
+      expect(error.userMessage).toBe(
+        'The action was sent but the agent gave no answer, so it may have run. Check whether it ' +
+          'did before running it again.',
+      );
     });
 
     it('sets pre-filled values (strict) before executing', async () => {

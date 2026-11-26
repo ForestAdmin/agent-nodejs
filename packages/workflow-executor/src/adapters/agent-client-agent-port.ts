@@ -29,6 +29,7 @@ import {
   ActivityLogBlockedError,
   AgentHttpError,
   ActionFormValidationError as ClientActionFormValidationError,
+  ActionOutcomeUnknownError as ClientActionOutcomeUnknownError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   HttpRequester,
@@ -45,6 +46,7 @@ import { agentPortError, flattenAgentMessage } from './agent-errors';
 import { mintStepToken } from './step-user';
 import {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
   ActivityLogCreationError,
   AgentProbeError,
@@ -82,6 +84,10 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
 
   if (cause instanceof ClientApprovalRequestCreationError) {
     return new ApprovalRequestCreationError(action, cause);
+  }
+
+  if (cause instanceof ClientActionOutcomeUnknownError) {
+    return new ActionOutcomeUnknownError(action, cause.cause);
   }
 
   return cause;
