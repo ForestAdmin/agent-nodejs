@@ -163,7 +163,11 @@ export default abstract class RecordStepExecutor<
       stepId === WORKFLOW_START_STEP_ID
         ? 'Starting record'
         : `"${
-            findPinnedLoadStep(this.context.previousSteps, stepId)?.stepDefinition.title ?? stepId
+            findPinnedLoadStep(
+              this.context.previousSteps,
+              stepId,
+              this.context.callScope?.currentFrameStepIndexes,
+            )?.stepDefinition.title ?? stepId
           }"`;
 
     return [rootLabel, ...hops.map(hop => hop.relationDisplayName)].join(' › ');
