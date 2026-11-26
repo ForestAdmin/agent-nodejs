@@ -183,6 +183,45 @@ describe('RelationScopes', () => {
       ]);
     });
 
+    test('should compare composite keys value by value', async () => {
+      const slots = factories.collection.build({
+        name: 'slots',
+        schema: factories.collectionSchema.build({
+          fields: {
+            shelf: factories.columnSchema.build({
+              columnType: 'String',
+              isPrimaryKey: true,
+              filterOperators: new Set(['Equal', 'In']),
+            }),
+            position: factories.columnSchema.build({
+              columnType: 'String',
+              isPrimaryKey: true,
+              filterOperators: new Set(['Equal', 'In']),
+            }),
+            label: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        }),
+      });
+      jest.spyOn(slots, 'list').mockResolvedValue([{ shelf: 'a|b', position: 'c' }]);
+      const relationScopes = new RelationScopes([
+        { path: 'slot', collection: slots, scope: new ConditionTreeLeaf('label', 'Equal', 'kept') },
+      ]);
+
+      const records = await relationScopes.redact(
+        [
+          { id: 1, slot: { shelf: 'a|b', position: 'c', label: 'kept' } },
+          { id: 2, slot: { shelf: 'a', position: 'b|c', label: 'hidden' } },
+        ],
+        new Projection('id', 'slot:label'),
+        caller,
+      );
+
+      expect(records).toEqual([
+        { id: 1, slot: { label: 'kept' } },
+        { id: 2, slot: null },
+      ]);
+    });
+
     test('should return the records untouched when no relation is scoped', async () => {
       const records = [{ id: 1, account: { iban: 'FR76', extra: true } }];
 

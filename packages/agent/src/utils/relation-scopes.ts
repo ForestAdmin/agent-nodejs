@@ -12,8 +12,6 @@ import {
   RecordUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import IdUtils from './id';
-
 export type RelationScope = { path: string; collection: Collection; scope: ConditionTree };
 
 /**
@@ -75,13 +73,14 @@ export default class RelationScopes {
       }),
       new Projection().withPks(collection),
     );
-    const inScopeIds = new Set(IdUtils.packIds(collection.schema, inScope));
+    // Each key value is encoded on its own: joined with '|', ['a|b', 'c'] would equal ['a', 'b|c'].
+    const keyOf = (record: RecordData) =>
+      JSON.stringify(RecordUtils.getPrimaryKey(collection.schema, record).map(String));
+    const inScopeIds = new Set(inScope.map(keyOf));
 
     return new Set(
       related
-        .map((record, index) =>
-          record && !inScopeIds.has(IdUtils.packId(collection.schema, record)) ? index : -1,
-        )
+        .map((record, index) => (record && !inScopeIds.has(keyOf(record)) ? index : -1))
         .filter(index => index !== -1),
     );
   }
