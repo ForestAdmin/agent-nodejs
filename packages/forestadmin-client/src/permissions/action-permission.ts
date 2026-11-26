@@ -3,6 +3,7 @@ import type { RawTreeWithSources } from './types';
 import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
 import generateActionsFromPermissions from './generate-actions-from-permissions';
+import isActionAllowedForRole from './is-action-allowed-for-role';
 import RefetchThrottle from '../utils/refetch-throttle';
 import TTLCache from '../utils/ttl-cache';
 
@@ -49,7 +50,7 @@ export default class ActionPermissionService {
     allowRefetch: boolean;
   }): Promise<boolean> {
     const permissions = await this.getPermissions();
-    const isAllowed = this.isAllowed({ permissions, actionName, roleId });
+    const isAllowed = isActionAllowedForRole(permissions, roleId, actionName);
 
     if (!isAllowed && allowRefetch) {
       if (this.refetchThrottle.tryAcquire(`${roleId}:${actionName}`)) this.forceRefetch();
@@ -67,23 +68,6 @@ export default class ActionPermissionService {
     );
 
     return isAllowed;
-  }
-
-  private isAllowed({
-    permissions,
-    actionName,
-    roleId,
-  }: {
-    permissions: ActionPermissions;
-    actionName: string;
-    roleId: number;
-  }): boolean {
-    // In development everything is allowed
-    return Boolean(
-      permissions.isDevelopment ||
-        permissions.actionsGloballyAllowed.has(actionName) ||
-        permissions.actionsByRole.get(actionName)?.allowedRoles.has(roleId),
-    );
   }
 
   private forceRefetch(): void {
