@@ -7,11 +7,18 @@ import { z } from 'zod';
 
 import { operatorEnum } from '../schemas/filter';
 import buildClient, { activityLogConfigOf } from '../utils/agent-caller';
+import getAuthContext from '../utils/auth-context';
 import {
   fetchForestSchema,
   getActionsOfCollection,
   getFieldsOfCollection,
 } from '../utils/schema-fetcher';
+import {
+  UNREACHABLE,
+  actionDescriptionText,
+  readSemanticLayer,
+  withDescription,
+} from '../utils/semantic-layer';
 import toToolError from '../utils/tool-error';
 import registerToolWithLogging from '../utils/tool-with-logging';
 
@@ -129,6 +136,8 @@ Actions properties:
 
 Field names: every field name you send (filters, sort, \`fields\`, \`relation:field\`, \`relation@@@field\`, create/update attributes) is the schema \`name\`. A field or relation with a \`recordKey\` comes back under that key in a returned record; it only says where to read the value, never send it. Fields sharing a \`recordKey\` (listed in \`sharesRecordKeyWith\`) can be read only when a single one of them is projected in the call. \`recordKey: null\` means the value cannot be read from a returned record: never read it under its name. Every record carries \`id\`, the record identifier, which is not a schema field. A related record's values sit under the related collection's record keys (call describeCollection on it).
 
+Descriptions: the collection, a field, a relation, an action or a workflow carries a \`description\` only when one is written; read it to pick the right one. \`workflows\` lists the workflows you can start on this collection with triggerWorkflow.
+
 Polymorphic relations (isPolymorphic=true) point to multiple collections. When creating/updating, you must set both the _id and _type fields (e.g. commentable_id and commentable_type).
 
 Check \`_meta\` for data availability context.`,
@@ -144,6 +153,20 @@ Check \`_meta\` for data availability context.`,
           async () => {
             const schema = await fetchForestSchema(forestServerClient);
             const schemaFields = getFieldsOfCollection(schema, options.collectionName);
+
+            const descriptions = await readSemanticLayer(extra, logger, caller =>
+              forestServerClient.getSemanticLayerCollection({
+                ...caller,
+                collectionName: options.collectionName,
+              }),
+            );
+
+            if (descriptions === UNREACHABLE) {
+              throw new Error(`Collection "${options.collectionName}" not found in schema`);
+            }
+
+            const fieldDescription = (name: string) =>
+              withDescription(descriptions?.fields[name]?.text);
 
             // Try to get capabilities from agent (may be unavailable on older versions)
             const collectionCapabilities = await tryFetchCapabilities(
@@ -167,6 +190,7 @@ Check \`_meta\` for data availability context.`,
                   return {
                     name: capField.name,
                     ...withRecordKey(capField.name),
+                    ...fieldDescription(capField.name),
                     type: capField.type,
                     operators: toListOperators(
                       capField.operators,
@@ -184,6 +208,7 @@ Check \`_meta\` for data availability context.`,
                   .map(schemaField => ({
                     name: schemaField.field,
                     ...withRecordKey(schemaField.field),
+                    ...fieldDescription(schemaField.field),
                     type: schemaField.type,
                     operators: null, // Not available without capabilities route
                     isPrimaryKey: schemaField.isPrimaryKey,
@@ -202,6 +227,7 @@ Check \`_meta\` for data availability context.`,
                 return {
                   name: f.field,
                   ...withRecordKey(f.field),
+                  ...fieldDescription(f.field),
                   type: mapRelationType(f.relationship),
                   targetCollection: isPolymorphic ? null : f.reference?.split('.')[0] || null,
                   ...(isPolymorphic && { isPolymorphic: true, polymorphicTargets }),
@@ -209,12 +235,21 @@ Check \`_meta\` for data availability context.`,
               });
 
             const schemaActions = getActionsOfCollection(schema, options.collectionName);
+
+            const actionDescription = (action: { name: string; description?: string }) => {
+              if (!descriptions) return action.description;
+
+              const forest = descriptions.actions[action.name];
+
+              return forest && actionDescriptionText(forest, action.description);
+            };
+
             const actions = schemaActions
               .filter(action => action.endpoint)
               .map(action => ({
                 name: action.name,
                 type: action.type, // 'single', 'bulk', or 'global'
-                description: action.description || null,
+                ...withDescription(actionDescription(action)),
                 hasForm: action.fields.length > 0 || action.hooks.load,
                 download: action.download,
               }));
@@ -223,13 +258,38 @@ Check \`_meta\` for data availability context.`,
               .filter(action => !action.endpoint)
               .map(action => ({ name: action.name, reason: 'no endpoint configured' }));
 
+            const { forestServerToken, renderingId } = getAuthContext(extra);
+            let mcpWorkflows: { workflowId: string; name: string }[] = [];
+
+            try {
+              mcpWorkflows = await forestServerClient.listMcpEnabledWorkflows({
+                forestServerToken,
+                renderingId,
+                collectionName: options.collectionName,
+              });
+            } catch (error) {
+              logger('Warn', `Workflows of ${options.collectionName} not listed: ${error}`);
+            }
+
+            const workflows = mcpWorkflows.map(workflow => ({
+              id: workflow.workflowId,
+              name: workflow.name,
+              ...withDescription(
+                descriptions?.workflows.find(described => described.id === workflow.workflowId)
+                  ?.description.text,
+              ),
+            }));
+
             const result = {
               collection: options.collectionName,
+              ...withDescription(descriptions?.collection.text),
               fields,
               relations,
               actions,
+              workflows,
               _meta: {
                 capabilitiesAvailable: !!collectionCapabilities,
+                descriptionsAvailable: descriptions !== undefined,
                 ...(collectionCapabilities
                   ? {}
                   : {

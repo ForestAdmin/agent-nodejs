@@ -1220,7 +1220,7 @@ describe('declareDescribeCollectionTool', () => {
         expect(parsed.actions[0].hasForm).toBe(false);
       });
 
-      it('should handle null description', async () => {
+      it('should send no description key for an action with no description', async () => {
         mockGetActionsOfCollection.mockReturnValue([
           {
             id: 'no-description',
@@ -1238,7 +1238,7 @@ describe('declareDescribeCollectionTool', () => {
         };
 
         const parsed = JSON.parse(result.content[0].text);
-        expect(parsed.actions[0].description).toBeNull();
+        expect(parsed.actions[0]).not.toHaveProperty('description');
       });
 
       it('should include download property', async () => {

@@ -570,6 +570,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           userId: decoded.id,
           email: decoded.email,
           renderingId: decoded.renderingId,
+          environmentId: this.environmentId,
           // Tools call back into the agent at this URL. Prefer the configured internal agentUrl
           // (self-hosted) and fall back to the environment's public api_endpoint.
           environmentApiEndpoint: this.agentUrl ?? this.environmentApiEndpoint,
@@ -605,6 +606,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           userId: identity.user.id,
           email: identity.user.email,
           renderingId: identity.renderingId,
+          environmentId: this.environmentId,
           environmentApiEndpoint: this.agentUrl ?? this.environmentApiEndpoint,
           forestServerToken: identity.saasAccessToken,
         },

@@ -4,6 +4,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import parseFileReference from '../file-uploads/file-reference';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
+import { fetchForestSchema } from '../utils/schema-fetcher';
+import { UNREACHABLE, readSemanticLayer, withDescription } from '../utils/semantic-layer';
 import registerToolWithLogging from '../utils/tool-with-logging';
 
 interface GetActionFormArgument {
@@ -47,7 +49,7 @@ function splitFileReferences(values: Record<string, unknown>): {
 }
 
 export default function declareGetActionFormTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { logger, collectionNames } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createActionArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -67,6 +69,7 @@ Workflow:
 6. Only then call executeAction with the same values
 
 The response includes:
+- description: what the action does, when one is written
 - fields: Array of form fields with name, type, current value, isRequired flag, description (hint), enumValues (Enum fields), and allowedValues (choice widgets — submit the value, not the label)
 - canExecute: Boolean indicating if all required fields have values (ready to execute)
 - requiredFields: Array of field names that are required but missing values (empty when canExecute is true)
@@ -113,11 +116,33 @@ The response includes:
 
       const canExecute = requiredFields.length === 0;
 
+      const forestDescription = await readSemanticLayer(extra, logger, caller =>
+        forestServerClient.getSemanticLayerActionDescription({
+          ...caller,
+          collectionName: options.collectionName,
+          actionName: options.actionName,
+        }),
+      );
+      const codeDescription = async () =>
+        (await fetchForestSchema(forestServerClient)).collections
+          ?.find(collection => collection.name === options.collectionName)
+          ?.actions?.find(schemaAction => schemaAction.name === options.actionName)?.description;
+      let actionDescription: string | undefined;
+
+      if (forestDescription === UNREACHABLE) {
+        actionDescription = undefined;
+      } else if (forestDescription?.hasVersion) {
+        actionDescription = forestDescription.text ?? undefined;
+      } else {
+        actionDescription = await codeDescription();
+      }
+
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
+              ...withDescription(actionDescription),
               fields: fields.map(field => {
                 const description = field.getPlainField()?.description;
                 const baseField = {

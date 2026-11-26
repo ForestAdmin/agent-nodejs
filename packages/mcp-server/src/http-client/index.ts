@@ -47,4 +47,6 @@ export type {
   ForestSchemaAction,
   SchemaServiceInterface,
   WorkflowsServiceInterface,
+  SemanticLayerCollection,
+  SemanticLayerDescription,
 } from './types';

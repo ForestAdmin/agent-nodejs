@@ -31,6 +31,28 @@ export type {
   WorkflowsServiceInterface,
 };
 
+export interface SemanticLayerDescription {
+  hasVersion: boolean;
+  text: string | null;
+}
+
+export interface SemanticLayerCollection {
+  collection: SemanticLayerDescription;
+  fields: Record<string, SemanticLayerDescription>;
+  actions: Record<string, SemanticLayerDescription>;
+  workflows: { id: string; name: string; description: SemanticLayerDescription }[];
+}
+
+export interface SemanticLayerCollectionParams {
+  forestServerToken: string;
+  environmentId: number;
+  collectionName: string;
+}
+
+export interface SemanticLayerActionParams extends SemanticLayerCollectionParams {
+  actionName: string;
+}
+
 /**
  * Interface for communicating with Forest Admin server.
  * This abstraction allows for easy mocking in tests.
@@ -65,4 +87,15 @@ export interface ForestServerClient {
    * Reads the full hydrated workflow run, scoped to the caller.
    */
   getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<HydratedWorkflowRun>;
+
+  /**
+   * Reads the descriptions of a collection and of what it holds, as the caller's role reaches them.
+   */
+  getSemanticLayerCollection(
+    params: SemanticLayerCollectionParams,
+  ): Promise<SemanticLayerCollection>;
+
+  getSemanticLayerActionDescription(
+    params: SemanticLayerActionParams,
+  ): Promise<SemanticLayerDescription>;
 }
