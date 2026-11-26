@@ -1,4 +1,9 @@
-import type { AgentOptionsWithDefaults, BffEmbedOptions, HttpCallback } from './types';
+import type {
+  AgentOptionsWithDefaults,
+  GatewayApiOptions,
+  HttpCallback,
+  WorkflowExecutorEmbedOptions,
+} from './types';
 import type {
   AgentDispatcher,
   BFFConfig,
@@ -22,8 +27,25 @@ export const GATEWAY_API_CONFIG_LABELS: ConfigLabels = {
   BFF_AGENT_TIMEOUT_MS: 'api.agentTimeoutMs',
   BFF_ACTION_TIMEOUT_MS: 'api.actionTimeoutMs',
   BFF_AI_TIMEOUT_MS: 'api.aiTimeoutMs',
+  BFF_AI_PROVIDER: 'api.ai.provider',
+  BFF_AI_MODEL: 'api.ai.model',
+  BFF_AI_API_KEY: 'api.ai.apiKey',
+  AI_PROVIDER: 'addWorkflowExecutor ai.provider',
+  AI_MODEL: 'addWorkflowExecutor ai.model',
+  AI_API_KEY: 'addWorkflowExecutor ai.apiKey',
+  AWS_REGION: 'the ai region or AWS_REGION',
   BFF_OPENAPI_ENABLED: 'api.openapiEnabled',
 };
+
+type EmbedAi = WorkflowExecutorEmbedOptions['ai'];
+
+function aiEnv(ai: EmbedAi, prefix: string): NodeJS.ProcessEnv {
+  return {
+    [`${prefix}AI_PROVIDER`]: ai?.provider,
+    [`${prefix}AI_MODEL`]: ai?.model,
+    [`${prefix}AI_API_KEY`]: ai && 'apiKey' in ai ? ai.apiKey : undefined,
+  };
+}
 
 export type EmbeddedBffMount = {
   prefix: string;
@@ -72,7 +94,7 @@ export default class EmbeddedBff {
 
   constructor(
     private readonly options: AgentOptionsWithDefaults,
-    private readonly embedOptions: BffEmbedOptions,
+    private readonly embedOptions: GatewayApiOptions,
     private readonly mount: EmbeddedBffMount,
   ) {}
 
@@ -90,7 +112,7 @@ export default class EmbeddedBff {
    * mistyped `tokenEncryptionKey`, timezone, timeout or url. Failing here leaves nothing serving,
    * where failing after mount() would leave the host with a live `/forest` and a bricked `/bff`.
    */
-  async prepare(): Promise<void> {
+  async prepare(runtimeAi?: EmbedAi): Promise<void> {
     const bffPackage = await this.importPackage();
     const { parseConfig, IN_PROCESS_AGENT_URL } = bffPackage;
     const { embedOptions } = this;
@@ -114,9 +136,34 @@ export default class EmbeddedBff {
       // Off unless asked for: the document is not filtered per caller, so mounting a BFF must not
       // publish the name of every exposed collection and field on an already-open port.
       BFF_OPENAPI_ENABLED: String(embedOptions.openapiEnabled ?? false),
+      ...this.aiEnv(runtimeAi),
     };
 
     this.config = parseConfig(env, this.mount.gateway ? GATEWAY_API_CONFIG_LABELS : undefined);
+  }
+
+  /**
+   * Only the Gateway gets an AI provider: the deprecated `addBff()` checks no package version, so an
+   * older BFF would ignore the setting and send ticket content to Forest's AI server instead.
+   */
+  private aiEnv(runtimeAi: EmbedAi): NodeJS.ProcessEnv {
+    if (!this.mount.gateway) return {};
+
+    // Counted as set only when a field is non-blank, as parseAi reads its own variables: a blank
+    // `ai` must not hide the runtime's provider and send ticket content to Forest's AI server.
+    const own = aiEnv(this.embedOptions.ai, 'BFF_');
+    const ownAi = Object.values(own).some(value => value?.trim())
+      ? this.embedOptions.ai
+      : undefined;
+    const chosen = ownAi ?? runtimeAi;
+
+    // Only the setting that wins reaches parseConfig, so the precedence is decided here alone and
+    // the region always belongs to the provider it is handed with.
+    return {
+      ...(ownAi ? own : aiEnv(runtimeAi, '')),
+      AWS_REGION: (chosen && 'region' in chosen && chosen.region?.trim()) || process.env.AWS_REGION,
+      AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
+    };
   }
 
   private assertRequiredVersion(installed: string): void {

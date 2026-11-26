@@ -11,6 +11,7 @@ export { Agent };
 export {
   AgentOptions,
   BffEmbedOptions,
+  GatewayApiOptions,
   GatewayOptions,
   McpEmbedOptions,
   WorkflowExecutorEmbedOptions,

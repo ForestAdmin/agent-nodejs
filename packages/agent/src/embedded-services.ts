@@ -3,6 +3,7 @@ import type InProcessDispatcher from './mcp-in-process-dispatcher';
 import type {
   AgentOptionsWithDefaults,
   BffEmbedOptions,
+  GatewayApiOptions,
   GatewayOptions,
   HttpCallback,
   McpEmbedOptions,
@@ -206,7 +207,7 @@ export default class EmbeddedServices {
       });
   }
 
-  private gatewayApi(basePath: string, options: BffEmbedOptions): EmbeddedBff {
+  private gatewayApi(basePath: string, options: GatewayApiOptions): EmbeddedBff {
     this.embeddedBff ??= new EmbeddedBff(this.options, options, {
       prefix: `${basePath}/api`,
       name: 'The Gateway API',

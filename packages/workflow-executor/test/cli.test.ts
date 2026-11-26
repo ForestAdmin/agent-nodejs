@@ -593,6 +593,22 @@ describe('readEnvConfig', () => {
     );
   });
 
+  it('lets an error reading the AI setting through, not relabelled a configuration error', () => {
+    const failure = new Error('environment unreadable');
+    const env = new Proxy(
+      { ...baseEnv },
+      {
+        get: (target, key) => {
+          if (key === 'AI_PROVIDER') throw failure;
+
+          return target[key as keyof typeof target];
+        },
+      },
+    );
+
+    expect(() => readEnvConfig(env, args)).toThrow(failure);
+  });
+
   it('throws on invalid AI_PROVIDER', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'bogus', AI_MODEL: 'm', AI_API_KEY: 'k' }, args),

@@ -101,6 +101,16 @@ export function upstreamTimeout(): BffHttpError {
   return new BffHttpError(504, 'upstream_timeout', 'The Forest server did not respond in time');
 }
 
+// 500, never the provider's own status: the Zendesk app reads a 401 as an expired Forest session and
+// a 502 as the Gateway being unreachable, neither of which a refused provider call is.
+export function aiProviderError(): BffHttpError {
+  return new BffHttpError(500, 'upstream_error', 'The AI provider failed to handle the request');
+}
+
+export function aiProviderTimeout(): BffHttpError {
+  return new BffHttpError(504, 'upstream_timeout', 'The AI provider did not respond in time');
+}
+
 export function permissionsUnavailable(
   retryAfter: number,
   message = 'Permissions are unavailable',

@@ -209,10 +209,14 @@ const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
 };
 
 const AI_ENVELOPE_ERRORS: Record<string, string> = {
-  500: 'The Gateway API hit an unexpected error, or the Forest server answered a 500 whose body is withheld',
+  500:
+    'The Gateway API hit an unexpected error, the Forest server answered a 500 whose body is ' +
+    "withheld, or the customer's own AI provider failed",
   502: 'The Forest server could not be reached, or answered a status the Gateway API does not relay',
   503: 'The Forest server reported itself unavailable',
-  504: 'The Forest server did not answer the AI query before the Gateway API timeout',
+  504:
+    "The Forest server, or the customer's own AI provider, did not answer the AI query before " +
+    'the Gateway API timeout',
 };
 
 const AI_DEFAULT_DESCRIPTION =
