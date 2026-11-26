@@ -35,7 +35,6 @@ import {
   UnknownActionFieldError,
   actionEndpointsFromSchema,
   createRemoteAgentClient,
-  describeActionForm,
   extractErrorDetail,
   isApprovalRequested,
   recordKey,
@@ -418,7 +417,7 @@ export default class AgentClientAgentPort implements AgentPort {
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
       const skippedFields = values ? await act.tryToSetFields(values) : [];
 
-      const { fields, requiredFields } = describeActionForm(act);
+      const { fields, requiredFields } = act.describeForm();
 
       return {
         fields: fields.map(

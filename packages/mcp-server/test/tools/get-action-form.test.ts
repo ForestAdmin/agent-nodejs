@@ -1,14 +1,26 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
+import type { Action } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
+
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 
 import declareGetActionFormTool from '../../src/tools/get-action-form';
 import { buildClientWithActions } from '../../src/utils/agent-caller';
 
 jest.mock('../../src/utils/agent-caller');
+
+function withDescribeForm<T extends object>(
+  double: T,
+): T & { describeForm: Action['describeForm'] } {
+  return Object.assign(double, {
+    describeForm: (overrides?: Record<string, unknown>) =>
+      describeActionForm(double as never, overrides),
+  });
+}
 
 const mockLogger: Logger = jest.fn();
 const mockForestServerClient: ForestServerClient = {
@@ -208,10 +220,12 @@ describe('declareGetActionFormTool', () => {
     it('should call buildClientWithActions with the extra parameter and forestServerUrl', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -232,10 +246,12 @@ describe('declareGetActionFormTool', () => {
     it('should call rpcClient.collection with the collection name', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -253,10 +269,12 @@ describe('declareGetActionFormTool', () => {
     it('should call action with the action name and recordIds', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -275,10 +293,12 @@ describe('declareGetActionFormTool', () => {
     it('should call tryToSetFields when values are provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -299,10 +319,12 @@ describe('declareGetActionFormTool', () => {
     // other values still reach the hook.
     it('withholds an upload handle from the change hooks instead of resolving it', async () => {
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([]),
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([]),
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -325,21 +347,23 @@ describe('declareGetActionFormTool', () => {
     // counting it as missing would leave canExecute false with nothing the model could send.
     it('counts a withheld handle as filling its required field, and echoes it back', async () => {
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'Document',
-            getType: () => 'File',
-            getTypeName: () => 'File',
-            getEffectiveTypeName: () => 'File',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-        ]),
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'Document',
+              getType: () => 'File',
+              getTypeName: () => 'File',
+              getEffectiveTypeName: () => 'File',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+          ]),
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -363,21 +387,23 @@ describe('declareGetActionFormTool', () => {
 
     it('does the same for a FileList: the array of handles fills the field and is echoed back', async () => {
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'Attachments',
-            getType: () => ['File'],
-            getTypeName: () => 'FileList',
-            getEffectiveTypeName: () => 'FileList',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-        ]),
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'Attachments',
+              getType: () => ['File'],
+              getTypeName: () => 'FileList',
+              getEffectiveTypeName: () => 'FileList',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+          ]),
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -402,42 +428,44 @@ describe('declareGetActionFormTool', () => {
       const mockGetEnumField = jest.fn().mockReturnValue({
         getOptions: () => ['Passport', 'Driving licence'],
       });
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'doc_type_0',
-            getType: () => 'Enum',
-            getTypeName: () => 'Enum',
-            getEffectiveTypeName: () => 'Enum',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({ hook: 'onFieldChanged' }),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-          {
-            getName: () => 'file_0',
-            getType: () => 'String',
-            getTypeName: () => 'String',
-            getEffectiveTypeName: () => 'File',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({ hook: 'onFieldChanged' }),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-          {
-            getName: () => 'comments_0',
-            getType: () => 'String',
-            getTypeName: () => 'String',
-            getEffectiveTypeName: () => 'String',
-            getValue: () => undefined,
-            isRequired: () => false,
-            getPlainField: () => ({ hook: 'onFieldChanged' }),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-        ]),
-        tryToSetFields: jest.fn().mockResolvedValue([]),
-        getEnumField: mockGetEnumField,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'doc_type_0',
+              getType: () => 'Enum',
+              getTypeName: () => 'Enum',
+              getEffectiveTypeName: () => 'Enum',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({ hook: 'onFieldChanged' }),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+            {
+              getName: () => 'file_0',
+              getType: () => 'String',
+              getTypeName: () => 'String',
+              getEffectiveTypeName: () => 'File',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({ hook: 'onFieldChanged' }),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+            {
+              getName: () => 'comments_0',
+              getType: () => 'String',
+              getTypeName: () => 'String',
+              getEffectiveTypeName: () => 'String',
+              getValue: () => undefined,
+              isRequired: () => false,
+              getPlainField: () => ({ hook: 'onFieldChanged' }),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+          ]),
+          tryToSetFields: jest.fn().mockResolvedValue([]),
+          getEnumField: mockGetEnumField,
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -464,31 +492,33 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('reports a v1 list of Strings carrying the file picker widget as a FileList, and a native File as a File', async () => {
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'files_0',
-            getType: () => ['String'],
-            getTypeName: () => 'StringList',
-            getEffectiveTypeName: () => 'FileList',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-          {
-            getName: () => 'Document',
-            getType: () => 'File',
-            getTypeName: () => 'File',
-            getEffectiveTypeName: () => 'File',
-            getValue: () => undefined,
-            isRequired: () => false,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-        ]),
-        tryToSetFields: jest.fn().mockResolvedValue([]),
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'files_0',
+              getType: () => ['String'],
+              getTypeName: () => 'StringList',
+              getEffectiveTypeName: () => 'FileList',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+            {
+              getName: () => 'Document',
+              getType: () => 'File',
+              getTypeName: () => 'File',
+              getEffectiveTypeName: () => 'File',
+              getValue: () => undefined,
+              isRequired: () => false,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+          ]),
+          tryToSetFields: jest.fn().mockResolvedValue([]),
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -508,31 +538,33 @@ describe('declareGetActionFormTool', () => {
 
     it('withholds and echoes a handle sent to a v1 String file picker field, still reported as a File', async () => {
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'file_0',
-            getType: () => 'String',
-            getTypeName: () => 'String',
-            getEffectiveTypeName: () => 'File',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({ hook: 'onFieldChanged' }),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-          {
-            getName: () => 'comments_0',
-            getType: () => 'String',
-            getTypeName: () => 'String',
-            getEffectiveTypeName: () => 'String',
-            getValue: () => 'signed today',
-            isRequired: () => false,
-            getPlainField: () => ({ hook: 'onFieldChanged' }),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-        ]),
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'file_0',
+              getType: () => 'String',
+              getTypeName: () => 'String',
+              getEffectiveTypeName: () => 'File',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({ hook: 'onFieldChanged' }),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+            {
+              getName: () => 'comments_0',
+              getType: () => 'String',
+              getTypeName: () => 'String',
+              getEffectiveTypeName: () => 'String',
+              getValue: () => 'signed today',
+              isRequired: () => false,
+              getPlainField: () => ({ hook: 'onFieldChanged' }),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+          ]),
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -567,21 +599,23 @@ describe('declareGetActionFormTool', () => {
     // by Object.prototype.toString — a function — and canExecute would come back true on an empty
     // form.
     it('does not count a field named like an Object.prototype member as filled', async () => {
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'toString',
-            getType: () => 'String',
-            getTypeName: () => 'String',
-            getEffectiveTypeName: () => 'String',
-            getValue: () => undefined,
-            isRequired: () => true,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => null }),
-          },
-        ]),
-        tryToSetFields: jest.fn().mockResolvedValue([]),
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'toString',
+              getType: () => 'String',
+              getTypeName: () => 'String',
+              getEffectiveTypeName: () => 'String',
+              getValue: () => undefined,
+              isRequired: () => true,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => null }),
+            },
+          ]),
+          tryToSetFields: jest.fn().mockResolvedValue([]),
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -605,10 +639,12 @@ describe('declareGetActionFormTool', () => {
     it('should not call tryToSetFields when values are not provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -648,10 +684,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -703,10 +741,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -749,10 +789,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -785,10 +827,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -821,10 +865,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -857,10 +903,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -893,10 +941,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -929,10 +979,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -978,11 +1030,13 @@ describe('declareGetActionFormTool', () => {
       const mockGetEnumField = jest.fn().mockReturnValue({
         getOptions: () => ['Active', 'Inactive', 'Pending'],
       });
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-        getEnumField: mockGetEnumField,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+          getEnumField: mockGetEnumField,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -1009,22 +1063,24 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should not let a form with an invalid value execute, and name it', async () => {
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'amount',
-            getType: () => 'Number',
-            getTypeName: () => 'Number',
-            getEffectiveTypeName: () => 'Number',
-            getValue: () => '12',
-            isRequired: () => true,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => undefined }),
-          },
-        ]),
-        tryToSetFields: jest.fn().mockResolvedValue([]),
-        getEnumField: jest.fn().mockReturnValue({ getOptions: () => undefined }),
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'amount',
+              getType: () => 'Number',
+              getTypeName: () => 'Number',
+              getEffectiveTypeName: () => 'Number',
+              getValue: () => '12',
+              isRequired: () => true,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => undefined }),
+            },
+          ]),
+          tryToSetFields: jest.fn().mockResolvedValue([]),
+          getEnumField: jest.fn().mockReturnValue({ getOptions: () => undefined }),
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -1044,22 +1100,24 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should return enumValues for a list of Enum', async () => {
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: jest.fn().mockReturnValue([
-          {
-            getName: () => 'tags',
-            getType: () => ['Enum'],
-            getTypeName: () => 'EnumList',
-            getEffectiveTypeName: () => 'EnumList',
-            getValue: () => undefined,
-            isRequired: () => false,
-            getPlainField: () => ({}),
-            getMultipleChoiceField: () => ({ getOptions: () => undefined }),
-          },
-        ]),
-        tryToSetFields: jest.fn().mockResolvedValue([]),
-        getEnumField: jest.fn().mockReturnValue({ getOptions: () => ['vip', 'new'] }),
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: jest.fn().mockReturnValue([
+            {
+              getName: () => 'tags',
+              getType: () => ['Enum'],
+              getTypeName: () => 'EnumList',
+              getEffectiveTypeName: () => 'EnumList',
+              getValue: () => undefined,
+              isRequired: () => false,
+              getPlainField: () => ({}),
+              getMultipleChoiceField: () => ({ getOptions: () => undefined }),
+            },
+          ]),
+          tryToSetFields: jest.fn().mockResolvedValue([]),
+          getEnumField: jest.fn().mockReturnValue({ getOptions: () => ['vip', 'new'] }),
+        }),
+      );
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
@@ -1106,10 +1164,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -1150,10 +1210,12 @@ describe('declareGetActionFormTool', () => {
     it('should handle empty fields array', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -1195,10 +1257,12 @@ describe('declareGetActionFormTool', () => {
       const mockTryToSetFields = jest
         .fn()
         .mockResolvedValue(['removedField', 'anotherRemovedField']);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -1235,10 +1299,12 @@ describe('declareGetActionFormTool', () => {
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-      const mockAction = jest.fn().mockResolvedValue({
-        getFields: mockGetFields,
-        tryToSetFields: mockTryToSetFields,
-      });
+      const mockAction = jest.fn().mockResolvedValue(
+        withDescribeForm({
+          getFields: mockGetFields,
+          tryToSetFields: mockTryToSetFields,
+        }),
+      );
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
         rpcClient: { collection: mockCollection },
@@ -1273,10 +1339,12 @@ describe('declareGetActionFormTool', () => {
       it('should handle values as object when not sent as string', async () => {
         const mockGetFields = jest.fn().mockReturnValue([]);
         const mockTryToSetFields = jest.fn().mockResolvedValue([]);
-        const mockAction = jest.fn().mockResolvedValue({
-          getFields: mockGetFields,
-          tryToSetFields: mockTryToSetFields,
-        });
+        const mockAction = jest.fn().mockResolvedValue(
+          withDescribeForm({
+            getFields: mockGetFields,
+            tryToSetFields: mockTryToSetFields,
+          }),
+        );
         const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
         mockBuildClientWithActions.mockResolvedValue({
           rpcClient: { collection: mockCollection },
@@ -1317,10 +1385,12 @@ describe('declareGetActionFormTool', () => {
         const tryToSetFieldsError = new Error('Invalid field value');
         const mockGetFields = jest.fn().mockReturnValue([]);
         const mockTryToSetFields = jest.fn().mockRejectedValue(tryToSetFieldsError);
-        const mockAction = jest.fn().mockResolvedValue({
-          getFields: mockGetFields,
-          tryToSetFields: mockTryToSetFields,
-        });
+        const mockAction = jest.fn().mockResolvedValue(
+          withDescribeForm({
+            getFields: mockGetFields,
+            tryToSetFields: mockTryToSetFields,
+          }),
+        );
         const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
         mockBuildClientWithActions.mockResolvedValue({
           rpcClient: { collection: mockCollection },

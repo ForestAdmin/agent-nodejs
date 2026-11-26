@@ -1,5 +1,6 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
+import type { ActionFormDescription } from '../action-fields/form-description';
 import type { CreateApprovalRequest } from '../approval-request-creator';
 import type { ApprovalRequestedResult } from '../approval-requested';
 import type HttpRequester from '../http-requester';
@@ -18,6 +19,7 @@ import ActionFieldNumberList from '../action-fields/action-field-number-list';
 import ActionFieldRadioGroup from '../action-fields/action-field-radio-group';
 import ActionFieldString from '../action-fields/action-field-string';
 import ActionFieldStringList from '../action-fields/action-field-string-list';
+import describeActionForm from '../action-fields/form-description';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
 import AgentHttpError, {
   ActionFormValidationError,
@@ -322,6 +324,10 @@ export default class Action {
 
   getLayout() {
     return new ActionLayoutRoot(this.fieldsFormStates.getLayout());
+  }
+
+  describeForm(valueOverrides: Record<string, unknown> = {}): ActionFormDescription {
+    return describeActionForm(this, valueOverrides);
   }
 
   doesFieldExist(fieldName: string): boolean {

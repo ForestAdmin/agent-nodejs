@@ -1,8 +1,6 @@
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { describeActionForm } from '@forestadmin/agent-client';
-
 import parseFileReference from '../file-uploads/file-reference';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
@@ -93,10 +91,7 @@ The response includes:
         skippedFields = await action.tryToSetFields(split.forAgent);
       }
 
-      const { fields, requiredFields, invalidValues, canExecute } = describeActionForm(
-        action,
-        withheld,
-      );
+      const { fields, requiredFields, invalidValues, canExecute } = action.describeForm(withheld);
 
       const forestDescription = await readSemanticLayer(extra, logger, caller =>
         forestServerClient.getSemanticLayerActionDescription({

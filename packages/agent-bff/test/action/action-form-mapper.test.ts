@@ -1,5 +1,7 @@
-import type { ActionForm, ActionFormField } from '../../src/action/agent-action-client';
+import type { ActionForm } from '../../src/action/agent-action-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 
 import { mapActionForm } from '../../src/action/action-form-mapper';
 
@@ -15,7 +17,7 @@ interface FakeField {
   enumValues?: string[];
 }
 
-function fieldStub(f: FakeField): ActionFormField {
+function fieldStub(f: FakeField) {
   return {
     getName: () => f.name,
     getType: () => f.type,
@@ -29,13 +31,19 @@ function fieldStub(f: FakeField): ActionFormField {
 }
 
 function actionWith(fields: FakeField[]): ActionForm {
-  return {
-    tryToSetFields: async () => [],
+  const reader = {
     getFields: () => fields.map(fieldStub),
     getEnumField: (name: string) => ({
       getOptions: () => fields.find(f => f.name === name)?.enumValues,
     }),
+  };
+
+  return {
+    tryToSetFields: async () => [],
     getLayout: () => ({ layout: [] }),
+    describeForm(overrides?: Record<string, unknown>) {
+      return describeActionForm(reader, overrides);
+    },
   };
 }
 

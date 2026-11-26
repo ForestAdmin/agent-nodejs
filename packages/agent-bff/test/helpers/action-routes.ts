@@ -3,6 +3,7 @@ import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
 import { ActionOutcomeUnknownError, mayHaveRun } from '@forestadmin/agent-client';
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
@@ -75,10 +76,7 @@ export function makeAction({
     return skipped;
   });
 
-  const form: Action & { tryToSetFields: jest.Mock; execute: jest.Mock; setFields: jest.Mock } = {
-    execute,
-    setFields: setFields ?? jest.fn(applyValues),
-    tryToSetFields,
+  const reader = {
     getFields: () =>
       state.fields.map(f => ({
         getName: () => f.name,
@@ -93,7 +91,16 @@ export function makeAction({
     getEnumField: (name: string) => ({
       getOptions: () => state.fields.find(f => f.name === name)?.enumValues,
     }),
+  };
+
+  const form: Action & { tryToSetFields: jest.Mock; execute: jest.Mock; setFields: jest.Mock } = {
+    execute,
+    setFields: setFields ?? jest.fn(applyValues),
+    tryToSetFields,
     getLayout: () => ({ layout: state.layout }),
+    describeForm(overrides?: Record<string, unknown>) {
+      return describeActionForm(reader, overrides);
+    },
   };
 
   return form;

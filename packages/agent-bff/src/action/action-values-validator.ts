@@ -1,12 +1,10 @@
 import type { ActionForm } from './agent-action-client';
 import type { Logger } from '../ports/logger-port';
 
-import { describeActionForm } from '@forestadmin/agent-client';
-
 import { invalidActionValue, missingRequiredActionFields } from '../validation/validation-errors';
 
 export default function assertActionValuesExecutable(action: ActionForm, logger: Logger): void {
-  const { fields, requiredFields, invalidValues } = describeActionForm(action);
+  const { fields, requiredFields, invalidValues } = action.describeForm();
 
   if (requiredFields.length > 0) {
     logger('Warn', 'Action execute rejected: required fields left empty', {

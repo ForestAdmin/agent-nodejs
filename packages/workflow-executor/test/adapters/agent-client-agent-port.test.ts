@@ -13,6 +13,7 @@ import {
   createRemoteAgentClient,
   withActivityLog,
 } from '@forestadmin/agent-client';
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 import { readFileSync } from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
 import { join } from 'path';
@@ -78,7 +79,6 @@ jest.mock('@forestadmin/agent-client', () => {
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
     recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
-    describeActionForm: jest.requireActual('@forestadmin/agent-client').describeActionForm,
     actionEndpointsFromSchema: jest.requireActual('@forestadmin/agent-client')
       .actionEndpointsFromSchema,
     serializeRecordId: jest.requireActual('@forestadmin/agent-client').serializeRecordId,
@@ -103,6 +103,8 @@ function createMockClient() {
     setFields: jest.fn().mockResolvedValue(undefined),
     tryToSetFields: jest.fn().mockResolvedValue([]),
     getEnumField: jest.fn(),
+    describeForm: (overrides?: Record<string, unknown>) =>
+      describeActionForm(mockAction as never, overrides),
   };
   const mockRelation = { list: jest.fn() };
   const mockCollection = {

@@ -2,8 +2,6 @@ import type { ActionForm } from './agent-action-client';
 import type { Logger } from '../ports/logger-port';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
-import { describeActionForm } from '@forestadmin/agent-client';
-
 import { sanitizeActionLayout } from './sanitize-action-html';
 
 export interface ActionFormFieldResponse {
@@ -29,7 +27,7 @@ export function mapActionForm(
   layout: ForestServerActionFormLayoutElement[],
   logger: Logger,
 ): ActionFormResponse {
-  const { fields, requiredFields } = describeActionForm(action);
+  const { fields, requiredFields } = action.describeForm();
 
   return {
     fields: fields.map(({ name, type, value, isRequired, enumValues }) => ({

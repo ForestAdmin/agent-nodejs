@@ -118,7 +118,6 @@ export { default as recordKey, groupByRecordKey, publishedRecordKeys } from './r
 export type { PublishedRecordKey } from './record-key';
 export type { RecordId, SelectOptions } from './types';
 export type { ActionExecuteResult } from './domains/action';
-export { default as describeActionForm } from './action-fields/form-description';
 export type { InvalidActionValue } from './action-fields/action-values-check';
 export { enumOptionsOf, normalizeFieldType, primitiveShapeOf } from './schema/field-type';
 export type { FieldType, PrimitiveShape } from './schema/field-type';
@@ -126,8 +125,6 @@ export type {
   ActionFormDescription,
   ActionFormFieldDescription,
   AllowedValue,
-  DescribableField,
-  DescribableForm,
 } from './action-fields/form-description';
 export type { default as Action } from './domains/action';
 export type { ExecuteActionOptions } from './domains/collection';
