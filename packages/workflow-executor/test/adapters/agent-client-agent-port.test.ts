@@ -86,6 +86,7 @@ jest.mock('@forestadmin/agent-client', () => {
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
     recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
+    describeActionForm: jest.requireActual('@forestadmin/agent-client').describeActionForm,
     actionEndpointsFromSchema: jest.requireActual('@forestadmin/agent-client')
       .actionEndpointsFromSchema,
     serializeRecordId: jest.requireActual('@forestadmin/agent-client').serializeRecordId,
@@ -1519,6 +1520,7 @@ describe('AgentClientAgentPort', () => {
       return {
         getName: () => over.name,
         getType: () => over.type ?? 'String',
+        getEffectiveTypeName: () => over.type ?? 'String',
         getValue: () => over.value,
         isRequired: () => over.required ?? false,
         getPlainField: () => ({
@@ -1542,6 +1544,18 @@ describe('AgentClientAgentPort', () => {
       expect((error as AgentPortError).message).toBe(
         'Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: hook must return an array of fields',
       );
+    });
+
+    it('gives the options of a list of Enum', async () => {
+      mockAction.tryToSetFields.mockResolvedValue([]);
+      mockAction.getFields.mockReturnValue([
+        makeField({ name: 'tags', type: ['Enum'] as unknown as string }),
+      ]);
+      mockAction.getEnumField.mockReturnValue({ getOptions: () => ['vip', 'new'] });
+
+      const form = await port.getActionForm({ collection: 'users', action: 'tag', id: [1] }, user);
+
+      expect(form.fields[0].enumValues).toEqual(['vip', 'new']);
     });
 
     it('returns the field list, completeness and skipped fields', async () => {

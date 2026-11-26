@@ -1,6 +1,8 @@
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { describeActionForm } from '@forestadmin/agent-client';
+
 import parseFileReference from '../file-uploads/file-reference';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
@@ -21,16 +23,6 @@ interface GetActionFormArgument {
 }
 
 // Options may be {value,label} objects or bare primitives — normalize to a consistent shape.
-function toAllowedValue(option: unknown): { value: string | number | null; label: string } {
-  if (option !== null && typeof option === 'object') {
-    const { value, label } = option as { value: string | number | null; label: string };
-
-    return { value, label };
-  }
-
-  return { value: option as string | number, label: String(option) };
-}
-
 // Setting a field that declares a change hook posts every field value to the agent, and a change
 // hook reading `.buffer` off a handle string throws — a 500 on the very sequence executeAction's
 // description prescribes. Handles are not resolved on this path on purpose (the bytes would land
@@ -101,25 +93,7 @@ The response includes:
         skippedFields = await action.tryToSetFields(split.forAgent);
       }
 
-      const fields = action.getFields();
-      // A withheld handle satisfies its field: the agent never saw it, so getValue() is undefined,
-      // and counting it as missing would leave canExecute false with nothing the model could send
-      // to fix it — a data uri is what it is told never to send, and the handle is what it just
-      // sent.
-      // An own-property check, not `in`: withheld is keyed by model-sent field names, and `in`
-      // walks the prototype chain — a field literally named toString would read as filled by a
-      // function. hasOwnProperty.call because this package's lib predates Object.hasOwn.
-      const valueOf = (field: { getName(): string; getValue(): unknown }) =>
-        Object.prototype.hasOwnProperty.call(withheld, field.getName())
-          ? withheld[field.getName()]
-          : field.getValue();
-
-      const requiredFields = fields
-        .filter(field => field.isRequired())
-        .filter(field => valueOf(field) === undefined || valueOf(field) === null)
-        .map(field => field.getName());
-
-      const canExecute = requiredFields.length === 0;
+      const { fields, requiredFields, canExecute } = describeActionForm(action, withheld);
 
       const forestDescription = await readSemanticLayer(extra, logger, caller =>
         forestServerClient.getSemanticLayerActionDescription({
@@ -143,28 +117,25 @@ The response includes:
             type: 'text',
             text: JSON.stringify({
               ...withDescription(actionDescription),
-              fields: fields.map(field => {
-                const description = field.getPlainField()?.description;
-                const baseField = {
-                  name: field.getName(),
-                  type: field.getEffectiveTypeName(),
-                  value: valueOf(field),
-                  isRequired: field.isRequired() ?? false,
+              fields: fields.map(
+                ({
+                  name,
+                  effectiveType,
+                  value,
+                  isRequired,
+                  description,
+                  enumValues,
+                  allowedValues,
+                }) => ({
+                  name,
+                  type: effectiveType,
+                  value,
+                  isRequired,
                   ...(description ? { description } : {}),
-                };
-
-                if (field.getTypeName() === 'Enum') {
-                  const enumField = action.getEnumField(field.getName());
-
-                  return { ...baseField, enumValues: enumField.getOptions() ?? null };
-                }
-
-                const widgetOptions = field.getMultipleChoiceField().getOptions();
-
-                return widgetOptions?.length
-                  ? { ...baseField, allowedValues: widgetOptions.map(toAllowedValue) }
-                  : baseField;
-              }),
+                  ...(enumValues !== undefined ? { enumValues } : {}),
+                  ...(allowedValues ? { allowedValues } : {}),
+                }),
+              ),
               canExecute,
               requiredFields,
               skippedFields,

@@ -83,9 +83,12 @@ export function makeAction({
       state.fields.map(f => ({
         getName: () => f.name,
         getType: () => f.type,
+        getEffectiveTypeName: () => (Array.isArray(f.type) ? `${f.type[0]}List` : f.type),
         getReference: () => f.reference ?? null,
         getValue: () => f.value,
         isRequired: () => f.isRequired,
+        getPlainField: () => ({}),
+        getMultipleChoiceField: () => ({ getOptions: () => undefined }),
       })),
     getEnumField: (name: string) => ({
       getOptions: () => state.fields.find(f => f.name === name)?.enumValues,

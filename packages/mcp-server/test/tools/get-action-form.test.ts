@@ -1008,6 +1008,39 @@ describe('declareGetActionFormTool', () => {
       expect(mockGetEnumField).toHaveBeenCalledWith('status');
     });
 
+    it('should return enumValues for a list of Enum', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'tags',
+            getType: () => ['Enum'],
+            getTypeName: () => 'EnumList',
+            getEffectiveTypeName: () => 'EnumList',
+            getValue: () => undefined,
+            isRequired: () => false,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => undefined }),
+          },
+        ]),
+        tryToSetFields: jest.fn().mockResolvedValue([]),
+        getEnumField: jest.fn().mockReturnValue({ getOptions: () => ['vip', 'new'] }),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'tag', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.fields).toEqual([
+        { name: 'tags', type: 'EnumList', isRequired: false, enumValues: ['vip', 'new'] },
+      ]);
+    });
+
     it('should return description and allowedValues for choice widget fields', async () => {
       const mockFields = [
         {

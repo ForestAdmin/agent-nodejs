@@ -1,21 +1,21 @@
 import type { AgentTransport } from '../agent/agent-transport';
-import type { ActionEndpointsByCollection, ActivityLogConfig } from '@forestadmin/agent-client';
+import type {
+  ActionEndpointsByCollection,
+  ActivityLogConfig,
+  DescribableField,
+  DescribableForm,
+} from '@forestadmin/agent-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
-export interface ActionFormField {
-  getName(): string;
-  /** A list type is the array the agent sent, `['String']`, not `'StringList'`. */
-  getType(): string | [string];
+export interface ActionFormField extends DescribableField {
   getReference(): string | null | undefined;
-  getValue(): unknown;
-  isRequired(): boolean | undefined;
 }
 
 // Structural subset of agent-client's `Action` the form endpoint consumes. Kept local so the BFF
 // does not depend on agent-client exporting the concrete `Action` type (see extractRawLayout).
-export interface ActionForm {
+export interface ActionForm extends DescribableForm {
   tryToSetFields(values: Record<string, unknown>): Promise<string[]>;
   getFields(): ActionFormField[];
   getEnumField(name: string): { getOptions(): string[] | undefined };

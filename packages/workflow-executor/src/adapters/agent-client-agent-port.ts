@@ -1,7 +1,6 @@
 import type {
   ActionCaller,
   ActionForm,
-  ActionFormField,
   AgentAudit,
   AgentPort,
   ExecuteActionQuery,
@@ -36,6 +35,7 @@ import {
   UnknownActionFieldError,
   actionEndpointsFromSchema,
   createRemoteAgentClient,
+  describeActionForm,
   extractErrorDetail,
   isApprovalRequested,
   recordKey,
@@ -116,16 +116,6 @@ function restoreFieldNames(
 }
 
 // Options may be {value,label} objects or bare primitives — normalize to a consistent shape.
-function toAllowedValue(option: unknown): { value: string | number | null; label: string } {
-  if (option !== null && typeof option === 'object') {
-    const { value, label } = option as { value: string | number | null; label: string };
-
-    return { value, label };
-  }
-
-  return { value: option as string | number, label: String(option) };
-}
-
 // The statuses a change hook answers with when it refuses the submitted value. Auth, rate limiting
 // and timeouts are also 4xx but say nothing about the value, so they must not reach the form fallback.
 const FORM_VALIDATION_STATUSES = [400, 422];
@@ -429,37 +419,25 @@ export default class AgentClientAgentPort implements AgentPort {
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
       const skippedFields = values ? await act.tryToSetFields(values) : [];
 
-      const fields = act.getFields().map((field): ActionFormField => {
-        const plainField = field.getPlainField();
-        const description = plainField?.description;
-        const isRichText = plainField?.widgetEdit?.name === RICH_TEXT_WIDGET;
+      const { fields, requiredFields, canExecute } = describeActionForm(act);
 
-        const base: ActionFormField = {
-          name: field.getName(),
-          type: field.getType(),
-          value: field.getValue(),
-          isRequired: field.isRequired() ?? false,
-          ...(description ? { description } : {}),
-          ...(isRichText ? { isRichText } : {}),
-        };
-
-        if (field.getType() === 'Enum') {
-          return {
-            ...base,
-            enumValues: act.getEnumField(field.getName()).getOptions() ?? undefined,
-          };
-        }
-
-        const options = field.getMultipleChoiceField().getOptions();
-
-        return options?.length ? { ...base, allowedValues: options.map(toAllowedValue) } : base;
-      });
-
-      const requiredFields = fields
-        .filter(field => field.isRequired && (field.value === undefined || field.value === null))
-        .map(field => field.name);
-
-      return { fields, canExecute: requiredFields.length === 0, requiredFields, skippedFields };
+      return {
+        fields: fields.map(
+          ({ name, type, value, isRequired, description, widget, enumValues, allowedValues }) => ({
+            name,
+            type,
+            value,
+            isRequired,
+            ...(description ? { description } : {}),
+            ...(widget === RICH_TEXT_WIDGET ? { isRichText: true } : {}),
+            ...(enumValues !== undefined ? { enumValues: enumValues ?? undefined } : {}),
+            ...(allowedValues ? { allowedValues } : {}),
+          }),
+        ),
+        canExecute,
+        requiredFields,
+        skippedFields,
+      };
     });
   }
 

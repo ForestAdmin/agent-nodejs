@@ -136,6 +136,9 @@ function makeAction(): Action {
       {
         getName: () => 'comment',
         getType: () => 'String',
+        getEffectiveTypeName: () => 'String',
+        getPlainField: () => ({}),
+        getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         getReference: () => null,
         getValue: () => null,
         isRequired: () => false,
@@ -143,6 +146,9 @@ function makeAction(): Action {
       {
         getName: () => 'tags',
         getType: () => ['String'],
+        getEffectiveTypeName: () => 'StringList',
+        getPlainField: () => ({}),
+        getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         getReference: () => null,
         getValue: () => undefined,
         isRequired: () => false,
