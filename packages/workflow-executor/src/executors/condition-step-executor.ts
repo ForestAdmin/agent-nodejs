@@ -25,6 +25,7 @@ import {
   MalformedToolCallError,
   MissingConditionQuantifierError,
   PerRecordSubWorkflowEndConditionError,
+  RecordNotFoundError,
   StepStateError,
 } from '../errors';
 import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
@@ -696,14 +697,23 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return result.records.map(root => ({ recordId: serializeRecordId(root.recordId), root }));
   }
 
-  // A record the path does not lead to, or that the caller cannot see, holds no value; a collection
-  // the caller cannot read stops the step, as it does a step acting on that record.
+  // A record the path does not lead to, or that the caller cannot see, holds no value, the root
+  // included (a record step fails on a lost root instead); a collection the caller cannot read stops
+  // the step, as it does a step acting on that record.
   private async readAlongPath(
     root: RecordRef,
     relationPath: readonly string[] | undefined,
     fields: string[],
   ): Promise<Record<string, unknown> | null> {
-    const resolution = await followRelationPath(this.context, root, relationPath ?? [], fields);
+    let resolution: Awaited<ReturnType<typeof followRelationPath>>;
+
+    try {
+      resolution = await followRelationPath(this.context, root, relationPath ?? [], fields);
+    } catch (error) {
+      if (error instanceof RecordNotFoundError) return null;
+
+      throw error;
+    }
 
     if (resolution.status === 'forbidden') {
       throw new CollectionAccessDeniedError(

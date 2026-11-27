@@ -10,7 +10,7 @@ import type { ConditionStepOutcome } from '../../src/types/validated/step-outcom
 import type { z } from 'zod';
 
 import activityLogContext from './activity-log-context';
-import { AgentPortError } from '../../src/errors';
+import { AgentPortError, RecordNotFoundError } from '../../src/errors';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -331,6 +331,25 @@ describe('a decision on a record reached through to-one relations', () => {
       ]);
     });
 
+    it('counts the condition as not met when the starting record is gone', async () => {
+      const runStore = makeRunStore();
+      const context = makeContext(makeStep([option('In Lyon', recordCondition())]), {
+        agentPort: makeAgentPort({
+          'claims/3/customer': new RecordNotFoundError('claims', [3]),
+        }),
+        runStore,
+      });
+
+      const outcome = await run(context);
+
+      expect(outcome).toMatchObject({ status: 'success', selectedOption: 'Other' });
+      expect(savedEvaluations(runStore)).toEqual([
+        expect.objectContaining({
+          conditions: [{ index: 0, met: null, reason: 'record-not-found' }],
+        }),
+      ]);
+    });
+
     it('stops the step when the user cannot read a collection of the path', async () => {
       const context = makeContext(makeStep([option('In Lyon', recordCondition())]), {
         agentPort: makeAgentPort({
@@ -445,6 +464,67 @@ describe('a decision on a record reached through to-one relations', () => {
           ((saved as { executionParams: unknown }).executionParams as { unchecked: string[] })
             .unchecked,
         ).toEqual(['13']);
+      });
+
+      it('leaves a loaded record that is gone unchecked instead of failing the decision', async () => {
+        const runStore = severalLoaded();
+        const context = makeContext(
+          makeStep([option('All in Lyon', fromLoad({ quantifier: 'every' }))]),
+          {
+            agentPort: makeAgentPort(
+              {
+                'customers/12/address': ['78'],
+                'customers/13/address': new RecordNotFoundError('customers', ['13']),
+              },
+              values,
+            ),
+            previousSteps: [loadStep()],
+            runStore,
+          },
+        );
+
+        const outcome = await run(context);
+
+        expect(outcome.status).toBe('awaiting-input');
+        const [, saved] = runStore.saveStepExecution.mock.calls[0];
+        expect(
+          ((saved as { executionParams: unknown }).executionParams as { unchecked: string[] })
+            .unchecked,
+        ).toEqual(['13']);
+      });
+
+      it('names each record of a Load Related Record running once per record by the record it ran for', async () => {
+        const runStore = makeRunStore([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            iterations: [
+              {
+                sourceRecordRef: { collectionName: 'claims', recordId: ['1'], stepIndex: 0 },
+                attempt: 1,
+                executionResult: { relation, record: customer('12') },
+              },
+              {
+                sourceRecordRef: { collectionName: 'claims', recordId: ['2'], stepIndex: 0 },
+                attempt: 1,
+                executionResult: { skipped: true },
+              },
+            ],
+          } as unknown as StepExecutionData,
+        ]);
+        const context = makeContext(
+          makeStep([option('All in Lyon', fromLoad({ quantifier: 'every' }))]),
+          { agentPort: makeAgentPort(links, values), previousSteps: [loadStep()], runStore },
+        );
+
+        const outcome = await run(context);
+
+        expect(outcome.status).toBe('awaiting-input');
+        const [, saved] = runStore.saveStepExecution.mock.calls[0];
+        expect(
+          ((saved as { executionParams: unknown }).executionParams as { unchecked: string[] })
+            .unchecked,
+        ).toEqual(['2']);
       });
 
       it('refuses a condition without a quantifier', async () => {
