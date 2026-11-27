@@ -3,7 +3,32 @@ import type { WriteStream } from 'fs';
 import { Deserializer } from 'jsonapi-serializer';
 import superagent from 'superagent';
 
-import AgentHttpError from './errors';
+import AgentHttpError, { AgentTimeoutError, AgentUnreachableError } from './errors';
+
+function isSuperagentTimeout(error: unknown): error is Error & { timeout: number } {
+  const { code, timeout } = (error ?? {}) as { code?: unknown; timeout?: unknown };
+
+  return error instanceof Error && code === 'ECONNABORTED' && typeof timeout === 'number';
+}
+
+// Any other failure without an HTTP answer (a JWT that cannot be signed, a malformed agent URL) is a
+// fault on the caller's side, not an agent to restart, so it propagates raw.
+const UNREACHABLE_ERROR_CODES: ReadonlySet<string> = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EAI_AGAIN',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EPIPE',
+  'ETIMEDOUT',
+]);
+
+function isUnreachable(error: unknown): error is Error & { code: string } {
+  const { code } = (error ?? {}) as { code?: unknown };
+
+  return error instanceof Error && typeof code === 'string' && UNREACHABLE_ERROR_CODES.has(code);
+}
 
 function parseJson(text: string | undefined): unknown {
   if (text === undefined) return undefined;
@@ -31,7 +56,12 @@ export default class HttpRequester {
 
   constructor(
     private readonly token: string,
-    private readonly options: { prefix?: string; url: string; timezone?: string },
+    private readonly options: {
+      prefix?: string;
+      url: string;
+      timezone?: string;
+      defaultTimeoutMs?: number;
+    },
   ) {
     this.deserializer = new Deserializer({ keyForAttribute: 'camelCase' });
   }
@@ -79,7 +109,7 @@ export default class HttpRequester {
       const url = this.buildUrl(path);
 
       const req = superagent[method](url)
-        .timeout(maxTimeAllowed ?? 10_000)
+        .timeout(maxTimeAllowed ?? this.options.defaultTimeoutMs ?? 10_000)
         .set('Authorization', `Bearer ${this.token}`)
         .set('Content-Type', contentType ?? 'application/json')
         .set('Accept', contentType ?? 'application/json')
@@ -93,7 +123,9 @@ export default class HttpRequester {
     } catch (error) {
       const res = (error as { response?: { status?: number; body?: unknown; text?: string } })
         .response;
-      if (!res) throw error; // network/timeout/abort → no HTTP response, propagate raw
+      if (isSuperagentTimeout(error)) throw new AgentTimeoutError(error.message, error.timeout);
+      if (isUnreachable(error)) throw new AgentUnreachableError(error);
+      if (!res) throw error;
 
       const text = typeof res.text === 'string' ? res.text : undefined;
 
@@ -119,7 +151,7 @@ export default class HttpRequester {
     return new Promise<void>((resolve, reject) => {
       superagent
         .get(url)
-        .timeout(maxTimeAllowed ?? 10_000)
+        .timeout(maxTimeAllowed ?? this.options.defaultTimeoutMs ?? 10_000)
         .set('Authorization', `Bearer ${this.token}`)
         .set('Accept', contentType)
         .query({ timezone: this.timezone, ...query })

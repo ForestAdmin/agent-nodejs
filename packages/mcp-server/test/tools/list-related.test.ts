@@ -263,9 +263,15 @@ describe('declareListRelatedTool', () => {
         rpcClient: { collection: jest.fn().mockReturnValue({ relation: mockRelation }) },
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
       } as unknown as ReturnType<typeof buildClient>);
-      mockGetFieldsOfCollection.mockReturnValue([
-        { field: 'reports', reference: 'employees.id', relationship: 'HasMany' },
-      ] as unknown as ReturnType<typeof schemaFetcher.getFieldsOfCollection>);
+      mockFetchForestSchema.mockResolvedValue({
+        collections: [
+          {
+            name: 'employees',
+            fields: [{ field: 'reports', reference: 'employees.id', relationship: 'HasMany' }],
+            actions: [],
+          },
+        ],
+      } as unknown as Awaited<ReturnType<typeof schemaFetcher.fetchForestSchema>>);
 
       await registeredToolHandler(
         { collectionName: 'employees', relationName: 'reports', parentRecordId: 42 },
@@ -354,10 +360,12 @@ describe('declareListRelatedTool', () => {
       );
 
       expect(mockList).not.toHaveBeenCalled();
-      expect(mockListAndCount).toHaveBeenCalledWith(
-        { collectionName: 'users', relationName: 'orders', parentRecordId: 1, enableCount: true },
-        { label: 'list relation "orders"' },
-      );
+      expect(mockListAndCount).toHaveBeenCalledWith({
+        collectionName: 'users',
+        relationName: 'orders',
+        parentRecordId: 1,
+        enableCount: true,
+      });
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify({ records: mockData, totalCount: 42 }) }],
       });
@@ -396,24 +404,17 @@ describe('declareListRelatedTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it.each([
-        [{}, 'list relation "orders"'],
-        [{ search: 'test' }, 'list relation "orders" with search'],
-        [
-          { filters: { field: 'status', operator: 'Equal', value: 'pending' } },
-          'list relation "orders" with filter',
-        ],
-        [
-          { search: 'test', filters: { field: 'status', operator: 'Equal', value: 'pending' } },
-          'list relation "orders" with search and filter',
-        ],
-      ])('should name the refinements of %j in the label', async (refinements, label) => {
-        await registeredToolHandler(
-          { collectionName: 'users', relationName: 'orders', parentRecordId: 1, ...refinements },
-          mockExtra,
-        );
+      it('should leave the label to agent-client, which reads the refinements it really applies', async () => {
+        const options = {
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          search: '   ',
+        };
 
-        expect(mockList).toHaveBeenCalledWith(expect.any(Object), { label });
+        await registeredToolHandler(options, mockExtra);
+
+        expect(mockList.mock.calls).toEqual([[options]]);
       });
     });
 
@@ -438,14 +439,11 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith(
-          {
-            collectionName: 'users',
-            relationName: 'orders',
-            parentRecordId: 1,
-          },
-          expect.anything(),
-        );
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+        });
       });
 
       it('should pass search parameter to list', async () => {
@@ -459,15 +457,12 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith(
-          {
-            collectionName: 'users',
-            relationName: 'orders',
-            parentRecordId: 1,
-            search: 'test query',
-          },
-          expect.anything(),
-        );
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          search: 'test query',
+        });
       });
 
       it('should pass filters to list', async () => {
@@ -478,15 +473,12 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith(
-          {
-            collectionName: 'users',
-            relationName: 'orders',
-            parentRecordId: 1,
-            filters,
-          },
-          expect.anything(),
-        );
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          filters,
+        });
       });
 
       it('should pass sort parameter when both field and ascending are provided', async () => {
@@ -500,15 +492,12 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith(
-          {
-            collectionName: 'users',
-            relationName: 'orders',
-            parentRecordId: 1,
-            sort: { field: 'createdAt', ascending: true },
-          },
-          expect.anything(),
-        );
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          sort: { field: 'createdAt', ascending: true },
+        });
       });
 
       it('should pass sort parameter when ascending is false', async () => {
@@ -522,15 +511,12 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith(
-          {
-            collectionName: 'users',
-            relationName: 'orders',
-            parentRecordId: 1,
-            sort: { field: 'createdAt', ascending: false },
-          },
-          expect.anything(),
-        );
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          sort: { field: 'createdAt', ascending: false },
+        });
       });
 
       it('should pass all parameters together', async () => {
@@ -551,17 +537,14 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith(
-          {
-            collectionName: 'users',
-            relationName: 'orders',
-            parentRecordId: 1,
-            search: 'test',
-            filters,
-            sort: { field: 'total', ascending: false },
-          },
-          expect.anything(),
-        );
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          search: 'test',
+          filters,
+          sort: { field: 'total', ascending: false },
+        });
       });
     });
 

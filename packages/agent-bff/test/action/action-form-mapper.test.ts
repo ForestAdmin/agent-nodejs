@@ -1,5 +1,7 @@
-import type { ActionForm, ActionFormField } from '../../src/action/agent-action-client';
+import type { ActionForm } from '../../src/action/agent-action-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 
 import { mapActionForm } from '../../src/action/action-form-mapper';
 
@@ -15,24 +17,33 @@ interface FakeField {
   enumValues?: string[];
 }
 
-function fieldStub(f: FakeField): ActionFormField {
+function fieldStub(f: FakeField) {
   return {
     getName: () => f.name,
     getType: () => f.type,
+    getEffectiveTypeName: () => f.type,
     getReference: () => null,
     getValue: () => f.value,
     isRequired: () => f.isRequired,
+    getPlainField: () => ({}),
+    getMultipleChoiceField: () => ({ getOptions: () => undefined }),
   };
 }
 
 function actionWith(fields: FakeField[]): ActionForm {
-  return {
-    tryToSetFields: async () => [],
+  const reader = {
     getFields: () => fields.map(fieldStub),
     getEnumField: (name: string) => ({
       getOptions: () => fields.find(f => f.name === name)?.enumValues,
     }),
+  };
+
+  return {
+    tryToSetFields: async () => [],
     getLayout: () => ({ layout: [] }),
+    describeForm(overrides?: Record<string, unknown>) {
+      return describeActionForm(reader, overrides);
+    },
   };
 }
 
@@ -108,6 +119,16 @@ describe('mapActionForm', () => {
 
     expect(result.requiredFields).toEqual([]);
     expect(result.canExecute).toBe(true);
+  });
+
+  it('names a value of the wrong type and sets canExecute false', () => {
+    const action = actionWith([{ name: 'amount', type: 'Number', value: '12', isRequired: true }]);
+
+    const result = mapForm(action, [], []);
+
+    expect(result.requiredFields).toEqual([]);
+    expect(result.invalidValues).toEqual([{ field: 'amount', expected: 'a number' }]);
+    expect(result.canExecute).toBe(false);
   });
 
   it('passes skippedFields and non-html layout elements through unchanged', () => {

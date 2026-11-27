@@ -1,7 +1,6 @@
 import type {
   ActionCaller,
   ActionForm,
-  ActionFormField,
   AgentAudit,
   AgentPort,
   ExecuteActionQuery,
@@ -19,8 +18,9 @@ import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 import type {
   Action,
-  ActionEndpointsByCollection,
   ActivityLogConfig,
+  SchemaAction,
+  SchemaCollectionWithActions,
   SelectOptions,
 } from '@forestadmin/agent-client';
 
@@ -28,13 +28,13 @@ import {
   ActivityLogBlockedError,
   AgentHttpError,
   ActionFormValidationError as ClientActionFormValidationError,
+  ActionOutcomeUnknownError as ClientActionOutcomeUnknownError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
-  HttpRequester,
   UnknownActionFieldError,
   createRemoteAgentClient,
-  extractErrorDetail,
   isApprovalRequested,
+  recordKey,
   withActivityLog,
 } from '@forestadmin/agent-client';
 
@@ -42,6 +42,7 @@ import { agentPortError, flattenAgentMessage } from './agent-errors';
 import { mintStepToken } from './step-user';
 import {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
   ActivityLogCreationError,
   AgentProbeError,
@@ -50,7 +51,7 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
-import { serializeRecordId } from '../record-id';
+import { deserializeRecordId, serializeRecordId } from '../record-id';
 
 // agent-client keeps the agent's own wording as the message only when the body had one; otherwise
 // the message is its generic fallback and unstructuredCause holds the raw response.
@@ -60,7 +61,7 @@ function backendRefusalMessage(cause: unknown): string | undefined {
   if (cause instanceof ClientActionFormValidationError) {
     detail = cause.unstructuredCause ? undefined : cause.message;
   } else if (cause instanceof AgentHttpError) {
-    detail = extractErrorDetail(cause);
+    detail = cause.detail;
   }
 
   return detail ? flattenAgentMessage(detail) : undefined;
@@ -81,6 +82,10 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
     return new ApprovalRequestCreationError(action, cause);
   }
 
+  if (cause instanceof ClientActionOutcomeUnknownError) {
+    return new ActionOutcomeUnknownError(action, cause);
+  }
+
   return cause;
 }
 
@@ -91,22 +96,6 @@ type RawRecordBody = {
   };
 };
 
-// Transcribes inflected's `underscore` + `camelize(_, false)` — the inflection agent-client's
-// jsonapi-serializer deserializer applies to every response key. Divergence = silent lookup miss.
-function toCamelCase(name: string): string {
-  const underscored = name
-    .replace(/([A-Z\d]+)([A-Z][a-z])/g, '$1_$2')
-    .replace(/([a-z\d])([A-Z])/g, '$1_$2')
-    .replace(/-/g, '_')
-    .toLowerCase();
-
-  return underscored.replace(
-    /(?:_|(\/))([a-z\d]*)/gi,
-    (_, slash: string | undefined, word: string) =>
-      (slash ?? '') + (word && word.charAt(0).toUpperCase() + word.slice(1)),
-  );
-}
-
 function restoreFieldNames(
   values: Record<string, unknown>,
   originalFieldNames: string[] | undefined,
@@ -116,21 +105,10 @@ function restoreFieldNames(
   const camelToOriginal: Record<string, string> = {};
 
   for (const name of originalFieldNames) {
-    camelToOriginal[toCamelCase(name)] = name;
+    camelToOriginal[recordKey(name)] = name;
   }
 
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
-}
-
-// Options may be {value,label} objects or bare primitives — normalize to a consistent shape.
-function toAllowedValue(option: unknown): { value: string | number | null; label: string } {
-  if (option !== null && typeof option === 'object') {
-    const { value, label } = option as { value: string | number | null; label: string };
-
-    return { value, label };
-  }
-
-  return { value: option as string | number, label: String(option) };
 }
 
 // The statuses a change hook answers with when it refuses the submitted value. Auth, rate limiting
@@ -186,7 +164,7 @@ export default class AgentClientAgentPort implements AgentPort {
             { activityLog: audit?.call },
           );
       } catch (error) {
-        if (HttpRequester.is404Error(error)) {
+        if (error instanceof AgentHttpError && error.status === 404) {
           throw new RecordNotFoundError(collection, id);
         }
 
@@ -256,7 +234,7 @@ export default class AgentClientAgentPort implements AgentPort {
         // like getSingleRelatedData, so it round-trips through the by-id route.
         const recordId =
           relatedSchema.primaryKeyFields.length > 1
-            ? String(row.id).split('|')
+            ? deserializeRecordId(String(row.id))
             : relatedSchema.primaryKeyFields.map(f => restored[f] as string | number);
 
         return {
@@ -305,7 +283,9 @@ export default class AgentClientAgentPort implements AgentPort {
               { skipDeserialization: true },
             );
         } catch (error) {
-          if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
+          if (error instanceof AgentHttpError && error.status === 404) {
+            throw new RecordNotFoundError(collection, id);
+          }
 
           throw error;
         }
@@ -341,7 +321,9 @@ export default class AgentClientAgentPort implements AgentPort {
         // would unpack into the wrong number of key parts. That surfaces as an AgentPortError naming
         // the value, which is cryptic but loud; naming the relation too would need a domain error.
         const recordId =
-          relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
+          relatedSchema.primaryKeyFields.length > 1
+            ? deserializeRecordId(String(raw))
+            : [String(raw)];
 
         // The target is read even when the caller projected nothing, on its first PK alone. Skipping
         // the read to save the round trip also skipped the readability check below, so a relation
@@ -434,37 +416,26 @@ export default class AgentClientAgentPort implements AgentPort {
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
       const skippedFields = values ? await act.tryToSetFields(values) : [];
 
-      const fields = act.getFields().map((field): ActionFormField => {
-        const plainField = field.getPlainField();
-        const description = plainField?.description;
-        const isRichText = plainField?.widgetEdit?.name === RICH_TEXT_WIDGET;
+      const { fields, requiredFields, invalidValues, canExecute } = act.describeForm();
 
-        const base: ActionFormField = {
-          name: field.getName(),
-          type: field.getType(),
-          value: field.getValue(),
-          isRequired: field.isRequired() ?? false,
-          ...(description ? { description } : {}),
-          ...(isRichText ? { isRichText } : {}),
-        };
-
-        if (field.getType() === 'Enum') {
-          return {
-            ...base,
-            enumValues: act.getEnumField(field.getName()).getOptions() ?? undefined,
-          };
-        }
-
-        const options = field.getMultipleChoiceField().getOptions();
-
-        return options?.length ? { ...base, allowedValues: options.map(toAllowedValue) } : base;
-      });
-
-      const requiredFields = fields
-        .filter(field => field.isRequired && (field.value === undefined || field.value === null))
-        .map(field => field.name);
-
-      return { fields, canExecute: requiredFields.length === 0, requiredFields, skippedFields };
+      return {
+        fields: fields.map(
+          ({ name, type, value, isRequired, description, widget, enumValues, allowedValues }) => ({
+            name,
+            type,
+            value,
+            isRequired,
+            ...(description ? { description } : {}),
+            ...(widget === RICH_TEXT_WIDGET ? { isRichText: true } : {}),
+            ...(enumValues !== undefined ? { enumValues: enumValues ?? undefined } : {}),
+            ...(allowedValues ? { allowedValues } : {}),
+          }),
+        ),
+        canExecute,
+        requiredFields,
+        invalidValues,
+        skippedFields,
+      };
     });
   }
 
@@ -490,7 +461,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token: this.mintToken(user),
-      actionEndpoints: this.buildActionEndpoints(user.renderingId),
+      schema: this.actionSchemaOf(user.renderingId),
       ...(this.forestServerUrl && forestServerToken
         ? {
             forestServer: {
@@ -548,31 +519,18 @@ export default class AgentClientAgentPort implements AgentPort {
     }
   }
 
-  private buildActionEndpoints(renderingId: number): ActionEndpointsByCollection {
-    const endpoints: ActionEndpointsByCollection = {};
-
-    for (const [collectionName, schema] of this.schemaCache.entriesForRendering(renderingId)) {
-      endpoints[collectionName] = {};
-
-      for (const action of schema.actions) {
-        // agent-client only POSTs /hooks/load when `hooks.load` is true (dynamic form); for static
-        // forms it builds the form from `fields`/`layout` directly, so no 404 probe reaches agents
-        // that don't expose the route. `hooks` and `fields` are forwarded WITHOUT defaults: a
-        // legacy schema omitting them must keep probing — coercing to {load: false} / [] would
-        // silently render dynamic or unknown forms as empty static ones.
-        endpoints[collectionName][action.name] = {
-          id: action.name,
-          name: action.name,
-          endpoint: action.endpoint,
-          hooks: action.hooks,
-          // Zod envelope-validates `fields`/`layout` as arrays of opaque objects. Inner shape is
-          // owned by @forestadmin/forestadmin-client and consumed by agent-client below.
-          fields: action.fields as ActionEndpointsByCollection[string][string]['fields'],
-          layout: action.layout as ActionEndpointsByCollection[string][string]['layout'],
-        };
-      }
-    }
-
-    return endpoints;
+  private actionSchemaOf(renderingId: number): SchemaCollectionWithActions[] {
+    // The executor's schema carries no action id, so the name stands in as smart_action_id.
+    return [...this.schemaCache.entriesForRendering(renderingId)].map(([name, schema]) => ({
+      name,
+      actions: schema.actions.map(action => ({
+        id: action.name,
+        name: action.name,
+        endpoint: action.endpoint,
+        hooks: action.hooks as SchemaAction['hooks'],
+        fields: action.fields as SchemaAction['fields'],
+        layout: action.layout as SchemaAction['layout'],
+      })),
+    }));
   }
 }

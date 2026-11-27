@@ -7,19 +7,8 @@ import type {
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
+  isActionAllowedForRole,
 } from '@forestadmin/forestadmin-client';
-
-export function isActionIdentifierAllowedForRole(
-  permissions: ActionPermissions,
-  roleId: number,
-  actionName: string,
-): boolean {
-  return Boolean(
-    permissions.isDevelopment ||
-      permissions.actionsGloballyAllowed.has(actionName) ||
-      permissions.actionsByRole.get(actionName)?.allowedRoles.has(roleId),
-  );
-}
 
 export function canRolePerformCollectionAction(
   permissions: ActionPermissions,
@@ -27,7 +16,7 @@ export function canRolePerformCollectionAction(
   action: CollectionActionEvent,
   collectionName: string,
 ): boolean {
-  return isActionIdentifierAllowedForRole(
+  return isActionAllowedForRole(
     permissions,
     roleId,
     generateCollectionActionIdentifier(action, collectionName),
@@ -49,7 +38,7 @@ export function canRolePerformCustomAction({
   actionName,
   collectionName,
 }: CanRolePerformCustomActionParams): boolean {
-  return isActionIdentifierAllowedForRole(
+  return isActionAllowedForRole(
     permissions,
     roleId,
     generateCustomActionIdentifier(event, actionName, collectionName),

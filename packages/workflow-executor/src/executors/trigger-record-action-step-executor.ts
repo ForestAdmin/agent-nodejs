@@ -268,7 +268,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     }
 
     // Full AI: submit if all required fields are filled, else fallback (pause) with what was filled.
-    if (!filledForm.canExecute) {
+    // A value still invalid goes to the execute, whose refusal pauses the step as backend-refused.
+    if (filledForm.requiredFields.length > 0) {
       this.context.logger('Info', 'Full AI left required fields empty', {
         ...this.logCtx,
         requiredFields: filledForm.requiredFields,
@@ -374,7 +375,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         // options a hook swapped); without that bound, such a hook would run the loop to the cap.
         const noLongerHeld =
           formField !== undefined &&
-          (isEmptyValue(formField.value) || !isAmongOptions(formField, formField.value));
+          (isEmptyValue(formField.value) ||
+            !isAmongOptions(formField, formField.value) ||
+            form.invalidValues.some(invalid => invalid.field === field));
         const reopened =
           filledByAi &&
           noLongerHeld &&
@@ -467,6 +470,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         if (field.value !== undefined && field.value !== null) {
           parts.push(`current: ${JSON.stringify(field.value)}`);
         }
+
+        const invalid = form.invalidValues.find(({ field: name }) => name === field.name);
+        if (invalid) parts.push(`invalid: expected ${invalid.expected}`);
 
         return parts.join(' — ');
       })

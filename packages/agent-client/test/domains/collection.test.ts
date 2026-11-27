@@ -505,6 +505,66 @@ describe('Collection', () => {
       );
     });
 
+    it.each([
+      ['recordId', { recordId: 0 }],
+      ['recordIds', { recordIds: [0] }],
+    ])('should send a numeric id 0 given as %s', async (_, context) => {
+      const action = await collection.action('sendEmail', context);
+      httpRequester.query.mockResolvedValue({ success: 'ok' });
+
+      await action.execute();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({ ids: ['0'] }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should send no id for an empty recordId', async () => {
+      const action = await collection.action('sendEmail', { recordId: '' });
+      httpRequester.query.mockResolvedValue({ success: 'ok' });
+
+      await action.execute();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({ ids: [] }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should execute in the action context timezone', async () => {
+      const action = await collection.action('sendEmail', {
+        recordIds: ['1'],
+        timezone: 'America/New_York',
+      });
+      httpRequester.query.mockResolvedValue({ success: 'ok' });
+
+      await action.execute();
+
+      expect(httpRequester.query).toHaveBeenLastCalledWith(
+        expect.objectContaining({ method: 'post', query: { timezone: 'America/New_York' } }),
+      );
+    });
+
+    it("should execute in the requester's timezone when the action context sets none", async () => {
+      const action = await collection.action('sendEmail', { recordIds: ['1'] });
+      httpRequester.query.mockResolvedValue({ success: 'ok' });
+
+      await action.execute();
+
+      expect(httpRequester.query.mock.calls.at(-1)[0]).not.toHaveProperty('query');
+    });
+
     it('should pipe-encode a composite recordId when executing the action', async () => {
       const action = await collection.action('sendEmail', { recordId: [42, 'x'] });
       httpRequester.query.mockResolvedValue({ success: 'ok' });

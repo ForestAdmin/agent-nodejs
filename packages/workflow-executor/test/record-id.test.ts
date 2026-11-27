@@ -1,3 +1,5 @@
+import type { RecordId } from '../src/types/validated/collection';
+
 import { RecordIdSerializationError } from '../src/errors';
 import { deserializeRecordId, serializeRecordId } from '../src/record-id';
 
@@ -22,6 +24,16 @@ describe('serializeRecordId', () => {
   // back and match the wrong record. Fail loudly instead of silently corrupting the key.
   it('throws when a part contains the reserved pipe separator', () => {
     expect(() => serializeRecordId(['a|b'])).toThrow(RecordIdSerializationError);
+  });
+
+  it('throws when the id has no part', () => {
+    expect(() => serializeRecordId([] as unknown as RecordId)).toThrow(RecordIdSerializationError);
+  });
+
+  it('throws when a part is null', () => {
+    expect(() => serializeRecordId([1, null] as unknown as RecordId)).toThrow(
+      RecordIdSerializationError,
+    );
   });
 });
 

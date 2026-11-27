@@ -11,14 +11,16 @@ describe('parseAgentError', () => {
     expect(parseAgentError(error)).toBe('Invalid filters provided (HTTP 400)');
   });
 
-  it('appends the HTTP status to the JSON:API detail parsed from responseText', () => {
-    const error = new AgentHttpError(
-      400,
-      undefined,
-      JSON.stringify({ errors: [{ detail: 'From raw text' }] }),
+  it('appends the HTTP status to the message of a flat 4xx body', () => {
+    expect(parseAgentError(new AgentHttpError(403, { error: 'Not allowed on this record' }))).toBe(
+      'Not allowed on this record (HTTP 403)',
     );
+  });
 
-    expect(parseAgentError(error)).toBe('From raw text (HTTP 400)');
+  it("leaves out the agent's detail of a 5xx", () => {
+    const error = new AgentHttpError(500, { errors: [{ detail: 'at Object.<anonymous>' }] });
+
+    expect(parseAgentError(error)).toBe('Agent responded with HTTP 500');
   });
 
   it('returns the generic HTTP message when the body has no JSON:API detail', () => {

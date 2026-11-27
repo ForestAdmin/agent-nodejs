@@ -9,7 +9,6 @@ import {
 import {
   canRolePerformCollectionAction,
   canRolePerformCustomAction,
-  isActionIdentifierAllowedForRole,
 } from '../../src/permissions/can-role-perform';
 
 const ADMIN_ROLE = 1;
@@ -45,32 +44,6 @@ const NORMAL_MODE = {
     users: { collection: crud(), actions: { 'Block user': smartAction() } },
   },
 } as unknown as EnvironmentPermissionsV4;
-
-describe('isActionIdentifierAllowedForRole', () => {
-  describe('when the environment is in development', () => {
-    it('should allow an action no descriptor mentions', () => {
-      expect(
-        isActionIdentifierAllowedForRole(
-          generateActionsFromPermissions(true),
-          VIEWER_ROLE,
-          'anything',
-        ),
-      ).toBe(true);
-    });
-  });
-
-  describe('when the identifier is absent from the permissions', () => {
-    it('should deny rather than throw', () => {
-      expect(
-        isActionIdentifierAllowedForRole(
-          generateActionsFromPermissions(NORMAL_MODE),
-          ADMIN_ROLE,
-          'collection:ghost:browse',
-        ),
-      ).toBe(false);
-    });
-  });
-});
 
 describe('canRolePerformCollectionAction', () => {
   describe('when the action is globally allowed', () => {

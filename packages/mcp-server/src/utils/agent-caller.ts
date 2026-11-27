@@ -1,4 +1,4 @@
-import type { ActionEndpoints } from './schema-fetcher';
+import type { ForestSchema } from './schema-fetcher';
 import type { ToolContext } from '../tool-context';
 import type { ActivityLogConfig } from '@forestadmin/agent-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -7,8 +7,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import getAuthContext from './auth-context';
-import InProcessHttpRequester from '../in-process-http-requester';
-import { fetchForestSchema, getActionEndpoints } from './schema-fetcher';
+import { fetchForestSchema } from './schema-fetcher';
 
 type McpRequest = RequestHandlerExtra<ServerRequest, ServerNotification>;
 type ClientToolContext = Pick<ToolContext, 'forestServerClient' | 'logger' | 'agentDispatcher'>;
@@ -16,7 +15,7 @@ type ClientToolContext = Pick<ToolContext, 'forestServerClient' | 'logger' | 'ag
 interface BuildClientOptions {
   request: McpRequest;
   ctx: ClientToolContext;
-  actionEndpoints?: ActionEndpoints;
+  schema?: ForestSchema;
 }
 
 export type AuthData = {
@@ -45,7 +44,7 @@ export function activityLogConfigOf(
 }
 
 function createClient(options: BuildClientOptions) {
-  const { request, ctx, actionEndpoints = {} } = options;
+  const { request, ctx, schema } = options;
   const { agentDispatcher } = ctx;
   const token = request.authInfo?.token;
   const url = request.authInfo?.extra?.environmentApiEndpoint;
@@ -56,19 +55,15 @@ function createClient(options: BuildClientOptions) {
 
   const activityLogConfig = activityLogConfigOf(request, ctx);
 
-  const httpRequester = agentDispatcher
-    ? new InProcessHttpRequester(token, agentDispatcher)
-    : undefined;
-
-  if (!httpRequester && (!url || typeof url !== 'string')) {
+  if (!agentDispatcher && (!url || typeof url !== 'string')) {
     throw new Error('Environment API endpoint is missing or invalid');
   }
 
   const rpcClient = createRemoteAgentClient({
     token,
-    url: (url as string) ?? '',
-    actionEndpoints,
-    httpRequester,
+    url: typeof url === 'string' ? url : undefined,
+    dispatcher: agentDispatcher,
+    schema: schema?.collections,
     ...activityLogConfig,
   });
 
@@ -88,7 +83,6 @@ export default function buildClient(request: McpRequest, ctx: ClientToolContext)
  */
 export async function buildClientWithActions(request: McpRequest, ctx: ClientToolContext) {
   const schema = await fetchForestSchema(ctx.forestServerClient);
-  const actionEndpoints = getActionEndpoints(schema);
 
-  return createClient({ request, ctx, actionEndpoints });
+  return createClient({ request, ctx, schema });
 }

@@ -28,3 +28,7 @@ export default function serializeRecordId(id: RecordId): string {
     })
     .join('|');
 }
+
+export function deserializeRecordId(packed: string): string[] {
+  return packed.split('|');
+}

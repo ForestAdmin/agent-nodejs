@@ -4,6 +4,8 @@ import type { Logger } from '../../src/ports/logger-port';
 import {
   ActionFormValidationError,
   AgentHttpError,
+  AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -14,7 +16,6 @@ import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import {
@@ -127,6 +128,7 @@ describe('action routes middleware', () => {
       fields: [{ name: 'reason', type: 'String', value: null, isRequired: true }],
       canExecute: false,
       requiredFields: ['reason'],
+      invalidValues: [],
       skippedFields: [],
       layout: [{ component: 'input', fieldId: 'reason' }],
     });
@@ -909,7 +911,12 @@ describe('action execute', () => {
     });
 
     it.each([
-      ['a connection reset', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+      [
+        'a connection reset',
+        new AgentUnreachableError(
+          Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+        ),
+      ],
       ['a gateway 502', new AgentHttpError(502, null, '<html>Bad Gateway</html>')],
       ['a gateway 504', new AgentHttpError(504, null, '<html>Gateway Timeout</html>')],
     ])('says the outcome is unknown on %s, since the agent may have run it', async (_, cause) => {
@@ -953,7 +960,9 @@ describe('action execute', () => {
     it('keeps a refused connection a failure, since the agent was never reached', async () => {
       const form = makeAction({
         execute: jest.fn(async () => {
-          throw Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+          throw new AgentUnreachableError(
+            Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }),
+          );
         }),
       });
 

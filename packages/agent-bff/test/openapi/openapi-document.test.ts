@@ -964,6 +964,7 @@ describe('the documented action responses', () => {
     expect([...form.required].sort()).toEqual([
       'canExecute',
       'fields',
+      'invalidValues',
       'layout',
       'requiredFields',
       'skippedFields',

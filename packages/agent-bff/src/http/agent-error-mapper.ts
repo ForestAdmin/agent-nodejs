@@ -1,9 +1,13 @@
 import type { Logger } from '../ports/logger-port';
 
-import { AgentHttpError } from '@forestadmin/agent-client';
+import {
+  AgentHttpError,
+  AgentTimeoutError,
+  InProcessStreamingUnsupportedError,
+} from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
-import { AgentTimeoutError } from '../agent/create-agent-http-requester';
+import { streamingUnsupported } from './bff-local-errors';
 
 const TYPE_INVALID_REQUEST = 'invalid_request';
 const TYPE_VALIDATION_ERROR = 'validation_error';
@@ -189,6 +193,10 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   // A BFF-origin error that reached here (e.g. thrown inside a caller's agent-call try/catch) keeps
   // its own type — it must not be recategorized as a transport/agent error.
   if (error instanceof BffHttpError) return error;
+
+  if (error instanceof InProcessStreamingUnsupportedError) {
+    return streamingUnsupported(error.message);
+  }
 
   if (!(error instanceof AgentHttpError)) return mapErrorWithoutHttpResponse(error, logger);
 

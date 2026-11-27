@@ -856,6 +856,34 @@ describe('declareDescribeCollectionTool', () => {
         expect(relation.polymorphicTargets).toBeUndefined();
       });
 
+      it('should keep the dots of a nested target collection name', async () => {
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'address',
+            type: 'String',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enums: null,
+            reference: 'User.address._id',
+            relationship: 'HasOne',
+          },
+        ];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'User', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'User' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        expect(JSON.parse(result.content[0].text).relations[0].targetCollection).toBe(
+          'User.address',
+        );
+      });
+
       it('should treat empty polymorphic-referenced-models as non-polymorphic', async () => {
         const mockFields = [
           {

@@ -1,7 +1,7 @@
-import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, AgentSchema } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
-import { groupByRecordKey, recordKey } from '@forestadmin/agent-client';
+import { agentSchemaOf, groupByRecordKey, recordKey } from '@forestadmin/agent-client';
 
 export const RELATIONSHIP_TYPES = [
   'BelongsTo',
@@ -41,22 +41,16 @@ function toListableTarget(target: RelationTarget): string | null {
   return target.target;
 }
 
-function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
+function toRelationTarget(
+  schema: AgentSchema,
+  collection: string,
+  field: ForestSchemaField,
+): RelationTarget | null {
   if (!field.relationship) return null;
 
-  const type = field.relationship;
+  const target = schema.collection(collection).relation(field.field);
 
-  if (field.polymorphicReferencedModels && field.polymorphicReferencedModels.length > 0) {
-    return { type, polymorphic: true, targets: [...field.polymorphicReferencedModels] };
-  }
-
-  if (field.reference) {
-    // reference is `${foreignCollection}.${key}`; the collection name may itself contain dots
-    // (e.g. mongoose nested collections like `User.address`), so drop only the trailing key.
-    return { type, polymorphic: false, target: field.reference.split('.').slice(0, -1).join('.') };
-  }
-
-  return null;
+  return target && { type: field.relationship, ...target };
 }
 
 function deepFreeze<T>(value: T): T {
@@ -79,21 +73,24 @@ export default class ReadModel {
   private readonly relations: Map<string, Map<string, RelationTarget>>;
   private readonly listableRelations: Map<string, Map<string, string>>;
   private readonly actionEndpoints: ActionEndpointsByCollection;
+  private readonly schema: readonly ForestSchemaCollection[];
   private readonly primaryKeys: Map<string, PrimaryKeyField[]>;
 
   constructor(collections: ForestSchemaCollection[]) {
     this.collections = new Set();
     this.relations = new Map();
     this.listableRelations = new Map();
-    // Null-prototype so an action/collection named like an Object.prototype member
-    // (`toString`, `constructor`, `__proto__`, …) can't falsely pass the allow-list.
-    this.actionEndpoints = Object.create(null) as ActionEndpointsByCollection;
+    this.schema = collections;
+    this.actionEndpoints = Object.create(null);
     this.primaryKeys = new Map();
+    const schema = agentSchemaOf(collections);
 
     for (const collection of collections) {
+      const { actions } = schema.collection(collection.name);
+      if (Object.keys(actions).length > 0) this.actionEndpoints[collection.name] = actions;
+
       this.collections.add(collection.name);
-      this.buildRelations(collection);
-      this.buildActionEndpoints(collection);
+      this.buildRelations(schema, collection);
       this.buildPrimaryKeys(collection);
     }
 
@@ -103,12 +100,12 @@ export default class ReadModel {
     this.primaryKeys.forEach(deepFreeze);
   }
 
-  private buildRelations(collection: ForestSchemaCollection): void {
+  private buildRelations(schema: AgentSchema, collection: ForestSchemaCollection): void {
     const relations = new Map<string, RelationTarget>();
     const listable = new Map<string, string>();
 
     for (const field of collection.fields ?? []) {
-      const target = toRelationTarget(field);
+      const target = toRelationTarget(schema, collection.name, field);
 
       if (target) {
         relations.set(field.field, target);
@@ -119,28 +116,6 @@ export default class ReadModel {
 
     this.relations.set(collection.name, relations);
     this.listableRelations.set(collection.name, listable);
-  }
-
-  private buildActionEndpoints(collection: ForestSchemaCollection): void {
-    const actions = collection.actions ?? [];
-    const withEndpoint = actions.filter(action => Boolean(action.endpoint));
-
-    if (withEndpoint.length === 0) return;
-
-    this.actionEndpoints[collection.name] = Object.create(null);
-
-    for (const action of withEndpoint) {
-      // Copy fields/hooks so a mutating consumer can't corrupt the shared cached schema, and
-      // default them defensively: the schema is cast from `Record<string, unknown>`, so a
-      // malformed action could omit them at runtime despite the declared type.
-      this.actionEndpoints[collection.name][action.name] = {
-        id: action.id,
-        name: action.name,
-        endpoint: action.endpoint,
-        hooks: { load: action.hooks?.load ?? false, change: [...(action.hooks?.change ?? [])] },
-        fields: (action.fields ?? []).map(field => ({ ...field })),
-      };
-    }
   }
 
   /**
@@ -233,6 +208,10 @@ export default class ReadModel {
 
   isActionAllowed(collection: string, action: string): boolean {
     return this.actionEndpoints[collection]?.[action] !== undefined;
+  }
+
+  getSchema(): readonly ForestSchemaCollection[] {
+    return this.schema;
   }
 
   getActionEndpoints(): ActionEndpointsByCollection {

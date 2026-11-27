@@ -1,16 +1,19 @@
 import type { AgentTransport } from '../../src/agent/agent-transport';
 import type { Logger } from '../../src/ports/logger-port';
-import type { HttpRequester } from '@forestadmin/agent-client';
 import type { Middleware } from 'koa';
 
-import { AgentHttpError, drainActivityLogs } from '@forestadmin/agent-client';
+import {
+  AGENT_DISPATCH_TIMEOUT_CODE,
+  AgentHttpError,
+  AgentTimeoutError,
+  drainActivityLogs,
+} from '@forestadmin/agent-client';
 import { ActivityLogsService, HttpError, ServerUtils } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import { TIMEZONE, readModel, storeOf } from '../helpers/action-routes';
 import {
@@ -41,7 +44,23 @@ function agentAnswering(answer: () => Promise<unknown> = async () => ({ success:
 function transportTo(agent: jest.Mock): AgentTransport {
   return {
     url: 'https://agent.example.com',
-    createRequester: () => ({ query: agent } as unknown as HttpRequester),
+    dispatcher: {
+      request: async dispatched => {
+        try {
+          return { status: 200, body: await agent(dispatched) };
+        } catch (error) {
+          if (error instanceof AgentHttpError) {
+            return { status: error.status, body: error.body, text: error.responseText };
+          }
+
+          if (error instanceof AgentTimeoutError) {
+            throw Object.assign(new Error(error.message), { code: AGENT_DISPATCH_TIMEOUT_CODE });
+          }
+
+          throw error;
+        }
+      },
+    },
   };
 }
 
@@ -184,7 +203,7 @@ describe('action routes activity log', () => {
     it('should mark the log failed when the action throws', async () => {
       const service = fakeActivityLogsService();
       const agent = agentAnswering(async () => {
-        throw new Error('the agent is down');
+        throw new AgentHttpError(500, {}, 'Internal Server Error');
       });
 
       const response = await request(buildApp({ service, agent }).callback())
@@ -192,7 +211,7 @@ describe('action routes activity log', () => {
         .send({ recordIds: ['42'] });
       await drainActivityLogs();
 
-      expect(response.status).toBe(502);
+      expect(response.status).toBe(503);
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
@@ -201,7 +220,7 @@ describe('action routes activity log', () => {
     describe('when the execute gets no answer', () => {
       it.each([
         ['a timeout', new AgentTimeoutError('Timeout of 30000ms exceeded')],
-        ['a connection reset', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+        ['a gateway 502', new AgentHttpError(502, null, '<html>Bad Gateway</html>')],
       ])(
         'should leave the log pending on %s, since the action may still have run',
         async (_, cause) => {

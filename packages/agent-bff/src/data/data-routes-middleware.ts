@@ -329,9 +329,8 @@ export default function createDataRoutesMiddleware({
     const deps: RequestHandlerDeps = {
       collection,
       client: createRemoteAgentClient({
-        url: transport.url,
+        ...transport,
         token,
-        httpRequester: transport.createRequester(token),
         ...(operation === 'list' && readActivityLogConfigOf(ctx, forestServerUrl, logger)),
       }),
       store,

@@ -70,6 +70,7 @@ export {
   ActionPermission,
   ActionPermissions,
 } from './permissions/generate-actions-from-permissions';
+export { default as isActionAllowedForRole } from './permissions/is-action-allowed-for-role';
 export {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,

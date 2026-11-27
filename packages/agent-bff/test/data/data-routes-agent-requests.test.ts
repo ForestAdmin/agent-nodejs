@@ -1,6 +1,5 @@
 import type { AgentTransport } from '../../src/agent/agent-transport';
 import type ReadModelStore from '../../src/read-model/read-model-store';
-import type { HttpRequester } from '@forestadmin/agent-client';
 
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
@@ -49,14 +48,17 @@ async function agentRequestOf(route: string, body: object): Promise<AgentRequest
   const received: AgentRequest[] = [];
   const transport: AgentTransport = {
     url: 'https://agent.example.com',
-    createRequester: () =>
-      ({
-        query: async ({ method, path, query }: AgentRequest) => {
-          received.push({ method, path, query: JSON.parse(JSON.stringify(query)) });
+    dispatcher: {
+      request: async ({ method, path, query }) => {
+        received.push({
+          method,
+          path: decodeURIComponent(path),
+          query: JSON.parse(JSON.stringify(query)),
+        });
 
-          return path.endsWith('/count') ? { count: 0 } : [];
-        },
-      } as unknown as HttpRequester),
+        return { status: 200, body: path.endsWith('/count') ? { count: 0 } : [] };
+      },
+    },
   };
 
   const app = new Koa();

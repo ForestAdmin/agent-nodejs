@@ -58,6 +58,12 @@ describe('getActionForm serves the description of the action', () => {
           action: jest.fn().mockResolvedValue({
             getFields: jest.fn().mockReturnValue([]),
             tryToSetFields: jest.fn().mockResolvedValue([]),
+            describeForm: jest.fn().mockReturnValue({
+              fields: [],
+              requiredFields: [],
+              invalidValues: [],
+              canExecute: true,
+            }),
           }),
         }),
       },

@@ -1,8 +1,9 @@
 import type { AddressInfo } from 'net';
 
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import http from 'http';
 
-import createAgentHttpRequester from '../../src/agent/create-agent-http-requester';
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import { mapAgentError } from '../../src/http/agent-error-mapper';
 
 const TIMEOUT_MS = 50;
@@ -23,14 +24,17 @@ function close(server: http.Server): Promise<void> {
 }
 
 async function callAgent(url: string): Promise<unknown> {
-  const requester = createAgentHttpRequester('tok', url, TIMEOUT_MS);
+  const transport = createHttpTransport({ agentUrl: url, timeoutMs: TIMEOUT_MS });
 
-  return requester.query({ method: 'get', path: '/forest/users' }).then(
-    () => {
-      throw new Error('agent request resolved; expected a rejection');
-    },
-    error => error,
-  );
+  return createRemoteAgentClient({ ...transport, token: 'tok' })
+    .collection('users')
+    .list()
+    .then(
+      () => {
+        throw new Error('agent request resolved; expected a rejection');
+      },
+      error => error,
+    );
 }
 
 describe('agent transport failures reaching mapAgentError', () => {

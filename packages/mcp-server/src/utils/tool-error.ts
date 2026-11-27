@@ -1,7 +1,13 @@
 import type { Logger } from '../server';
 import type { HttpError } from '@forestadmin/forestadmin-client';
 
-import { ActivityLogBlockedError } from '@forestadmin/agent-client';
+import {
+  ActionOutcomeUnknownError,
+  ActivityLogBlockedError,
+  AgentHttpError,
+  AgentTimeoutError,
+  AgentUnreachableError,
+} from '@forestadmin/agent-client';
 
 import parseAgentError from './error-parser';
 import { carriesTransportDetail } from './workflow-error';
@@ -23,6 +29,27 @@ const DROPPED_AUDIT_MESSAGE =
   'Failed to create activity log: the server returned no activity log id. ' +
   'Blocking the operation to preserve the audit trail.';
 
+const LOGGED_DETAIL_MAX = 500;
+
+const AGENT_TIMEOUT_MESSAGE = 'The agent did not answer in time.';
+
+const AGENT_UNREACHABLE_MESSAGE = 'The agent could not be reached.';
+
+// A failure without an HTTP answer names the host and port it tried; the model gets the kind only.
+function isUnanswered(error: unknown): error is AgentTimeoutError | AgentUnreachableError {
+  return error instanceof AgentTimeoutError || error instanceof AgentUnreachableError;
+}
+
+function messageOf(error: unknown): string {
+  if (error instanceof ActionOutcomeUnknownError) return error.message;
+
+  if (isUnanswered(error)) {
+    return error instanceof AgentTimeoutError ? AGENT_TIMEOUT_MESSAGE : AGENT_UNREACHABLE_MESSAGE;
+  }
+
+  return parseAgentError(error) || (error instanceof Error ? error.message : String(error));
+}
+
 export type ErrorEnhancer = (parsedMessage: string, originalError: unknown) => Promise<string>;
 
 function blockedOperationError(error: ActivityLogBlockedError): unknown {
@@ -42,8 +69,22 @@ export default async function toToolError(
 ): Promise<unknown> {
   if (error instanceof ActivityLogBlockedError) return blockedOperationError(error);
 
-  const errorDetail = parseAgentError(error);
-  let errorMessage = errorDetail || (error instanceof Error ? error.message : String(error));
+  if (isUnanswered(error)) logger('Warn', `Agent call failed without an answer: ${error.message}`);
+
+  if (error instanceof AgentHttpError && error.status >= 500) {
+    const detail = (error.detail ?? error.responseText)?.slice(0, LOGGED_DETAIL_MAX);
+    logger('Warn', `Agent answered HTTP ${error.status}: ${detail || 'no detail'}`);
+  }
+
+  if (error instanceof ActionOutcomeUnknownError) {
+    const { cause } = error;
+    logger(
+      'Warn',
+      `Action execute got no answer: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+  }
+
+  let errorMessage = messageOf(error);
 
   if (errorEnhancer) {
     try {

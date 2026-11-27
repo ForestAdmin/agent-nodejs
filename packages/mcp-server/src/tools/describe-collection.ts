@@ -2,7 +2,12 @@ import type { Logger } from '../server';
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { publishedRecordKeys, toWireOperator, withActivityLog } from '@forestadmin/agent-client';
+import {
+  agentSchemaOf,
+  publishedRecordKeys,
+  toWireOperator,
+  withActivityLog,
+} from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import { operatorEnum } from '../schemas/filter';
@@ -221,17 +226,21 @@ Check \`_meta\` for data availability context.`,
             const relations = schemaFields
               .filter(f => f.relationship)
               .map(f => {
-                const polymorphicTargets = f.polymorphicReferencedModels;
-                const isPolymorphic =
-                  Array.isArray(polymorphicTargets) && polymorphicTargets.length > 0;
+                const target = agentSchemaOf(schema.collections)
+                  .collection(options.collectionName)
+                  .relation(f.field);
 
                 return {
                   name: f.field,
                   ...withRecordKey(f.field),
                   ...fieldDescription(f.field),
                   type: mapRelationType(f.relationship),
-                  targetCollection: isPolymorphic ? null : f.reference?.split('.')[0] || null,
-                  ...(isPolymorphic && { isPolymorphic: true, polymorphicTargets }),
+                  targetCollection: target && 'target' in target ? target.target || null : null,
+                  ...(target &&
+                    'targets' in target && {
+                      isPolymorphic: true,
+                      polymorphicTargets: target.targets,
+                    }),
                 };
               });
 

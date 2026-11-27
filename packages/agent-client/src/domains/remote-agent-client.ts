@@ -2,6 +2,7 @@ import type { ActionEndpointsByCollection } from './action';
 import type { ActivityLogContext } from '../activity-log/with-activity-log';
 import type { CreateApprovalRequest } from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
+import type { AgentSchema } from '../schema/agent-schema';
 import type { RawTreeWithSources } from '@forestadmin/forestadmin-client';
 
 import Chart from './chart';
@@ -40,6 +41,7 @@ export default class RemoteAgentClient<
   TypingsSchema extends Record<string, unknown> = Record<string, unknown>,
 > extends Chart {
   protected actionEndpoints?: ActionEndpointsByCollection;
+  readonly schema?: AgentSchema;
   protected createApprovalRequest?: CreateApprovalRequest;
   protected activityLog?: ActivityLogContext;
 
@@ -47,6 +49,7 @@ export default class RemoteAgentClient<
 
   constructor(params?: {
     actionEndpoints?: ActionEndpointsByCollection;
+    schema?: AgentSchema;
     httpRequester: HttpRequester;
     overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
     createApprovalRequest?: CreateApprovalRequest;
@@ -55,7 +58,8 @@ export default class RemoteAgentClient<
     super();
     if (!params) return;
     this.httpRequester = params.httpRequester;
-    this.actionEndpoints = params.actionEndpoints;
+    this.schema = params.schema;
+    this.actionEndpoints = params.actionEndpoints ?? params.schema?.actionEndpoints;
     this.overridePermissions = params.overridePermissions;
     this.createApprovalRequest = params.createApprovalRequest;
     this.activityLog = params.activityLog;

@@ -1,24 +1,18 @@
 import type { AgentTransport } from '../agent/agent-transport';
-import type { ActionEndpointsByCollection, ActivityLogConfig } from '@forestadmin/agent-client';
+import type {
+  ActionFormDescription,
+  ActivityLogConfig,
+  SchemaCollection,
+} from '@forestadmin/agent-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
-
-export interface ActionFormField {
-  getName(): string;
-  /** A list type is the array the agent sent, `['String']`, not `'StringList'`. */
-  getType(): string | [string];
-  getReference(): string | null | undefined;
-  getValue(): unknown;
-  isRequired(): boolean | undefined;
-}
 
 // Structural subset of agent-client's `Action` the form endpoint consumes. Kept local so the BFF
 // does not depend on agent-client exporting the concrete `Action` type (see extractRawLayout).
 export interface ActionForm {
   tryToSetFields(values: Record<string, unknown>): Promise<string[]>;
-  getFields(): ActionFormField[];
-  getEnumField(name: string): { getOptions(): string[] | undefined };
+  describeForm(): ActionFormDescription;
   getLayout(): unknown;
 }
 
@@ -39,7 +33,6 @@ export interface LoadActionParams {
 export interface ExecuteActionParams extends LoadActionParams {
   approvalRequestMessage?: string;
   maxTimeAllowed?: number;
-  isOutcomeUnknown: (error: unknown) => boolean;
   beforeCall: () => Promise<void>;
   fill: (action: Action) => Promise<void>;
 }
@@ -52,7 +45,7 @@ export interface AgentActionClient {
 export interface AgentActionClientOptions {
   transport: AgentTransport;
   token: string;
-  actionEndpoints: ActionEndpointsByCollection;
+  schema: readonly SchemaCollection[];
   activityLog?: ActivityLogConfig;
 }
 
@@ -75,14 +68,13 @@ export function extractRawLayout(action: ActionForm): ForestServerActionFormLayo
 export default function createAgentActionClient({
   transport,
   token,
-  actionEndpoints,
+  schema,
   activityLog,
 }: AgentActionClientOptions): AgentActionClient {
   const client = createRemoteAgentClient({
-    url: transport.url,
+    ...transport,
     token,
-    actionEndpoints,
-    httpRequester: transport.createRequester(token),
+    schema,
     ...activityLog,
   });
 
@@ -96,7 +88,6 @@ export default function createAgentActionClient({
       timezone,
       approvalRequestMessage,
       maxTimeAllowed,
-      isOutcomeUnknown,
       beforeCall,
       fill,
     }) =>
@@ -106,7 +97,7 @@ export default function createAgentActionClient({
         approvalRequestMessage,
         maxTimeAllowed,
         fill,
-        activityLog: { beforeCall, isOutcomeUnknown },
+        activityLog: { beforeCall },
       }),
   };
 }

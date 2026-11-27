@@ -9,10 +9,10 @@ import {
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   ActionFormValidationError as ClientFormValidationError,
   UnknownActionFieldError as ClientUnknownActionFieldError,
-  HttpRequester,
   createRemoteAgentClient,
   withActivityLog,
 } from '@forestadmin/agent-client';
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 import { readFileSync } from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
 import { join } from 'path';
@@ -20,6 +20,7 @@ import { join } from 'path';
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
   ActivityLogCreationError,
   AgentPortError,
@@ -36,35 +37,12 @@ const railsBody = JSON.parse(
 ) as { data: unknown; included: { id: string }[] };
 
 jest.mock('@forestadmin/agent-client', () => {
-  // Real class so `instanceof AgentHttpError` in the adapter matches errors built by these tests.
-  class MockAgentHttpError extends Error {
-    constructor(
-      public readonly status: number,
-      public readonly body: unknown,
-      public readonly responseText?: string,
-    ) {
-      super(`Agent responded with HTTP ${status}`);
-      this.name = 'AgentHttpError';
-    }
-  }
-
   // Semantic action errors agent-client throws from execute(); real classes so the adapter's
   // `instanceof` checks match errors built by these tests.
   class MockActionRequiresApprovalError extends Error {
     constructor(message: string, public readonly roleIdsAllowedToApprove?: number[]) {
       super(message);
       this.name = 'ActionRequiresApprovalError';
-    }
-  }
-
-  class MockActionFormValidationError extends Error {
-    constructor(
-      message: string,
-      public readonly html?: string,
-      public readonly unstructuredCause?: Error,
-    ) {
-      super(message);
-      this.name = 'ActionFormValidationError';
     }
   }
 
@@ -83,16 +61,23 @@ jest.mock('@forestadmin/agent-client', () => {
   }
 
   return {
-    AgentHttpError: MockAgentHttpError,
+    AgentCallError: jest.requireActual('@forestadmin/agent-client').AgentCallError,
+    AgentHttpError: jest.requireActual('@forestadmin/agent-client').AgentHttpError,
+    ActionOutcomeUnknownError: jest.requireActual('@forestadmin/agent-client')
+      .ActionOutcomeUnknownError,
     ActionRequiresApprovalError: MockActionRequiresApprovalError,
-    ActionFormValidationError: MockActionFormValidationError,
+    ActionFormValidationError: jest.requireActual('@forestadmin/agent-client')
+      .ActionFormValidationError,
+    ActionValuesNotExecutableError: jest.requireActual('@forestadmin/agent-client')
+      .ActionValuesNotExecutableError,
     ApprovalRequestCreationError: MockApprovalRequestCreationError,
     UnknownActionFieldError: MockUnknownActionFieldError,
     createRemoteAgentClient: jest.fn(),
-    HttpRequester: { is404Error: jest.fn() },
-    extractErrorDetail: jest.requireActual('@forestadmin/agent-client').extractErrorDetail,
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
     isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
+    recordKey: jest.requireActual('@forestadmin/agent-client').recordKey,
+    serializeRecordId: jest.requireActual('@forestadmin/agent-client').serializeRecordId,
+    deserializeRecordId: jest.requireActual('@forestadmin/agent-client').deserializeRecordId,
     ActivityLogBlockedError: jest.requireActual('@forestadmin/agent-client')
       .ActivityLogBlockedError,
     withActivityLog: jest.fn((_config, _entry, operation) => operation()),
@@ -102,9 +87,6 @@ jest.mock('@forestadmin/agent-client', () => {
 const mockedCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
   typeof createRemoteAgentClient
 >;
-const mockedIs404Error = HttpRequester.is404Error as jest.MockedFunction<
-  typeof HttpRequester.is404Error
->;
 
 function createMockClient() {
   const mockAction = {
@@ -113,6 +95,8 @@ function createMockClient() {
     setFields: jest.fn().mockResolvedValue(undefined),
     tryToSetFields: jest.fn().mockResolvedValue([]),
     getEnumField: jest.fn(),
+    describeForm: (overrides?: Record<string, unknown>) =>
+      describeActionForm(mockAction as never, overrides),
   };
   const mockRelation = { list: jest.fn() };
   const mockCollection = {
@@ -250,8 +234,7 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('maps a 404 from the agent to RecordNotFoundError', async () => {
-      mockedIs404Error.mockReturnValue(true);
-      mockCollection.getOne.mockRejectedValue(new Error('not found'));
+      mockCollection.getOne.mockRejectedValue(new AgentHttpError(404, {}, ''));
 
       await expect(port.getRecord({ collection: 'users', id: [999] }, user)).rejects.toThrow(
         RecordNotFoundError,
@@ -260,7 +243,6 @@ describe('AgentClientAgentPort', () => {
 
     it('rethrows non-404 errors instead of masking them as RecordNotFoundError', async () => {
       // A 500 / auth / network failure must surface as a real error, not "record not found".
-      mockedIs404Error.mockReturnValue(false);
       mockCollection.getOne.mockRejectedValue(new Error('boom'));
 
       await expect(port.getRecord({ collection: 'users', id: [1] }, user)).rejects.toThrow(
@@ -871,10 +853,9 @@ describe('AgentClientAgentPort', () => {
     // unreadable target loaded anyway — the same relation reporting no record once its collection
     // gained a reference field.
     it('returns null when the target is unreadable and no field is projected', async () => {
-      mockedIs404Error.mockReturnValue(true);
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
-        .mockRejectedValueOnce(new Error('not found'));
+        .mockRejectedValueOnce(new AgentHttpError(404, {}, ''));
 
       const result = await port.getSingleRelatedData(
         {
@@ -893,10 +874,9 @@ describe('AgentClientAgentPort', () => {
     // The by-id route intersects the caller's scope; the relation projected on the parent does not.
     // A linkage to a record this caller cannot see is "no related record", not a broken run.
     it('returns null when the target is unreadable, instead of failing the step', async () => {
-      mockedIs404Error.mockReturnValue(true);
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
-        .mockRejectedValueOnce(new Error('not found'));
+        .mockRejectedValueOnce(new AgentHttpError(404, {}, ''));
 
       const result = await port.getSingleRelatedData(
         {
@@ -914,7 +894,6 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('rethrows a non-404 on the target read', async () => {
-      mockedIs404Error.mockReturnValue(false);
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
         .mockRejectedValueOnce(new Error('boom'));
@@ -1119,8 +1098,7 @@ describe('AgentClientAgentPort', () => {
     );
 
     it('maps a 404 on the parent to RecordNotFoundError', async () => {
-      mockedIs404Error.mockReturnValue(true);
-      mockCollection.getOne.mockRejectedValue(new Error('not found'));
+      mockCollection.getOne.mockRejectedValue(new AgentHttpError(404, {}, ''));
 
       await expect(
         port.getSingleRelatedData(
@@ -1131,7 +1109,6 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('rethrows a non-404 on the parent instead of masking it as RecordNotFoundError', async () => {
-      mockedIs404Error.mockReturnValue(false);
       mockCollection.getOne.mockRejectedValue(new Error('boom'));
 
       await expect(
@@ -1285,6 +1262,42 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user }),
       ).rejects.toThrow('Action failed');
+    });
+
+    it('reports a form agent-client refuses to execute as a form validation error', async () => {
+      const { ActionValuesNotExecutableError: ClientActionValuesNotExecutableError } =
+        jest.requireActual('@forestadmin/agent-client');
+      mockCollection.executeAction.mockRejectedValueOnce(
+        new ClientActionValuesNotExecutableError(['reason'], []),
+      );
+
+      const error = await port
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, { user })
+        .catch(caught => caught);
+
+      expect(error).toBeInstanceOf(ActionFormValidationError);
+      expect(error.message).toContain('required fields left empty: reason');
+    });
+
+    it('tells an action that got no answer may have run, without asking to try again', async () => {
+      const { ActionOutcomeUnknownError: ClientActionOutcomeUnknownError } = jest.requireActual(
+        '@forestadmin/agent-client',
+      );
+      const noAnswer = new Error('Timeout of 30000ms exceeded');
+      mockCollection.executeAction.mockRejectedValueOnce(
+        new ClientActionOutcomeUnknownError(noAnswer),
+      );
+
+      const error = await port
+        .executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user })
+        .catch(caught => caught);
+
+      expect(error).toBeInstanceOf(ActionOutcomeUnknownError);
+      expect(error.cause).toBe(noAnswer);
+      expect(error.userMessage).toBe(
+        'The action was sent but the agent gave no answer, so it may have run. Check whether it ' +
+          'did before running it again.',
+      );
     });
 
     it('sets pre-filled values (strict) before executing', async () => {
@@ -1501,6 +1514,7 @@ describe('AgentClientAgentPort', () => {
       return {
         getName: () => over.name,
         getType: () => over.type ?? 'String',
+        getEffectiveTypeName: () => over.type ?? 'String',
         getValue: () => over.value,
         isRequired: () => over.required ?? false,
         getPlainField: () => ({
@@ -1524,6 +1538,36 @@ describe('AgentClientAgentPort', () => {
       expect((error as AgentPortError).message).toBe(
         'Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: hook must return an array of fields',
       );
+    });
+
+    it('should name an invalid value and keep the form from executing', async () => {
+      mockAction.tryToSetFields.mockResolvedValue([]);
+      mockAction.getFields.mockReturnValue([
+        makeField({ name: 'amount', type: 'Number', value: '12', required: true }),
+      ]);
+
+      const form = await port.getActionForm(
+        { collection: 'users', action: 'refund', id: [1] },
+        user,
+      );
+
+      expect(form).toMatchObject({
+        canExecute: false,
+        requiredFields: [],
+        invalidValues: [{ field: 'amount', expected: 'a number' }],
+      });
+    });
+
+    it('gives the options of a list of Enum', async () => {
+      mockAction.tryToSetFields.mockResolvedValue([]);
+      mockAction.getFields.mockReturnValue([
+        makeField({ name: 'tags', type: ['Enum'] as unknown as string }),
+      ]);
+      mockAction.getEnumField.mockReturnValue({ getOptions: () => ['vip', 'new'] });
+
+      const form = await port.getActionForm({ collection: 'users', action: 'tag', id: [1] }, user);
+
+      expect(form.fields[0].enumValues).toEqual(['vip', 'new']);
     });
 
     it('returns the field list, completeness and skipped fields', async () => {
@@ -1816,16 +1860,19 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionEndpoints: {
-            users: {
-              refund: expect.objectContaining({
-                name: 'refund',
-                endpoint: '/forest/actions/refund',
-                hooks: { load: true, change: ['amount'] },
-                fields: [{ field: 'amount', type: 'Number', isRequired: true }],
-              }),
+          schema: [
+            {
+              name: 'users',
+              actions: [
+                expect.objectContaining({
+                  name: 'refund',
+                  endpoint: '/forest/actions/refund',
+                  hooks: { load: true, change: ['amount'] },
+                  fields: [{ field: 'amount', type: 'Number', isRequired: true }],
+                }),
+              ],
             },
-          },
+          ],
         }),
       );
     });
@@ -1838,14 +1885,14 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionEndpoints: expect.objectContaining({
-            users: expect.objectContaining({
-              sendEmail: expect.objectContaining({
-                hooks: undefined,
-                fields: undefined,
-              }),
-            }),
-          }),
+          schema: expect.arrayContaining([
+            {
+              name: 'users',
+              actions: expect.arrayContaining([
+                expect.objectContaining({ name: 'sendEmail', hooks: undefined, fields: undefined }),
+              ]),
+            },
+          ]),
         }),
       );
     });

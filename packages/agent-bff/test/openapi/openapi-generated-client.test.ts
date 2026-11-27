@@ -4,6 +4,7 @@ import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { AgentReads } from '../helpers/data-routes';
 import type { Server } from 'http';
 
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 import { bodyParser } from '@koa/bodyparser';
 import { spawnSync } from 'child_process';
 import { existsSync, readFileSync, rmSync } from 'fs';
@@ -128,28 +129,40 @@ const dataClient: AgentReads = {
 };
 
 function makeAction(): Action {
-  return {
-    tryToSetFields: async () => [],
-    setFields: async () => undefined,
-    execute: async () => ({ success: 'Done' }),
+  const reader = {
     getFields: () => [
       {
         getName: () => 'comment',
         getType: () => 'String',
+        getEffectiveTypeName: () => 'String',
+        getPlainField: () => ({}),
+        getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         getReference: () => null,
         getValue: () => null,
         isRequired: () => false,
       },
       {
         getName: () => 'tags',
-        getType: () => ['String'],
+        getType: (): [string] => ['String'],
+        getEffectiveTypeName: () => 'StringList',
+        getPlainField: () => ({}),
+        getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         getReference: () => null,
         getValue: () => undefined,
         isRequired: () => false,
       },
     ],
     getEnumField: () => ({ getOptions: () => undefined }),
+  };
+
+  return {
+    tryToSetFields: async () => [],
+    setFields: async () => undefined,
+    execute: async () => ({ success: 'Done' }),
     getLayout: () => ({ layout: [] }),
+    describeForm(overrides?: Record<string, unknown>) {
+      return describeActionForm(reader, overrides);
+    },
   };
 }
 
@@ -456,6 +469,7 @@ describe('a client generated from the emitted OpenAPI document', () => {
           ],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
           layout: [],
         },

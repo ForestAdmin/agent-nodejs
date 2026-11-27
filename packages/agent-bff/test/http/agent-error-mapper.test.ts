@@ -1,6 +1,9 @@
-import { AgentHttpError } from '@forestadmin/agent-client';
+import {
+  AgentHttpError,
+  AgentTimeoutError,
+  InProcessStreamingUnsupportedError,
+} from '@forestadmin/agent-client';
 
-import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import { mapAgentError } from '../../src/http/agent-error-mapper';
 import { BffHttpError } from '../../src/http/bff-http-error';
 
@@ -27,6 +30,15 @@ describe('mapAgentError', () => {
     });
 
     expect(mapAgentError(local, { logger })).toBe(local);
+  });
+
+  it('refuses a stream over the in-process transport with a 501', () => {
+    expect(mapAgentError(new InProcessStreamingUnsupportedError(), { logger })).toMatchObject({
+      name: 'BffHttpError',
+      status: 501,
+      type: 'streaming_unsupported',
+      message: 'Streaming is not supported over the in-process transport',
+    });
   });
 
   it('maps a JSON:API NotFoundError to not_found with its detail and data', () => {

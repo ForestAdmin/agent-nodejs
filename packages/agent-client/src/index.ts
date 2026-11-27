@@ -6,32 +6,41 @@ import type {
   SmartActionPermissionsOverride,
 } from './domains/remote-agent-client';
 import type { ForestServerConnection } from './forest-server';
+import type { AgentDispatcher } from './in-process-http-requester';
+import type { SchemaCollection } from './schema/agent-schema';
 
-import ActionFieldJson from './action-fields/action-field-json';
-import ActionFieldStringList from './action-fields/action-field-string-list';
 import { toActivityLogContext } from './activity-log/with-activity-log';
 import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
 import AgentHttpError, {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
+  AgentCallError,
+  AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
 } from './errors';
 import HttpRequester from './http-requester';
+import InProcessHttpRequester from './in-process-http-requester';
+import agentSchemaOf from './schema/agent-schema';
 
 export {
-  ActionFieldJson,
-  ActionFieldStringList,
-  makeCreateApprovalRequest,
   RemoteAgentClient,
   HttpRequester,
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
+  AgentCallError,
+  AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -44,11 +53,31 @@ export type {
 };
 export type { ApprovalRequestPayload, CreateApprovalRequest } from './approval-request-creator';
 
+function requesterOf(params: {
+  token?: string;
+  url?: string;
+  dispatcher?: AgentDispatcher;
+  timeoutMs?: number;
+  timezone?: string;
+}): HttpRequester {
+  const { token, url, dispatcher, timeoutMs, timezone } = params;
+
+  if (dispatcher) {
+    return new InProcessHttpRequester(token, dispatcher, { timezone, defaultTimeoutMs: timeoutMs });
+  }
+
+  if (!url) throw new Error('An agent client needs the agent url or an in-process dispatcher');
+
+  return new HttpRequester(token, { url, timezone, defaultTimeoutMs: timeoutMs });
+}
+
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
-  actionEndpoints?: ActionEndpointsByCollection;
+  schema?: readonly SchemaCollection[];
   token?: string;
-  url: string;
+  url?: string;
+  dispatcher?: AgentDispatcher;
+  timeoutMs?: number;
   /**
    * Connection to the Forest Admin server. Provide it to enable server-side features that call the
    * Forest server (e.g. creating approval requests); omit it for a client that only talks to the
@@ -57,7 +86,6 @@ export function createRemoteAgentClient(params: {
   forestServer?: ForestServerConnection;
   /** Default timezone sent on every agent request. Defaults to `Europe/Paris`. */
   timezone?: string;
-  httpRequester?: HttpRequester;
   activityLog?: ActivityLogOptions;
 }) {
   const { forestServer, activityLog } = params;
@@ -66,12 +94,10 @@ export function createRemoteAgentClient(params: {
     throw new Error('An activity log needs the Forest server connection it is written to');
   }
 
-  const httpRequester =
-    params.httpRequester ??
-    new HttpRequester(params.token, { url: params.url, timezone: params.timezone });
+  const httpRequester = requesterOf(params);
 
   return new RemoteAgentClient({
-    actionEndpoints: params.actionEndpoints,
+    schema: params.schema && agentSchemaOf(params.schema),
     httpRequester,
     overridePermissions: params.overridePermissions,
     activityLog: activityLog && toActivityLogContext({ forestServer, activityLog }),
@@ -88,12 +114,38 @@ export function createRemoteAgentClient(params: {
 
 export { default as toAgentTokenClaims } from './agent-token-claims';
 export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
-export { extractErrorDetail } from './domains/action';
+export { AGENT_DISPATCH_TIMEOUT_CODE, IN_PROCESS_AGENT_URL } from './in-process-http-requester';
+export { InProcessStreamingUnsupportedError } from './errors';
+export type {
+  AgentDispatcher,
+  AgentDispatchRequest,
+  AgentDispatchResponse,
+} from './in-process-http-requester';
+export type { AgentFailureKind } from './errors';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
+export type { RelationTarget } from './schema/relation-target';
+export { default as agentSchemaOf } from './schema/agent-schema';
+export type {
+  AgentSchema,
+  AgentSchemaCollection,
+  SchemaActions,
+  SchemaCollection,
+  SchemaField,
+} from './schema/agent-schema';
+export type { SchemaAction, SchemaCollectionWithActions } from './schema/action-endpoints';
+export { default as serializeRecordId, deserializeRecordId } from './record-id';
 export { default as recordKey, groupByRecordKey, publishedRecordKeys } from './record-key';
 export type { PublishedRecordKey } from './record-key';
 export type { RecordId, SelectOptions } from './types';
 export type { ActionExecuteResult } from './domains/action';
+export type { InvalidActionValue } from './action-fields/action-values-check';
+export { enumOptionsOf, normalizeFieldType, primitiveShapeOf } from './schema/field-type';
+export type { FieldType, PrimitiveShape } from './schema/field-type';
+export type {
+  ActionFormDescription,
+  ActionFormFieldDescription,
+  AllowedValue,
+} from './action-fields/form-description';
 export type { default as Action } from './domains/action';
 export type { ExecuteActionOptions } from './domains/collection';
 export type { ActivityLogBlockedReason } from './errors';

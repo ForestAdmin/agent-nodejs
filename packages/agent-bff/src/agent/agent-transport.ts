@@ -1,18 +1,13 @@
-import type { HttpRequester } from '@forestadmin/agent-client';
-
-import createAgentHttpRequester from './create-agent-http-requester';
+import type { AgentDispatcher } from '@forestadmin/agent-client';
 
 /**
  * How the BFF reaches the agent. Everything that talks to the agent takes one of these instead of a
  * URL, so the same routes serve a remote agent over HTTP and an agent embedded in the same process.
  */
 export interface AgentTransport {
-  /**
-   * Base url `createRemoteAgentClient` still requires. Over HTTP it is the agent; in-process it is a
-   * sentinel that never reaches the network, since the requester answers before any socket is opened.
-   */
   url: string;
-  createRequester(token: string): HttpRequester;
+  dispatcher?: AgentDispatcher;
+  timeoutMs?: number;
 }
 
 export interface HttpTransportOptions {
@@ -21,8 +16,5 @@ export interface HttpTransportOptions {
 }
 
 export function createHttpTransport({ agentUrl, timeoutMs }: HttpTransportOptions): AgentTransport {
-  return {
-    url: agentUrl,
-    createRequester: token => createAgentHttpRequester(token, agentUrl, timeoutMs),
-  };
+  return { url: agentUrl, timeoutMs };
 }

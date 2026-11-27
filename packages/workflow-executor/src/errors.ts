@@ -267,6 +267,16 @@ export class ApprovalRequestCreationError extends WorkflowExecutorError {
   }
 }
 
+export class ActionOutcomeUnknownError extends WorkflowExecutorError {
+  constructor(actionName: string, outcomeUnknown: { message: string; cause?: unknown }) {
+    super(
+      `Action "${actionName}" got no answer from the agent: it may have run`,
+      outcomeUnknown.message,
+    );
+    this.cause = outcomeUnknown.cause;
+  }
+}
+
 export class RunStorePortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(
@@ -509,14 +519,21 @@ export class McpToolCallLimitError extends WorkflowExecutorError {
 }
 
 export class AgentPortError extends WorkflowExecutorError {
-  constructor(operation: string, cause: unknown, agentMessage?: string) {
+  constructor(
+    operation: string,
+    cause: unknown,
+    agentMessage?: string,
+    { retryable = true }: { retryable?: boolean } = {},
+  ) {
     const causeText = cause instanceof Error ? cause.message : String(cause);
 
     super(
       `Agent port "${operation}" failed: ${causeText}${
         agentMessage ? ` | agent error: ${agentMessage}` : ''
       }`,
-      'An error occurred while accessing your data. Please try again.',
+      retryable
+        ? 'An error occurred while accessing your data. Please try again.'
+        : 'An error occurred while accessing your data.',
     );
     this.cause = cause;
   }
@@ -959,11 +976,8 @@ export class UnsupportedStepTypeError extends WorkflowExecutorError {
 }
 
 export class RecordIdSerializationError extends WorkflowExecutorError {
-  constructor(part: string) {
-    super(
-      `Composite record id part "${part}" cannot contain the "|" separator`,
-      'A record identifier contains an unsupported character and cannot be processed.',
-    );
+  constructor(reason: string) {
+    super(reason, 'A record identifier contains an unsupported character and cannot be processed.');
   }
 }
 

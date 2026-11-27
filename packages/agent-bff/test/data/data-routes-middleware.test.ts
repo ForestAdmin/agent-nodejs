@@ -139,7 +139,11 @@ describe('data routes middleware', () => {
 
       await request(app.callback()).post('/agent/v1/users/list').send({});
 
-      expect(transport.createRequester).toHaveBeenCalledWith('jwt-123');
+      expect(transport.dispatcher.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.objectContaining({ Authorization: 'Bearer jwt-123' }),
+        }),
+      );
     });
 
     it('should reach the agent with the token of each request', async () => {
@@ -171,9 +175,9 @@ describe('data routes middleware', () => {
         .set('x-agent-token', 'jwt-2')
         .send({});
 
-      expect(transport.createRequester).toHaveBeenCalledTimes(2);
-      expect(transport.createRequester).toHaveBeenNthCalledWith(1, 'jwt-1');
-      expect(transport.createRequester).toHaveBeenNthCalledWith(2, 'jwt-2');
+      expect(
+        transport.dispatcher.request.mock.calls.map(([call]) => call.headers.Authorization),
+      ).toEqual(['Bearer jwt-1', 'Bearer jwt-2']);
     });
   });
 

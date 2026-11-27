@@ -2,6 +2,12 @@ import type { Action, AgentActionClient } from '../../src/action/agent-action-cl
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
+import {
+  ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
+} from '@forestadmin/agent-client';
+import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
+import mayHaveRun from '@forestadmin/agent-client/dist/agent-error';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
@@ -74,22 +80,31 @@ export function makeAction({
     return skipped;
   });
 
-  const form: Action & { tryToSetFields: jest.Mock; execute: jest.Mock; setFields: jest.Mock } = {
-    execute,
-    setFields: setFields ?? jest.fn(applyValues),
-    tryToSetFields,
+  const reader = {
     getFields: () =>
       state.fields.map(f => ({
         getName: () => f.name,
         getType: () => f.type,
+        getEffectiveTypeName: () => (Array.isArray(f.type) ? `${f.type[0]}List` : f.type),
         getReference: () => f.reference ?? null,
         getValue: () => f.value,
         isRequired: () => f.isRequired,
+        getPlainField: () => ({}),
+        getMultipleChoiceField: () => ({ getOptions: () => undefined }),
       })),
     getEnumField: (name: string) => ({
       getOptions: () => state.fields.find(f => f.name === name)?.enumValues,
     }),
+  };
+
+  const form: Action & { tryToSetFields: jest.Mock; execute: jest.Mock; setFields: jest.Mock } = {
+    execute,
+    setFields: setFields ?? jest.fn(applyValues),
+    tryToSetFields,
     getLayout: () => ({ layout: state.layout }),
+    describeForm(overrides?: Record<string, unknown>) {
+      return describeActionForm(reader, overrides);
+    },
   };
 
   return form;
@@ -101,12 +116,22 @@ export function clientOf(
 ): AgentActionClient & { loadAction: jest.Mock } {
   return {
     loadAction,
-    executeAction: async ({ beforeCall, fill, maxTimeAllowed, isOutcomeUnknown, ...params }) => {
+    executeAction: async ({ beforeCall, fill, maxTimeAllowed, ...params }) => {
       await beforeCall();
-      const loaded = await loadAction(params);
+      const loaded: Action = await loadAction(params);
       await fill(loaded);
+      const { requiredFields, invalidValues } = loaded.describeForm();
 
-      return loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });
+      if (requiredFields.length > 0 || invalidValues.length > 0) {
+        throw new ActionValuesNotExecutableError(requiredFields, invalidValues);
+      }
+
+      try {
+        return await loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });
+      } catch (error) {
+        if (mayHaveRun(error)) throw new ActionOutcomeUnknownError(error);
+        throw error;
+      }
     },
   };
 }

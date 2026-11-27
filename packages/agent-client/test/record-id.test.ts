@@ -1,4 +1,4 @@
-import serializeRecordId from '../src/record-id';
+import serializeRecordId, { deserializeRecordId } from '../src/record-id';
 
 describe('serializeRecordId', () => {
   it('should return a string as-is', () => {
@@ -37,5 +37,15 @@ describe('serializeRecordId', () => {
     expect(() => serializeRecordId(['1|abc', 2])).toThrow(
       'Composite record id part "1|abc" cannot contain the "|" separator',
     );
+  });
+});
+
+describe('deserializeRecordId', () => {
+  it('should split a packed composite id on the pipe separator', () => {
+    expect(deserializeRecordId('1|abc|2')).toEqual(['1', 'abc', '2']);
+  });
+
+  it('should return a single part for a simple id', () => {
+    expect(deserializeRecordId('42')).toEqual(['42']);
   });
 });

@@ -1,5 +1,7 @@
 import type { AgentTransport } from '../../src/agent/agent-transport';
-import type { HttpRequester } from '@forestadmin/agent-client';
+import type { AgentDispatchRequest } from '@forestadmin/agent-client';
+
+import { AgentHttpError } from '@forestadmin/agent-client';
 
 type AgentQuery = Record<string, unknown>;
 
@@ -26,26 +28,33 @@ const COLLECTION_PATH = /^\/forest\/([^/]+?)(\/count)?$/;
 export const AGENT_URL = 'https://agent.example.com';
 
 export function transportOf(reads: Partial<AgentReads>): AgentTransport & {
-  createRequester: jest.Mock;
+  dispatcher: { request: jest.Mock };
 } {
-  const query = async ({ path, query: agentQuery }: { path: string; query: AgentQuery }) => {
+  const read = async (path: string, agentQuery: AgentQuery) => {
     const relation = RELATION_PATH.exec(path);
 
     if (relation) {
       const [, collection, parentId, name, isCount] = relation;
-      const read = isCount ? reads.countRelationRaw : reads.listRelation;
+      const readRelation = isCount ? reads.countRelationRaw : reads.listRelation;
 
-      return read(collection, parentId, name, agentQuery);
+      return readRelation(collection, decodeURIComponent(parentId), name, agentQuery);
     }
 
     const [, collection, isCount] = COLLECTION_PATH.exec(path);
-    const read = isCount ? reads.countRaw : reads.list;
+    const readCollection = isCount ? reads.countRaw : reads.list;
 
-    return read(collection, agentQuery);
+    return readCollection(collection, agentQuery);
   };
 
-  return {
-    url: AGENT_URL,
-    createRequester: jest.fn(() => ({ query } as unknown as HttpRequester)),
-  };
+  const request = jest.fn(async ({ path, query }: AgentDispatchRequest) => {
+    try {
+      return { status: 200, body: await read(path, query) };
+    } catch (error) {
+      if (!(error instanceof AgentHttpError)) throw error;
+
+      return { status: error.status, body: error.body, text: error.responseText };
+    }
+  });
+
+  return { url: AGENT_URL, dispatcher: { request } };
 }

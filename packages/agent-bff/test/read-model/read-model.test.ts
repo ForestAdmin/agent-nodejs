@@ -240,7 +240,7 @@ describe('ReadModel', () => {
       }).toThrow();
     });
 
-    it('should default hooks and fields when a malformed action omits them', () => {
+    it('should leave hooks and fields absent when an action omits them, so its form is probed', () => {
       const malformed = {
         id: 'ban-id',
         name: 'ban',
@@ -252,8 +252,20 @@ describe('ReadModel', () => {
 
       const stored = model.getActionEndpoints().users.ban;
 
-      expect(stored.hooks).toEqual({ load: false, change: [] });
-      expect(stored.fields).toEqual([]);
+      expect(stored.hooks).toBeUndefined();
+      expect(stored.fields).toBeUndefined();
+    });
+
+    it('should keep the layout of a static form', () => {
+      const withLayout = {
+        ...action('ban', '/forest/users/actions/ban'),
+        layout: [{ component: 'input', fieldId: 'reason' }],
+      } as unknown as ForestSchemaAction;
+      const model = new ReadModel([collection('users', [], [withLayout])]);
+
+      expect(model.getActionEndpoints().users.ban.layout).toEqual([
+        { component: 'input', fieldId: 'reason' },
+      ]);
     });
 
     it('should not allow an action named like an Object.prototype member', () => {

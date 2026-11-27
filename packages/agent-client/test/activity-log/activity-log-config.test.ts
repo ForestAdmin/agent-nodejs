@@ -1,5 +1,3 @@
-import type HttpRequester from '../../src/http-requester';
-
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import { drainActivityLogs, withActivityLog } from '../../src/activity-log/with-activity-log';
@@ -11,14 +9,8 @@ const SERVER_URL = 'https://api.forestadmin.com';
 const ACTIVITY_LOG = { id: 'log-1', attributes: { index: 'idx' } };
 
 function clientWith(activityLog: Parameters<typeof createRemoteAgentClient>[0]['activityLog']) {
-  const httpRequester = {
-    query: jest.fn().mockResolvedValue([]),
-    stream: jest.fn(),
-  } as unknown as HttpRequester;
-
   return createRemoteAgentClient({
-    url: 'https://agent.example.com',
-    httpRequester,
+    dispatcher: { request: async () => ({ status: 200, body: [] }) },
     forestServer: {
       serverUrl: SERVER_URL,
       serverToken: async () => 'resolved-token',

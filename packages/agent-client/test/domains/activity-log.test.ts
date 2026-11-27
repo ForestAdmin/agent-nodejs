@@ -6,7 +6,11 @@ import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-clie
 import { drainActivityLogs } from '../../src/activity-log/with-activity-log';
 import Collection from '../../src/domains/collection';
 import AgentHttpError, {
+  ActionOutcomeUnknownError,
   ActionRequiresApprovalError,
+  ActionValuesNotExecutableError,
+  AgentTimeoutError,
+  AgentUnreachableError,
   ApprovalRequestCreationError,
 } from '../../src/errors';
 
@@ -428,32 +432,124 @@ describe('activity logging inside agent-client calls', () => {
       expect(query).toHaveBeenCalledWith(expect.objectContaining({ maxTimeAllowed: 30_000 }));
     });
 
-    describe('when the caller says the execute outcome is unknown', () => {
-      const noAnswer = new Error('Timeout of 30000ms exceeded');
-      const isOutcomeUnknown = (error: unknown) => error === noAnswer;
+    it('should allow the execute 30 seconds by default', async () => {
+      const { collection, query } = setup();
+      query.mockResolvedValue({ success: 'done' });
 
-      it('should leave the entry pending when the execute fails that way', async () => {
-        const { collection, service, query } = setup();
-        query.mockRejectedValue(noAnswer);
+      await collection.executeAction('refund');
 
-        await expect(
-          collection.executeAction('refund', { activityLog: { isOutcomeUnknown } }),
-        ).rejects.toBe(noAnswer);
-        await drainActivityLogs();
+      expect(query).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'post', maxTimeAllowed: 30_000 }),
+      );
+    });
 
-        expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
-        expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+    function setupWithRequiredAmount() {
+      const { httpRequester, service, query } = setup();
+      const collection = new Collection(
+        'users',
+        httpRequester,
+        {
+          users: {
+            refund: {
+              ...actionEndpoints.users.refund,
+              fields: [{ field: 'amount', type: 'Number', isRequired: true, isReadOnly: false }],
+            },
+          },
+        } as unknown as ActionEndpointsByCollection,
+        undefined,
+        {
+          service: service as unknown as ActivityLogsServiceInterface,
+          credentials: () => ({ forestServerToken: 'server-token', renderingId: 1 }),
+        },
+      );
+
+      return { collection, service, query };
+    }
+
+    it('should refuse to execute a form whose values are left empty, and mark the entry failed', async () => {
+      const { collection, service, query } = setupWithRequiredAmount();
+
+      const error = await collection.executeAction('refund').catch(caught => caught);
+      await drainActivityLogs();
+
+      expect(error).toBeInstanceOf(ActionValuesNotExecutableError);
+      expect(error.missingRequiredFields).toEqual(['amount']);
+      expect(query).not.toHaveBeenCalled();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('should send a signed approval request whatever the values of the fresh form', async () => {
+      const { collection, query } = setupWithRequiredAmount();
+      const signedApprovalRequest = { token: 'signed' };
+      query.mockResolvedValue({ success: 'done' });
+
+      await expect(collection.executeAction('refund', { signedApprovalRequest })).resolves.toEqual({
+        success: 'done',
       });
+      expect(query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'post',
+          path: '/forest/actions/refund',
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                signed_approval_request: signedApprovalRequest,
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    describe('when the execute got no answer', () => {
+      it.each([
+        ['a timeout', new AgentTimeoutError('Timeout of 30000ms exceeded', 30_000)],
+        [
+          'a reset connection',
+          new AgentUnreachableError(
+            Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+          ),
+        ],
+        ['a 502 from a gateway', new AgentHttpError(502, {})],
+        ['a 504 from a gateway', new AgentHttpError(504, {})],
+      ])(
+        'should say the action may have run and leave the entry pending after %s',
+        async (_, noAnswer) => {
+          const { collection, service, query } = setup();
+          query.mockRejectedValue(noAnswer);
+
+          const error = await collection
+            .executeAction('refund', { recordIds: [1] })
+            .catch(caught => caught);
+          await drainActivityLogs();
+
+          expect(error).toBeInstanceOf(ActionOutcomeUnknownError);
+          expect(error.cause).toBe(noAnswer);
+          expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
+          expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+            expect.objectContaining({
+              action: 'action',
+              type: 'write',
+              collectionName: 'users',
+              recordIds: ['1'],
+              label: 'triggered the action "refund"',
+            }),
+          );
+          expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+        },
+      );
 
       it('should mark the entry failed when filling the form fails that way, since nothing ran', async () => {
         const { collection, service, query } = setup();
+        const noAnswer = new AgentTimeoutError('Timeout of 10000ms exceeded', 10_000);
 
         await expect(
           collection.executeAction('refund', {
             fill: async () => {
               throw noAnswer;
             },
-            activityLog: { isOutcomeUnknown },
           }),
         ).rejects.toBe(noAnswer);
         await drainActivityLogs();
@@ -464,13 +560,14 @@ describe('activity logging inside agent-client calls', () => {
         );
       });
 
-      it('should mark the entry failed when the execute fails another way', async () => {
+      it('should mark the entry failed when the agent was never reached', async () => {
         const { collection, service, query } = setup();
-        query.mockRejectedValue(new Error('connect ECONNREFUSED'));
+        const refused = new AgentUnreachableError(
+          Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }),
+        );
+        query.mockRejectedValue(refused);
 
-        await expect(
-          collection.executeAction('refund', { activityLog: { isOutcomeUnknown } }),
-        ).rejects.toThrow('connect ECONNREFUSED');
+        await expect(collection.executeAction('refund')).rejects.toBe(refused);
         await drainActivityLogs();
 
         expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
@@ -515,6 +612,39 @@ describe('activity logging inside agent-client calls', () => {
 
         return { collection, service, entries, logger, createApprovalRequest };
       }
+
+      it('should file the request of a form with a required field filled', async () => {
+        const { httpRequester, query, service } = setup();
+        query.mockRejectedValue(approvalGated);
+        const createApprovalRequest = jest.fn(async () => ({ id: 'req_1' }));
+        const collection = new Collection(
+          'users',
+          httpRequester,
+          {
+            users: {
+              refund: {
+                ...actionEndpoints.users.refund,
+                fields: [{ field: 'amount', type: 'Number', isRequired: true, isReadOnly: false }],
+              },
+            },
+          } as unknown as ActionEndpointsByCollection,
+          createApprovalRequest,
+          {
+            service: service as unknown as ActivityLogsServiceInterface,
+            credentials: () => ({ forestServerToken: 'server-token', renderingId: 1 }),
+          },
+        );
+
+        const result = await collection.executeAction('refund', {
+          recordIds: [1],
+          fill: action => action.setFields({ amount: 12 }),
+        });
+
+        expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_1' } });
+        expect(createApprovalRequest).toHaveBeenCalledWith(
+          expect.objectContaining({ inputs: [{ name: 'amount', type: 'Number', value: 12 }] }),
+        );
+      });
 
       it('should file no request and write no createApproval entry when the caller skips it', async () => {
         const { collection, service, entries, createApprovalRequest } = setupApproval();

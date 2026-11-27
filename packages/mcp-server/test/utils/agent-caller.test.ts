@@ -4,9 +4,8 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { ActivityLogSource, createRemoteAgentClient } from '@forestadmin/agent-client';
 
-import InProcessHttpRequester from '../../src/in-process-http-requester';
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
-import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
+import { fetchForestSchema } from '../../src/utils/schema-fetcher';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/schema-fetcher');
@@ -203,7 +202,7 @@ describe('buildClient', () => {
 
     beforeEach(() => mockCreateRemoteAgentClient.mockClear());
 
-    it('builds an in-process httpRequester instead of reaching a url', () => {
+    it('reaches the agent through the dispatcher instead of the url', () => {
       const request = {
         authInfo: {
           token: 'test-token',
@@ -217,11 +216,25 @@ describe('buildClient', () => {
       buildClient(request, { ...toolContext(), agentDispatcher });
 
       expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
-        expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
+        expect.objectContaining({ dispatcher: agentDispatcher }),
       );
     });
 
-    it('wires the in-process requester with an empty url when environmentApiEndpoint is absent', () => {
+    it('reaches the same agent path in-process as over HTTP for a record id holding a space', async () => {
+      agentDispatcher.request.mockResolvedValue({ status: 200, body: {}, text: '{}' });
+      const request = {
+        authInfo: { token: 'test-token', extra: { ...caller } },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      const { rpcClient } = buildClient(request, { ...toolContext(), agentDispatcher });
+      await rpcClient.collection('orders').getOne('A B');
+
+      expect(agentDispatcher.request).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/orders/A%20B' }),
+      );
+    });
+
+    it('needs no url when environmentApiEndpoint is absent', () => {
       const request = {
         authInfo: {
           token: 'test-token',
@@ -234,12 +247,12 @@ describe('buildClient', () => {
       buildClient(request, { ...toolContext(), agentDispatcher });
 
       expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
-        expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester), url: '' }),
+        expect.objectContaining({ dispatcher: agentDispatcher, url: undefined }),
       );
     });
   });
 
-  it('does not build an httpRequester when no agentDispatcher is provided', () => {
+  it('reaches the url when no agentDispatcher is provided', () => {
     mockCreateRemoteAgentClient.mockClear();
     const request = {
       authInfo: {
@@ -254,16 +267,13 @@ describe('buildClient', () => {
     buildClient(request, toolContext());
 
     expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
-      expect.objectContaining({ httpRequester: undefined }),
+      expect.objectContaining({ dispatcher: undefined, url: 'http://localhost:3310' }),
     );
   });
 });
 
 describe('buildClientWithActions', () => {
   const mockFetchForestSchema = fetchForestSchema as jest.MockedFunction<typeof fetchForestSchema>;
-  const mockGetActionEndpoints = getActionEndpoints as jest.MockedFunction<
-    typeof getActionEndpoints
-  >;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
@@ -271,7 +281,7 @@ describe('buildClientWithActions', () => {
     mockForestServerClient = createMockForestServerClient();
   });
 
-  it('should fetch the forest schema and get action endpoints', async () => {
+  it('should give the client the collections of the forest schema', async () => {
     const mockSchema = {
       collections: [
         {
@@ -280,20 +290,7 @@ describe('buildClientWithActions', () => {
         },
       ],
     };
-    const mockActionEndpoints = {
-      users: {
-        'Send Email': {
-          name: 'Send Email',
-          endpoint: '/forest/_actions/users/0/send-email',
-          id: 'Send@@@Email',
-          hooks: { load: false, change: [] },
-          fields: [],
-        },
-      },
-    };
-
     mockFetchForestSchema.mockResolvedValue(mockSchema as never);
-    mockGetActionEndpoints.mockReturnValue(mockActionEndpoints);
 
     const request = {
       authInfo: {
@@ -308,65 +305,13 @@ describe('buildClientWithActions', () => {
     await buildClientWithActions(request, { forestServerClient: mockForestServerClient, logger });
 
     expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
-    expect(mockGetActionEndpoints).toHaveBeenCalledWith(mockSchema);
-  });
-
-  it('should create a client with the action endpoints', async () => {
-    const mockSchema = {
-      collections: [
-        {
-          name: 'orders',
-          actions: [
-            { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund' },
-            { name: 'Ship', endpoint: '/forest/_actions/orders/1/ship' },
-          ],
-        },
-      ],
-    };
-    const mockActionEndpoints = {
-      orders: {
-        Refund: {
-          name: 'Refund',
-          endpoint: '/forest/_actions/orders/0/refund',
-          id: 'Refund',
-          hooks: { load: false, change: [] },
-          fields: [],
-        },
-        Ship: {
-          name: 'Ship',
-          endpoint: '/forest/_actions/orders/1/ship',
-          id: 'Ship',
-          hooks: { load: false, change: [] },
-          fields: [],
-        },
-      },
-    };
-
-    mockFetchForestSchema.mockResolvedValue(mockSchema as never);
-    mockGetActionEndpoints.mockReturnValue(mockActionEndpoints);
-
-    const request = {
-      authInfo: {
-        token: 'test-token',
-        extra: {
-          ...caller,
-          environmentApiEndpoint: 'http://localhost:3310',
-        },
-      },
-    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
-
-    const result = await buildClientWithActions(request, {
-      forestServerClient: mockForestServerClient,
-      logger,
-    });
-
-    expect(result.rpcClient).toBeDefined();
-    expect(typeof result.rpcClient.collection).toBe('function');
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({ schema: mockSchema.collections }),
+    );
   });
 
   it('should return authData from request', async () => {
     mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
-    mockGetActionEndpoints.mockReturnValue({});
 
     const request = {
       authInfo: {
@@ -399,7 +344,6 @@ describe('buildClientWithActions', () => {
 
   it('should throw error when token is missing', async () => {
     mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
-    mockGetActionEndpoints.mockReturnValue({});
 
     const request = {
       authInfo: {
@@ -417,7 +361,6 @@ describe('buildClientWithActions', () => {
 
   it('passes the forestServer connection when url, token and renderingId are all present', async () => {
     mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
-    mockGetActionEndpoints.mockReturnValue({});
     mockForestServerClient = createMockForestServerClient({
       forestServerUrl: 'https://api.forestadmin.com',
     });
@@ -461,9 +404,8 @@ describe('buildClientWithActions', () => {
     expect(mockCreateRemoteAgentClient).not.toHaveBeenCalled();
   });
 
-  it('builds an in-process httpRequester when an agentDispatcher is provided', async () => {
+  it('reaches the agent through the dispatcher when one is provided', async () => {
     mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
-    mockGetActionEndpoints.mockReturnValue({});
     const agentDispatcher = { request: jest.fn() };
 
     const request = {
@@ -483,7 +425,7 @@ describe('buildClientWithActions', () => {
     });
 
     expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
-      expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
+      expect.objectContaining({ dispatcher: agentDispatcher }),
     );
   });
 });

@@ -11,8 +11,9 @@ import type { Context, Middleware } from 'koa';
 
 import {
   ActionFormValidationError,
+  ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
-  AgentHttpError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
   UnknownActionFieldError,
@@ -21,10 +22,9 @@ import {
 
 import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
-import assertActionValuesExecutable from './action-values-validator';
+import { actionValuesError, logEnumValuesWithoutOptions } from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
-import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 import activityLogConfigOf from '../auth/activity-log-context';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
@@ -46,19 +46,6 @@ const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
 
 const EXECUTE_VERB = 'execute';
 
-/**
- * Failures after which the execute may have reached the agent and run: a timeout, a connection reset
- * once the request was sent, or a gateway's 502 or 504 in front of the agent, which the agent itself
- * never answers. A refused connection or a 503 means the agent was never reached, so it stays a
- * failure.
- */
-function mayHaveRun(error: unknown): boolean {
-  if (error instanceof AgentTimeoutError) return true;
-  if (error instanceof AgentHttpError) return error.status === 502 || error.status === 504;
-
-  return (error as { code?: unknown } | null)?.code === 'ECONNRESET';
-}
-
 interface ActionRequestBody {
   recordIds?: unknown;
   values?: unknown;
@@ -68,8 +55,6 @@ interface ActionRequestBody {
 // recordIds are opaque BFF ids; only presence and array-ness are checked. An empty array is allowed
 // on purpose (global/bulk actions have no selected records); the spec AC only covers a missing
 // recordIds, so `[]` is an explicit BFF choice, not a spec requirement.
-// Ids are coerced to strings so a valid `0` (numeric primary key) survives agent-client's downstream
-// `.filter(Boolean)`, which would otherwise drop it and load the form as if no record were selected.
 function parseRecordIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) {
     throw invalidRequest('recordIds is required and must be an array');
@@ -162,7 +147,7 @@ async function fillValues(
     throw mapAgentError(error, { logger });
   }
 
-  assertActionValuesExecutable(action, logger);
+  logEnumValuesWithoutOptions(action, logger);
 }
 
 // execute() cannot go through the generic callAgent: agent-client turns the native action Error
@@ -178,6 +163,8 @@ function toExecuteError(error: unknown, logger: Logger): unknown {
 
     return approvalRequestFailed();
   }
+
+  if (error instanceof ActionValuesNotExecutableError) return actionValuesError(error, logger);
 
   if (error instanceof ActionFormValidationError) {
     const { unstructuredCause } = error;
@@ -223,27 +210,22 @@ async function handleExecute({
   actionTimeoutMs,
 }: ExecuteHandlerArgs): Promise<void> {
   let raw: unknown;
-  let isExecuteSent = false;
 
   try {
     raw = await client.executeAction({
       ...params,
       maxTimeAllowed: actionTimeoutMs,
-      isOutcomeUnknown: mayHaveRun,
       beforeCall: async () => refusal?.(),
-      fill: async action => {
-        await fillValues(action, values, logger);
-        isExecuteSent = true;
-      },
+      fill: action => fillValues(action, values, logger),
     });
   } catch (error) {
-    if (isExecuteSent && mayHaveRun(error)) {
+    if (error instanceof ActionOutcomeUnknownError) {
       const { collection, actionName, recordIds } = params;
       logger('Warn', 'Action execute got no answer: outcome unknown', {
         collection,
         actionName,
         recordIds,
-        cause: error instanceof Error ? error.message : String(error),
+        cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
       });
 
       throw actionOutcomeUnknown();
@@ -320,7 +302,7 @@ export default function createActionRoutesMiddleware({
     const client = createClient({
       transport,
       token,
-      actionEndpoints: readModel.getActionEndpoints(),
+      schema: readModel.getSchema(),
       activityLog:
         verb === EXECUTE_VERB ? activityLogConfigOf(ctx, forestServerUrl, logger) : undefined,
     });

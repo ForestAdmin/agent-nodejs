@@ -1,4 +1,11 @@
-import { ActivityLogBlockedError, AgentHttpError } from '@forestadmin/agent-client';
+import {
+  ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
+  ActivityLogBlockedError,
+  AgentHttpError,
+  AgentTimeoutError,
+  AgentUnreachableError,
+} from '@forestadmin/agent-client';
 import { ForbiddenError, HttpError } from '@forestadmin/forestadmin-client';
 
 import toToolError, { AUDIT_UNAVAILABLE_MESSAGE } from '../../src/utils/tool-error';
@@ -64,6 +71,73 @@ describe('toToolError', () => {
   });
 
   describe('when the operation itself failed', () => {
+    it('should log the detail of an agent 5xx it does not show', async () => {
+      const error = new AgentHttpError(500, { errors: [{ detail: 'hook crashed' }] });
+
+      await expect(toToolError(error, { logger })).resolves.toEqual(
+        new Error('Agent responded with HTTP 500'),
+      );
+      expect(logger).toHaveBeenCalledWith('Warn', 'Agent answered HTTP 500: hook crashed');
+    });
+
+    it('should log at most 500 characters of an agent 5xx body', async () => {
+      const page = `<html>${'x'.repeat(2000)}</html>`;
+
+      await toToolError(new AgentHttpError(502, page, page), { logger });
+
+      expect(logger).toHaveBeenCalledWith('Warn', `Agent answered HTTP 502: ${page.slice(0, 500)}`);
+    });
+
+    it('should log why an action may have run', async () => {
+      await toToolError(new ActionOutcomeUnknownError(new AgentTimeoutError('Timeout', 30_000)), {
+        logger,
+      });
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'Action execute got no answer: Timeout');
+    });
+
+    it('should list the fields that keep an action from running', async () => {
+      const error = new ActionValuesNotExecutableError(
+        ['reason'],
+        [{ field: 'amount', expected: 'a number' }],
+      );
+
+      await expect(toToolError(error, { logger })).resolves.toEqual(
+        new Error(
+          'The action cannot run: required fields left empty: reason; invalid values: amount ' +
+            '(expected a number).',
+        ),
+      );
+    });
+
+    it('should say an action that got no answer may have run', async () => {
+      const error = new ActionOutcomeUnknownError(new AgentTimeoutError('Timeout', 30_000));
+
+      await expect(toToolError(error, { logger })).resolves.toEqual(
+        new Error(
+          'The action was sent but the agent gave no answer, so it may have run. Check whether ' +
+            'it did before running it again.',
+        ),
+      );
+    });
+
+    it.each([
+      [
+        'a refused connection',
+        new AgentUnreachableError(
+          Object.assign(new Error('connect ECONNREFUSED 10.0.0.4:3310'), { code: 'ECONNREFUSED' }),
+        ),
+        'The agent could not be reached.',
+      ],
+      [
+        'a timeout',
+        new AgentTimeoutError('Timeout of 10000ms exceeded', 10_000),
+        'The agent did not answer in time.',
+      ],
+    ])('should name %s without its host', async (_label, cause, message) => {
+      await expect(toToolError(cause, { logger })).resolves.toEqual(new Error(message));
+    });
+
     it('should use the agent error detail as the message', async () => {
       const error = new AgentHttpError(400, { errors: [{ detail: 'Invalid sort' }] });
 

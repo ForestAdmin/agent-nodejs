@@ -1,5 +1,6 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
+import type { ActionFormDescription } from '../action-fields/form-description';
 import type { CreateApprovalRequest } from '../approval-request-creator';
 import type { ApprovalRequestedResult } from '../approval-requested';
 import type HttpRequester from '../http-requester';
@@ -18,12 +19,14 @@ import ActionFieldNumberList from '../action-fields/action-field-number-list';
 import ActionFieldRadioGroup from '../action-fields/action-field-radio-group';
 import ActionFieldString from '../action-fields/action-field-string';
 import ActionFieldStringList from '../action-fields/action-field-string-list';
+import describeActionForm from '../action-fields/form-description';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
 import AgentHttpError, {
   ActionFormValidationError,
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
   UnknownActionFieldError,
+  errorDetailOf,
 } from '../errors';
 
 // JSON:API error body the agent returns on a rejected action.
@@ -41,37 +44,13 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
-function firstNonEmptyString(candidates: unknown[]): string | undefined {
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim() !== '') return candidate.trim();
-  }
-
-  return undefined;
-}
-
-// Only a recognised error shape yields a detail. A raw body or responseText is whatever the agent's
-// host emitted -- an HTML error page, a proxy notice, a stack trace -- and it would reach the client
-// verbatim as the action error message, so it is left out and callers use their own wording.
-export function extractErrorDetail(error: Pick<AgentHttpError, 'body'>): string | undefined {
-  const body = (error.body ?? {}) as ActionErrorBody;
-  const first = body.errors?.[0];
-
-  return firstNonEmptyString([
-    first?.detail,
-    first?.message,
-    first?.title,
-    body.error,
-    body.message,
-  ]);
-}
-
 // Translate the transport AgentHttpError into a semantic action error so callers route on meaning.
 // Approval gate = 403 CustomActionRequiresApprovalError; form validation = 400/422; else unchanged.
 function toActionError(error: unknown): unknown {
   if (!(error instanceof AgentHttpError)) return error;
 
   const body = (error.body ?? {}) as ActionErrorBody;
-  const detail = extractErrorDetail(error);
+  const detail = errorDetailOf(error.body);
   const isApproval =
     body.errors?.[0]?.name === 'CustomActionRequiresApprovalError' ||
     !!error.responseText?.includes('CustomActionRequiresApprovalError');
@@ -129,6 +108,7 @@ export default class Action {
   private readonly actionId: string | undefined;
   private actionPath: string;
   private readonly createApprovalRequest?: CreateApprovalRequest;
+  private readonly timezone?: string;
 
   constructor(
     collectionName: string,
@@ -136,9 +116,17 @@ export default class Action {
     httpRequester: HttpRequester,
     actionPath: string,
     fieldsFormStates: FieldFormStates,
-    ids?: (string | number)[],
-    actionId?: string,
-    createApprovalRequest?: CreateApprovalRequest,
+    {
+      ids,
+      actionId,
+      createApprovalRequest,
+      timezone,
+    }: {
+      ids?: (string | number)[];
+      actionId?: string;
+      createApprovalRequest?: CreateApprovalRequest;
+      timezone?: string;
+    } = {},
   ) {
     this.collectionName = collectionName;
     this.actionName = actionName;
@@ -148,6 +136,7 @@ export default class Action {
     this.fieldsFormStates = fieldsFormStates;
     this.actionId = actionId;
     this.createApprovalRequest = createApprovalRequest;
+    this.timezone = timezone;
   }
 
   async execute(options: ActionExecuteOptions = {}): Promise<ActionExecuteResult> {
@@ -171,6 +160,7 @@ export default class Action {
         method: 'post',
         path: this.actionPath,
         body: requestBody,
+        ...(this.timezone && { query: { timezone: this.timezone } }),
         ...(maxTimeAllowed !== undefined && { maxTimeAllowed }),
       });
     } catch (error) {
@@ -318,6 +308,10 @@ export default class Action {
 
   getLayout() {
     return new ActionLayoutRoot(this.fieldsFormStates.getLayout());
+  }
+
+  describeForm(valueOverrides: Record<string, unknown> = {}): ActionFormDescription {
+    return describeActionForm(this, valueOverrides);
   }
 
   doesFieldExist(fieldName: string): boolean {

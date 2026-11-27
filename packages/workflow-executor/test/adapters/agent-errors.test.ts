@@ -1,4 +1,8 @@
-import { AgentHttpError } from '@forestadmin/agent-client';
+import {
+  AgentHttpError,
+  AgentTimeoutError,
+  AgentUnreachableError,
+} from '@forestadmin/agent-client';
 
 import {
   agentErrorDetail,
@@ -10,7 +14,8 @@ import { AgentPortError, SegmentReadError, WorkflowExecutorError } from '../../s
 
 const answered = (status: number) => new AgentHttpError(status, {}, '');
 
-const withCode = (code: string) => Object.assign(new Error(`agent unreachable: ${code}`), { code });
+const withCode = (code: string) =>
+  new AgentUnreachableError(Object.assign(new Error(`agent unreachable: ${code}`), { code }));
 
 describe('classifyAgentFailure', () => {
   it.each(
@@ -26,7 +31,8 @@ describe('classifyAgentFailure', () => {
       ['a 400', answered(400), { failure: 'failed', httpStatus: 400 }],
       ['a response without a status', answered(0), { failure: 'unreachable' }],
       ['a status past the HTTP range', answered(600), { failure: 'unreachable' }],
-      ['a timeout', withCode('ECONNABORTED'), { failure: 'unreachable' }],
+      ['a timeout', new AgentTimeoutError('timeout', 10_000), { failure: 'unreachable' }],
+      ['an error that is not an agent call', new Error('boom'), { failure: 'failed' }],
       ['a refused connection', withCode('ECONNREFUSED'), { failure: 'unreachable' }],
       ['an unknown host', withCode('ENOTFOUND'), { failure: 'unreachable' }],
       ['a reset connection', withCode('ECONNRESET'), { failure: 'unreachable' }],
@@ -93,6 +99,26 @@ describe('segmentReadError', () => {
 });
 
 describe('agentPortError', () => {
+  it.each([
+    ['a 503', answered(503)],
+    ['a 429', answered(429)],
+    ['a refused connection', withCode('ECONNREFUSED')],
+  ])('asks the user to try again after %s', (_, cause) => {
+    expect(agentPortError('getRecord', cause).userMessage).toBe(
+      'An error occurred while accessing your data. Please try again.',
+    );
+  });
+
+  it.each([
+    ['a 403', answered(403)],
+    ['a 400', answered(400)],
+    ['a 500', answered(500)],
+  ])('does not ask the user to try again after %s', (_, cause) => {
+    expect(agentPortError('getRecord', cause).userMessage).toBe(
+      'An error occurred while accessing your data.',
+    );
+  });
+
   it('keeps the technical message unchanged when the cause carries no HTTP response', () => {
     const cause = new Error('ECONNREFUSED');
 
