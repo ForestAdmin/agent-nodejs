@@ -132,6 +132,14 @@ function findSkipCandidate(step: AvailableStepExecution): Step | null {
   );
 }
 
+// A load set to Skip that loaded no record.
+function skipsFor(load: Step, execution: StepExecutionData | undefined): boolean {
+  const { ifNoRecords } =
+    (load.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs ?? {};
+
+  return ifNoRecords === 'skip' && loadedNothing(load, execution);
+}
+
 // The index of the empty load a step skips for: its own load, or the Multiple load its chain runs
 // once per record of, set to Skip and empty, or the empty load an earlier skip carries down,
 // whatever the loads in between are set to. Null runs the step as before.
@@ -153,13 +161,6 @@ async function findSkippingLoad(
   if (isSkippedForNoRecord(execution)) return execution.executionResult.emptySourceStepIndex;
 
   return skipsFor(load, execution) ? load.stepOutcome.stepIndex : null;
-}
-
-function skipsFor(load: Step, execution: StepExecutionData | undefined): boolean {
-  const { ifNoRecords } =
-    (load.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs ?? {};
-
-  return ifNoRecords === 'skip' && loadedNothing(load, execution);
 }
 
 // The record a call opened once per record runs on: its Multiple step's record at the call's

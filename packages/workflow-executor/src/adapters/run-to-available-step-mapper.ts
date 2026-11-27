@@ -259,6 +259,7 @@ function toSubWorkflowEnds(
   const frame = frameOfPending(walk, pending);
   // A pass skipped for no record reached no End, so it hides the End an earlier pass reached.
   const latestEndOf = new Map<string, { stepIndex: number; end: SubWorkflowEnd | null }>();
+
   const keepLatest = (stepId: string, stepIndex: number, end: SubWorkflowEnd | null) => {
     if ((latestEndOf.get(stepId)?.stepIndex ?? -1) < stepIndex) {
       latestEndOf.set(stepId, { stepIndex, end });
