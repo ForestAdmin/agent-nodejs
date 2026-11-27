@@ -1,9 +1,11 @@
 import type { Collection, CollectionSchema } from '@forestadmin/datasource-toolkit';
 
 import {
+  Aggregation,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   DataSourceDecorator,
+  Filter,
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
@@ -1179,61 +1181,83 @@ describe('getSearchedFields', () => {
       );
     });
 
-    test('the left-out relation stays out through every customization layer', async () => {
-      const dataSource = factories.dataSource.buildWithCollections([
-        factories.collection.build({
-          name: 'cards',
-          schema: factories.collectionSchema.unsearchable().build({
-            fields: {
-              id: factories.columnSchema.uuidPrimaryKey().build(),
-              label: factories.columnSchema.text().build(),
-              holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
-              holder: factories.manyToOneSchema.build({
-                foreignCollection: 'holders',
-                foreignKey: 'holderId',
-              }),
-            },
-          }),
-          list: jest.fn().mockResolvedValue([]),
-        }),
-        factories.collection.build({
-          name: 'holders',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.uuidPrimaryKey().build(),
-              name: factories.columnSchema.text().build(),
-            },
-          }),
-        }),
-      ]);
-      const customized = new DataSourceCustomizer()
-        .addDataSource(async () => dataSource)
-        .customizeCollection('cards', cards => cards.renameField('holder', 'owner'));
-      // The agent stacks its own customizer on top of the one the developer built.
-      const served = await new DataSourceCustomizer()
-        .addDataSource(async () => customized.getDataSource(() => {}))
-        .getDataSource(() => {});
-
-      await served.getCollection('cards').list(
-        caller,
-        new PaginatedFilter({
-          search: 'martin',
-          searchExtended: true,
-          searchExcludedCollections: ['holders'],
-        }),
-        new Projection('id'),
-      );
-
-      const { list } = dataSource.getCollection('cards');
-      expect(list).toHaveBeenCalledTimes(1);
-      expect(list).toHaveBeenCalledWith(
-        caller,
-        expect.objectContaining({
-          conditionTree: new ConditionTreeLeaf('label', 'IContains', 'martin'),
-          search: null,
-        }),
-        new Projection('id'),
-      );
+    const searchingHolders = {
+      search: 'martin',
+      searchExtended: true,
+      searchExcludedCollections: ['holders'],
+    };
+    const leftOutSearch = expect.objectContaining({
+      conditionTree: new ConditionTreeLeaf('label', 'IContains', 'martin'),
+      search: null,
     });
+
+    test.each([
+      {
+        operation: 'list',
+        run: (cards: Collection) =>
+          cards.list(caller, new PaginatedFilter(searchingHolders), new Projection('id')),
+        expected: [caller, leftOutSearch, new Projection('id')],
+      },
+      {
+        operation: 'aggregate',
+        run: (cards: Collection) =>
+          cards.aggregate(
+            caller,
+            new Filter(searchingHolders),
+            new Aggregation({ operation: 'Count' }),
+          ),
+        expected: [caller, leftOutSearch, new Aggregation({ operation: 'Count' }), undefined],
+      },
+      {
+        operation: 'delete',
+        run: (cards: Collection) => cards.delete(caller, new Filter(searchingHolders)),
+        expected: [caller, leftOutSearch],
+      },
+    ])(
+      'the left-out relation stays out of $operation through every customization layer',
+      async ({ operation, run, expected }) => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'cards',
+            schema: factories.collectionSchema.unsearchable().build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                label: factories.columnSchema.text().build(),
+                holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                holder: factories.manyToOneSchema.build({
+                  foreignCollection: 'holders',
+                  foreignKey: 'holderId',
+                }),
+              },
+            }),
+            list: jest.fn().mockResolvedValue([]),
+            aggregate: jest.fn().mockResolvedValue([]),
+            delete: jest.fn().mockResolvedValue(undefined),
+          }),
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                name: factories.columnSchema.text().build(),
+              },
+            }),
+          }),
+        ]);
+        const customized = new DataSourceCustomizer()
+          .addDataSource(async () => dataSource)
+          .customizeCollection('cards', cards => cards.renameField('holder', 'owner'));
+        // The agent serves the developer's customizer through its own no-code one.
+        const served = await new DataSourceCustomizer({ strategy: 'NoCode' })
+          .addDataSource(async () => customized.getDataSource(() => {}))
+          .getDataSource(() => {});
+
+        await run(served.getCollection('cards'));
+
+        const reached = dataSource.getCollection('cards')[operation];
+        expect(reached).toHaveBeenCalledTimes(1);
+        expect(reached).toHaveBeenCalledWith(...expected);
+      },
+    );
   });
 });
