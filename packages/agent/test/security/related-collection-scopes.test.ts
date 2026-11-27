@@ -468,6 +468,7 @@ describe('scopes on related collections', () => {
     });
 
     it('should restrict a condition on each scoped relation it crosses', async () => {
+      // A card with no account has no organization either, whatever the relation layer reads.
       expect(await listedTree(filterOn('account:organization:name', 'OwnOrg'))).toEqual({
         aggregator: 'And',
         conditions: [
@@ -477,6 +478,7 @@ describe('scopes on related collections', () => {
             aggregator: 'Or',
             conditions: [
               { field: 'account:organization:name', operator: 'Equal', value: 'OwnOrg' },
+              { field: 'accountId', operator: 'Missing' },
               { field: 'account:organizationId', operator: 'Missing' },
             ],
           },

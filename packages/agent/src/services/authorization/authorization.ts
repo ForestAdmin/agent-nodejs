@@ -11,6 +11,7 @@ import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
 import {
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   ForbiddenError,
   Projection,
@@ -410,6 +411,7 @@ export default class AuthorizationService {
     collection: Collection,
     projection: Projection,
     prefix?: string,
+    ancestorAbsent?: ConditionTree,
   ): Promise<RelationScope[]> {
     const scopes = await Promise.all(
       Object.entries(projection.relations).map(async ([name, subProjection]) => {
@@ -418,16 +420,12 @@ export default class AuthorizationService {
           (relation as ManyToOneSchema | OneToOneSchema).foreignCollection,
         );
         const path = prefix ? `${prefix}:${name}` : name;
-        const [scope, nested] = await Promise.all([
-          this.getScopeForRelatedRecords(foreignCollection, context),
-          this.collectRelationScopes(context, foreignCollection, subProjection, path),
-        ]);
-
-        if (!scope) return nested;
 
         // A missing foreign key, rather than a missing related key, so a relation the customizer
-        // emulates still matches rows with no related record.
-        const absent =
+        // emulates still matches rows with no related record. A record is also absent when a
+        // relation on the way to it is, which an emulated relation would not read as missing.
+        const absent = ConditionTreeFactory.union(
+          ancestorAbsent,
           relation.type === 'ManyToOne'
             ? new ConditionTreeLeaf(
                 prefix ? `${prefix}:${relation.foreignKey}` : relation.foreignKey,
@@ -436,9 +434,14 @@ export default class AuthorizationService {
             : new ConditionTreeLeaf(
                 `${path}:${SchemaUtils.getPrimaryKeys(foreignCollection.schema)[0]}`,
                 'Missing',
-              );
+              ),
+        );
+        const [scope, nested] = await Promise.all([
+          this.getScopeForRelatedRecords(foreignCollection, context),
+          this.collectRelationScopes(context, foreignCollection, subProjection, path, absent),
+        ]);
 
-        return [{ path, collection: foreignCollection, scope, absent }, ...nested];
+        return scope ? [{ path, collection: foreignCollection, scope, absent }, ...nested] : nested;
       }),
     );
 
