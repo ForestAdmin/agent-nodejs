@@ -113,14 +113,9 @@ function loadedNothing(execution: StepExecutionData | undefined): boolean {
   return classifyMissingSourceRecord(execution) !== undefined;
 }
 
-// The index of the empty load a step skips for (PRD-2399): its own load, or the Multiple load its
-// chain runs once per record of, set to Skip and empty, or the empty load an earlier skip carries
-// down, whatever the loads in between are set to. Null runs the step as before.
-async function findSkippingLoad(
-  step: AvailableStepExecution,
-  perRecordSource: PerRecordSource | null,
-  runStore: RunStore,
-): Promise<number | null> {
+// The load a step could skip for (PRD-2399): the one it is pinned to, run in its frame. Decided
+// without awaiting, so a step with none reaches its executor as soon as before.
+function findSkipCandidate(step: AvailableStepExecution): Step | null {
   if (!PER_RECORD_STEP_TYPES.includes(step.stepDefinition.type)) return null;
   // A skip must take a branch, which only the operator can pick.
   if ((step.stepDefinition as TriggerActionStepDefinition).approvalOutcomes === true) return null;
@@ -129,13 +124,20 @@ async function findSkippingLoad(
     .preRecordedArgs?.selectedRecordStepId;
   if (pin === undefined || pin === WORKFLOW_START_STEP_ID) return null;
 
-  const source = findPinnedLoadStep(
-    step.previousSteps,
-    pin,
-    step.callScope?.currentFrameStepIndexes,
+  return (
+    findPinnedLoadStep(step.previousSteps, pin, step.callScope?.currentFrameStepIndexes) ?? null
   );
-  if (!source) return null;
+}
 
+// The index of the empty load a step skips for: its own load, or the Multiple load its chain runs
+// once per record of, set to Skip and empty, or the empty load an earlier skip carries down,
+// whatever the loads in between are set to. Null runs the step as before.
+async function findSkippingLoad(
+  step: AvailableStepExecution,
+  source: Step,
+  perRecordSource: PerRecordSource | null,
+  runStore: RunStore,
+): Promise<number | null> {
   const executions = await runStore.getStepExecutions(step.runId);
   const direct = findStepExecution(source, executions);
   if (isSkippedForNoRecord(direct)) return direct.executionResult.emptySourceStepIndex;
@@ -252,7 +254,10 @@ export default class StepExecutorFactory {
         runStore: await scopeToRecordCalls(step, builtContext.runStore),
       };
       const perRecordSource = findPerRecordSource(step);
-      const emptySourceStepIndex = await findSkippingLoad(step, perRecordSource, context.runStore);
+      const skipCandidate = findSkipCandidate(step);
+      const emptySourceStepIndex = skipCandidate
+        ? await findSkippingLoad(step, skipCandidate, perRecordSource, context.runStore)
+        : null;
 
       if (emptySourceStepIndex !== null) {
         return new SkippedForNoRecordStepExecutor(context, emptySourceStepIndex);
