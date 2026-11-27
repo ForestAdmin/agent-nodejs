@@ -45,9 +45,15 @@ export default class DeleteRoute extends CollectionRoute {
     if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 
     const caller = QueryStringParser.parseCaller(context);
+    const queryScopes = await this.services.authorization.getQueryRelationScopes(
+      context,
+      this.collection,
+      ['filter', 'search'],
+    );
     const filter = ContextFilterFactory.build(this.collection, context, null, {
+      searchExcludedCollections: queryScopes.searchExcludedCollections,
       conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(this.collection, context),
+        queryScopes.restrict(QueryStringParser.parseConditionTree(this.collection, context)),
         await this.services.authorization.getScope(this.collection, context),
         selectedIds,
       ),

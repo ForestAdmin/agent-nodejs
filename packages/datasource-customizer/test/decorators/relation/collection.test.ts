@@ -36,6 +36,7 @@ describe('RelationCollectionDecorator', () => {
       {
         passportId: 101,
         issueDate: '2010-01-01',
+        note: '',
         ownerId: 202,
         pictureId: 301,
         picture: { pictureId: 301, filename: 'pic1.jpg' },
@@ -43,6 +44,7 @@ describe('RelationCollectionDecorator', () => {
       {
         passportId: 102,
         issueDate: '2017-01-01',
+        note: null,
         ownerId: 201,
         pictureId: 302,
         picture: { pictureId: 302, filename: 'pic2.jpg' },
@@ -88,6 +90,10 @@ describe('RelationCollectionDecorator', () => {
           fields: {
             passportId: factories.columnSchema.numericPrimaryKey().build(),
             issueDate: factories.columnSchema.build({ columnType: 'Dateonly' }),
+            note: factories.columnSchema.build({
+              columnType: 'String',
+              filterOperators: new Set(['Present', 'Equal', 'Missing']),
+            }),
             ownerId: factories.columnSchema.build({
               columnType: 'Number',
               filterOperators: new Set(['In']),
@@ -707,6 +713,42 @@ describe('RelationCollectionDecorator', () => {
         );
 
         expect(records).toStrictEqual([{ personId: 201, name: 'Sharon J. Whalen' }]);
+      });
+
+      test('should keep records with no related record when a one to one field is missing', async () => {
+        const records = await newPersons.list(
+          factories.caller.build(),
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('passport:passportId', 'Missing'),
+          }),
+          new Projection('personId', 'name'),
+        );
+
+        expect(records).toStrictEqual([{ personId: 203, name: 'Joseph P. Rodriguez' }]);
+      });
+
+      test('should keep a missing one to one field apart from an empty one', async () => {
+        const records = await newPersons.list(
+          factories.caller.build(),
+          new Filter({ conditionTree: new ConditionTreeLeaf('passport:note', 'Missing') }),
+          new Projection('personId'),
+        );
+
+        expect(records).toStrictEqual([{ personId: 201 }, { personId: 203 }]);
+      });
+
+      test('should list the missing related fields when the related field cannot tell present ones', async () => {
+        await newPersons.list(
+          factories.caller.build(),
+          new Filter({ conditionTree: new ConditionTreeLeaf('passport:ownerId', 'Missing') }),
+          new Projection('personId'),
+        );
+
+        const operators = (passports.list as jest.Mock).mock.calls.map(
+          ([, filter]) => filter.conditionTree?.operator,
+        );
+        expect(operators).toContain('Missing');
+        expect(operators).not.toContain('Present');
       });
 
       test('should filter by native relation behind an emulated one', async () => {

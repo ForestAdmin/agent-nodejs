@@ -22,6 +22,7 @@ import {
   ConditionTreeFactory,
   ConditionTreeLeaf,
   FilterFactory,
+  Projection,
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -355,7 +356,50 @@ export default class ChartRoute extends CollectionRoute {
     );
 
     const scope = await this.services.authorization.getScope(this.collection, context);
+    const queryScopes = await this.services.authorization.getQueryRelationScopes(
+      context,
+      this.collection,
+      ['filter', 'search'],
+    );
+    const filter = ContextFilterFactory.build(
+      this.collection,
+      context,
+      scope,
+      undefined,
+      queryScopes,
+    );
 
-    return ContextFilterFactory.build(this.collection, context, scope);
+    // Rows are grouped and totalled on related records in scope or absent, as lists serve them.
+    // A leaderboard names fields of another collection, scoped by `intersectScopes`.
+    const chartFields = ChartRoute.getRowFields(context.request.body as Chart);
+    const chartScopes = chartFields.length
+      ? await this.services.authorization.getRelationScopes(
+          context,
+          this.collection,
+          new Projection(...chartFields),
+        )
+      : null;
+
+    return filter.override({
+      conditionTree: ConditionTreeFactory.intersect(
+        filter.conditionTree,
+        chartScopes?.rowRestriction,
+      ),
+    });
+  }
+
+  /** The fields of the charted collection a chart groups or aggregates its rows on. */
+  private static getRowFields(chart: Chart): string[] {
+    if (chart.type === ChartType.Pie || chart.type === ChartType.Line) {
+      const { groupByFieldName, aggregateFieldName } = chart as PieChart | LineChart;
+
+      return [groupByFieldName, aggregateFieldName].filter(Boolean);
+    }
+
+    if (chart.type === ChartType.Value || chart.type === ChartType.Objective) {
+      return [(chart as ValueChart | ObjectiveChart).aggregateFieldName].filter(Boolean);
+    }
+
+    return [];
   }
 }

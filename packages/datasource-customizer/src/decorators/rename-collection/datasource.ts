@@ -86,4 +86,9 @@ export default class RenameCollectionDataSourceDecorator extends DataSourceDecor
   getCollectionName(childName: string): string {
     return this.fromChildName[childName] ?? childName;
   }
+
+  /** @internal */
+  getChildCollectionName(name: string): string {
+    return this.toChildName[name] ?? name;
+  }
 }

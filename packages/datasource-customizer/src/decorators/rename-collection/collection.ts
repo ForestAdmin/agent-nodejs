@@ -1,5 +1,10 @@
 import type CollectionRenameDataSourceDecorator from './datasource';
-import type { CollectionSchema, FieldSchema } from '@forestadmin/datasource-toolkit';
+import type {
+  Caller,
+  CollectionSchema,
+  FieldSchema,
+  PaginatedFilter,
+} from '@forestadmin/datasource-toolkit';
 
 import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
 
@@ -12,6 +17,20 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
 
   override get name() {
     return this.dataSource.getCollectionName(super.name);
+  }
+
+  /** Collections left out of a search are named as the layers below know them. */
+  protected override async refineFilter(
+    caller: Caller,
+    filter?: PaginatedFilter,
+  ): Promise<PaginatedFilter> {
+    if (!filter?.searchExcludedCollections) return filter;
+
+    return filter.override({
+      searchExcludedCollections: filter.searchExcludedCollections.map(name =>
+        this.dataSource.getChildCollectionName(name),
+      ),
+    });
   }
 
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {

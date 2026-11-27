@@ -71,11 +71,14 @@ export default class AssociateRelatedRoute extends RelationRoute {
       targetedRelationId,
       id,
     );
+    // The record is named by its id: a search sent with the request does not narrow it.
     const filter = ContextFilterFactory.build(this.collection, context, scope, {
       conditionTree: ConditionTreeFactory.intersect(
         new ConditionTreeLeaf(id, 'Equal', value),
         scope,
       ),
+      search: null,
+      searchExtended: false,
     });
     value = await CollectionUtils.getValue(
       this.collection,

@@ -35,7 +35,17 @@ export default class CsvRoute extends CollectionRoute {
     const header = CsvGenerator.filterHeader(requestedHeader, requested.projection, projection);
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
-    const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+    const queryScopes = await this.services.authorization.getQueryRelationScopes(
+      context,
+      this.collection,
+    );
+    const filter = ContextFilterFactory.buildPaginated(
+      this.collection,
+      context,
+      scope,
+      undefined,
+      queryScopes,
+    );
     const relationScopes = await this.services.authorization.getRelationScopes(
       context,
       this.collection,

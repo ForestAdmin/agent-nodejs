@@ -20,7 +20,7 @@ import type {
 import { CollectionDecorator, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
 import CollectionSearchContext from './collection-search-context';
-import { getLeafCollectionName, lenientGetSchema } from './field-paths';
+import { crossesCollection, getLeafCollectionName, lenientGetSchema } from './field-paths';
 import { extractSpecifiedFields, generateConditionTree, parseQuery } from './parse-query';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
@@ -59,10 +59,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     // Implement search ourselves
     if (this.replacer || !this.childCollection.schema.searchable) {
+      const excluded = filter.searchExcludedCollections ?? [];
       const ctx = new CollectionSearchContext(
         this,
         caller,
-        this.generatePlainSearchFilter.bind(this, caller),
+        this.generatePlainSearchFilter.bind(this, caller, excluded),
       );
       let tree: ConditionTree;
 
@@ -70,7 +71,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         const plainTree = await this.handler(filter.search, filter.searchExtended, ctx);
         tree = ConditionTreeFactory.fromPlainObject(plainTree);
       } else {
-        tree = this.generateSearchFilter(caller, filter.search, {
+        tree = this.generateSearchFilter(caller, excluded, filter.search, {
           ...this.fieldSelection,
           extended: filter.searchExtended,
         });
@@ -96,6 +97,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   private getSearchableFields(
     parsedQuery: QueryContext,
     options?: SearchOptions,
+    excludedCollections: string[] = [],
   ): Map<string, ColumnSchema> {
     const specifiedFields = options?.onlyFields ? [] : extractSpecifiedFields(parsedQuery);
 
@@ -119,17 +121,19 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
           .map(schema => [schema.field, schema.schema] as [string, ColumnSchema]),
       ]
         .filter(Boolean)
-        .filter(([field]) => !excludedFields.has(field)),
+        .filter(([field]) => !excludedFields.has(field))
+        .filter(([field]) => !crossesCollection(this, field, excludedCollections)),
     );
   }
 
   private generateSearchFilter(
     caller: Caller,
+    excludedCollections: string[],
     searchText: string,
     options?: SearchOptions,
   ): ConditionTree {
     const parsedQuery = parseQuery(searchText);
-    const searchableFields = this.getSearchableFields(parsedQuery, options);
+    const searchableFields = this.getSearchableFields(parsedQuery, options, excludedCollections);
 
     const conditionTree = generateConditionTree(caller, parsedQuery, [...searchableFields]);
 
@@ -142,10 +146,16 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
   private generatePlainSearchFilter(
     caller: Caller,
+    excludedCollections: string[],
     searchText: string,
     options?: SearchOptions,
   ): PlainConditionTree {
-    const conditionTree = this.generateSearchFilter(caller, searchText, options);
+    const conditionTree = this.generateSearchFilter(
+      caller,
+      excludedCollections,
+      searchText,
+      options,
+    );
 
     return conditionTree?.toPlainObject();
   }

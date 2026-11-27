@@ -1,13 +1,17 @@
 import type { Collection, CollectionSchema } from '@forestadmin/datasource-toolkit';
 
 import {
+  Aggregation,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   DataSourceDecorator,
+  Filter,
   PaginatedFilter,
+  Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
+import { DataSourceCustomizer } from '../../../src';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 
 const caller = factories.caller.build();
@@ -1031,5 +1035,229 @@ describe('getSearchedFields', () => {
       expect(footprint).toEqual(['holder:nationalId']);
       expect(footprint).toEqual(expect.arrayContaining(read));
     });
+  });
+
+  describe('when the filter leaves collections out of the search', () => {
+    const buildCardsWithHolder = () =>
+      buildCollection(
+        {
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            label: factories.columnSchema.text().build(),
+            holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            holder: factories.manyToOneSchema.build({
+              foreignCollection: 'holders',
+              foreignKey: 'holderId',
+            }),
+          },
+        },
+        [
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                name: factories.columnSchema.text().build(),
+                regionId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                region: factories.manyToOneSchema.build({
+                  foreignCollection: 'regions',
+                  foreignKey: 'regionId',
+                }),
+              },
+            }),
+          }),
+          factories.collection.build({
+            name: 'regions',
+            schema: factories.collectionSchema.build({
+              fields: { name: factories.columnSchema.text().build() },
+            }),
+          }),
+        ],
+      );
+    const searching = (search: string, excluded = ['holders']) =>
+      Object.assign(factories.filter.build({ search, searchExtended: true }), {
+        searchExcludedCollections: excluded,
+      });
+
+    test('a field reached through a left-out collection two relations away is not searched', async () => {
+      const decorator = buildCardsWithHolder();
+      decorator.replaceSearch({ includeFields: ['holder:region:name'] });
+
+      const filter = await decorator.refineFilter(caller, searching('martin', ['regions']));
+
+      expect(filter.conditionTree.projection).toContain('holder:name');
+      expect(filter.conditionTree.projection).not.toContain('holder:region:name');
+    });
+
+    test('an extended search keeps the fields of the card and drops the left-out relation', async () => {
+      const decorator = buildCardsWithHolder();
+
+      const filter = await decorator.refineFilter(caller, searching('martin'));
+
+      expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('an included field on the left-out relation is not searched', async () => {
+      const decorator = buildCardsWithHolder();
+      decorator.replaceSearch({ includeFields: ['holder:name'] });
+
+      const filter = await decorator.refineFilter(caller, searching('martin'));
+
+      expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('a term typed on a field of the left-out relation reads none of its fields', async () => {
+      const decorator = buildCardsWithHolder();
+      decorator.replaceSearch({ excludeFields: [] });
+
+      const filter = await decorator.refineFilter(caller, searching('holder.name:martin'));
+
+      expect(filter.conditionTree.projection).toEqual(['label']);
+    });
+
+    test("a handler's generated search drops the left-out relation", async () => {
+      const decorator = buildCardsWithHolder();
+      decorator.replaceSearch((value, extended, ctx) =>
+        ctx.generateSearchFilter(value, { extended }),
+      );
+
+      const filter = await decorator.refineFilter(caller, searching('martin'));
+
+      expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('the left-out relation stays out below a collection rename', async () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cards',
+          schema: factories.collectionSchema.unsearchable().build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              label: factories.columnSchema.text().build(),
+              holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              holder: factories.manyToOneSchema.build({
+                foreignCollection: 'holders',
+                foreignKey: 'holderId',
+              }),
+            },
+          }),
+          list: jest.fn().mockResolvedValue([]),
+        }),
+        factories.collection.build({
+          name: 'holders',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.text().build(),
+            },
+          }),
+        }),
+      ]);
+      const customized = new DataSourceCustomizer().addDataSource(async () => dataSource);
+      const served = await new DataSourceCustomizer()
+        .addDataSource(async () => customized.getDataSource(() => {}), {
+          rename: { holders: 'customers' },
+        })
+        .getDataSource(() => {});
+
+      await served.getCollection('cards').list(
+        caller,
+        new PaginatedFilter({
+          search: 'martin',
+          searchExtended: true,
+          searchExcludedCollections: ['customers'],
+        }),
+        new Projection('id'),
+      );
+
+      const { list } = dataSource.getCollection('cards');
+      expect(list).toHaveBeenCalledTimes(1);
+      expect(list).toHaveBeenCalledWith(
+        caller,
+        expect.objectContaining({
+          conditionTree: new ConditionTreeLeaf('label', 'IContains', 'martin'),
+          search: null,
+        }),
+        new Projection('id'),
+      );
+    });
+
+    const searchingHolders = {
+      search: 'martin',
+      searchExtended: true,
+      searchExcludedCollections: ['holders'],
+    };
+    const leftOutSearch = expect.objectContaining({
+      conditionTree: new ConditionTreeLeaf('label', 'IContains', 'martin'),
+      search: null,
+    });
+
+    test.each([
+      {
+        operation: 'list',
+        run: (cards: Collection) =>
+          cards.list(caller, new PaginatedFilter(searchingHolders), new Projection('id')),
+        expected: [caller, leftOutSearch, new Projection('id')],
+      },
+      {
+        operation: 'aggregate',
+        run: (cards: Collection) =>
+          cards.aggregate(
+            caller,
+            new Filter(searchingHolders),
+            new Aggregation({ operation: 'Count' }),
+          ),
+        expected: [caller, leftOutSearch, new Aggregation({ operation: 'Count' }), undefined],
+      },
+      {
+        operation: 'delete',
+        run: (cards: Collection) => cards.delete(caller, new Filter(searchingHolders)),
+        expected: [caller, leftOutSearch],
+      },
+    ])(
+      'the left-out relation stays out of $operation through every customization layer',
+      async ({ operation, run, expected }) => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'cards',
+            schema: factories.collectionSchema.unsearchable().build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                label: factories.columnSchema.text().build(),
+                holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                holder: factories.manyToOneSchema.build({
+                  foreignCollection: 'holders',
+                  foreignKey: 'holderId',
+                }),
+              },
+            }),
+            list: jest.fn().mockResolvedValue([]),
+            aggregate: jest.fn().mockResolvedValue([]),
+            delete: jest.fn().mockResolvedValue(undefined),
+          }),
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                name: factories.columnSchema.text().build(),
+              },
+            }),
+          }),
+        ]);
+        const customized = new DataSourceCustomizer()
+          .addDataSource(async () => dataSource)
+          .customizeCollection('cards', cards => cards.renameField('holder', 'owner'));
+        // The agent serves the developer's customizer through its own no-code one.
+        const served = await new DataSourceCustomizer({ strategy: 'NoCode' })
+          .addDataSource(async () => customized.getDataSource(() => {}))
+          .getDataSource(() => {});
+
+        await run(served.getCollection('cards'));
+
+        const reached = dataSource.getCollection('cards')[operation];
+        expect(reached).toHaveBeenCalledTimes(1);
+        expect(reached).toHaveBeenCalledWith(...expected);
+      },
+    );
   });
 });

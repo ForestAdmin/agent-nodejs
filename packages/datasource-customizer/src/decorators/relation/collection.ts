@@ -264,19 +264,54 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     }
 
     if (schema.type === 'OneToOne') {
-      const records = await relation.list(
-        caller,
-        new Filter({ conditionTree: leaf.unnest() }),
-        new Projection(schema.originKey),
-      );
+      const keysOf = async (conditionTree: ConditionTree) => {
+        const records = await relation.list(
+          caller,
+          new Filter({ conditionTree }),
+          new Projection(schema.originKey),
+        );
 
-      return new ConditionTreeLeaf(schema.originKeyTarget, 'In', [
-        ...new Set(
-          records
-            .map(record => RecordUtils.getFieldValue(record, schema.originKey))
-            .filter(v => v !== null),
-        ),
-      ]);
+        return [
+          ...new Set(
+            records
+              .map(record => RecordUtils.getFieldValue(record, schema.originKey))
+              .filter(v => v !== null),
+          ),
+        ];
+      };
+
+      const targetSchema = CollectionUtils.getFieldSchema(
+        this.childCollection,
+        schema.originKeyTarget,
+      ) as ColumnSchema;
+      const unnested = leaf.unnest();
+
+      // A record with no related record has every related field missing: it is kept by excluding
+      // the records whose related field holds a value. `Present` leaves out empty strings, which
+      // hold a value all the same, so those are listed apart.
+      const fieldSchema =
+        leaf.operator === 'Missing'
+          ? (CollectionUtils.getFieldSchema(relation, unnested.field) as ColumnSchema)
+          : null;
+      const isString = fieldSchema?.columnType === 'String';
+      const canExclude =
+        fieldSchema &&
+        targetSchema.filterOperators?.has('NotIn') &&
+        fieldSchema.filterOperators?.has('Present') &&
+        (!isString || fieldSchema.filterOperators.has('Equal'));
+
+      if (canExclude) {
+        const [present, empty] = await Promise.all([
+          keysOf(unnested.override({ operator: 'Present' })),
+          isString ? keysOf(unnested.override({ operator: 'Equal', value: '' })) : [],
+        ]);
+
+        return new ConditionTreeLeaf(schema.originKeyTarget, 'NotIn', [
+          ...new Set([...present, ...empty]),
+        ]);
+      }
+
+      return new ConditionTreeLeaf(schema.originKeyTarget, 'In', await keysOf(unnested));
     }
 
     return result;

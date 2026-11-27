@@ -403,11 +403,20 @@ export default class ActionRoute extends CollectionRoute {
     const scope = includeUserScope
       ? await this.services.authorization.getScope(this.collection, context)
       : null;
+    // Like the scope, the related records' scopes bind the caller's selection, not the one an
+    // action reads with every permission.
+    const queryScopes = includeUserScope
+      ? await this.services.authorization.getQueryRelationScopes(context, this.collection, [
+          'filter',
+          'search',
+        ])
+      : undefined;
     let filter = ContextFilterFactory.build(
       this.collection,
       context,
       scope,
       isExplicitIdSelection ? { liveQuerySegment: undefined } : undefined,
+      queryScopes,
     );
 
     // Restrict the filter to the selected records for single or bulk actions.

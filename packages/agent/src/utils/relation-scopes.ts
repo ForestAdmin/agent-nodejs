@@ -12,7 +12,13 @@ import {
   RecordUtils,
 } from '@forestadmin/datasource-toolkit';
 
-export type RelationScope = { path: string; collection: Collection; scope: ConditionTree };
+/** `absent` matches the rows that have no related record at `path`. */
+export type RelationScope = {
+  path: string;
+  collection: Collection;
+  scope: ConditionTree;
+  absent: ConditionTree;
+};
 
 /**
  * The scope of a collection reached through a to-one relation empties the related record rather
@@ -24,7 +30,36 @@ export type RelationScope = { path: string; collection: Collection; scope: Condi
  * nulls, timezones) rather than re-implemented in memory.
  */
 export default class RelationScopes {
-  constructor(private readonly scopes: RelationScope[] = []) {}
+  /** `searchExcludedCollections` is set only when the query carries a search. */
+  constructor(
+    private readonly scopes: RelationScope[] = [],
+    readonly searchExcludedCollections?: string[],
+  ) {}
+
+  /**
+   * A condition on a field of a related record holds only where that record is in scope or
+   * absent, so a query reads related records the way they are served.
+   */
+  restrict(tree: ConditionTree): ConditionTree {
+    if (!tree || !this.scopes.length) return tree;
+
+    return tree.replaceLeafs(leaf => {
+      const crossed = this.scopes.filter(({ path }) => leaf.field.startsWith(`${path}:`));
+
+      return crossed.length
+        ? ConditionTreeFactory.intersect(leaf, ...crossed.map(RelationScopes.inScopeOrAbsent))
+        : leaf;
+    });
+  }
+
+  /** The rows whose every scoped related record is in scope or absent. */
+  get rowRestriction(): ConditionTree {
+    return ConditionTreeFactory.intersect(...this.scopes.map(RelationScopes.inScopeOrAbsent));
+  }
+
+  private static inScopeOrAbsent({ path, scope, absent }: RelationScope): ConditionTree {
+    return ConditionTreeFactory.union(scope.nest(path), absent);
+  }
 
   withRelatedKeys(projection: Projection): Projection {
     return projection.union(

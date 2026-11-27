@@ -78,3 +78,25 @@ export function getLeafCollectionName(collection: Collection, path: string): str
     path.substring(index + 1),
   );
 }
+
+/** Whether a path crosses a relation to one of the named collections on its way to its column. */
+export function crossesCollection(collection: Collection, path: string, names: string[]): boolean {
+  const index = path.indexOf(':');
+
+  if (index === -1) return false;
+
+  const relation = SchemaUtils.getRelation(
+    collection.schema,
+    path.substring(0, index),
+    collection.name,
+  );
+
+  return (
+    names.includes(relation.foreignCollection) ||
+    crossesCollection(
+      collection.dataSource.getCollection(relation.foreignCollection),
+      path.substring(index + 1),
+      names,
+    )
+  );
+}

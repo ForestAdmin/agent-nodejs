@@ -11,6 +11,8 @@ import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
 import {
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
   ForbiddenError,
   Projection,
   SchemaUtils,
@@ -313,12 +315,21 @@ export default class AuthorizationService {
     collection: Collection,
     context: Context,
   ): Promise<ConditionTree> {
-    const applies = await this.forestAdminClient.scopeAppliesToRelatedRecords?.({
-      renderingId: context.state.user.renderingId,
-      collectionName: collection.name,
-    });
+    return (await this.scopeAppliesToRelatedRecords(collection.name, context))
+      ? this.getScope(collection, context)
+      : null;
+  }
 
-    return applies ? this.getScope(collection, context) : null;
+  private async scopeAppliesToRelatedRecords(
+    collectionName: string,
+    context: Context,
+  ): Promise<boolean> {
+    return Boolean(
+      await this.forestAdminClient.scopeAppliesToRelatedRecords?.({
+        renderingId: context.state.user.renderingId,
+        collectionName,
+      }),
+    );
   }
 
   /** The caller's scope on each collection the projection reaches through a to-one relation. */
@@ -330,11 +341,77 @@ export default class AuthorizationService {
     return new RelationScopes(await this.collectRelationScopes(context, collection, projection));
   }
 
+  /**
+   * The relation scopes a list query reads through: its filter is restricted to them, a sort
+   * through one is refused since a `Sort` cannot treat a hidden record as empty, and a search
+   * leaves out every collection whose scope applies to related records.
+   */
+  public async getQueryRelationScopes(
+    context: Context,
+    collection: Collection,
+    consumes: QueryComponent[] = ALL_QUERY_COMPONENTS,
+  ): Promise<RelationScopes> {
+    const tree = consumes.includes('filter')
+      ? QueryStringParser.parseConditionTree(collection, context)
+      : null;
+    const sort = consumes.includes('sort') ? QueryStringParser.parseSort(collection, context) : [];
+    const scopes = await this.collectRelationScopes(
+      context,
+      collection,
+      new Projection(...(tree?.projection ?? []), ...sort.map(({ field }) => field)),
+    );
+
+    const hidden = sort.find(({ field }) =>
+      scopes.some(({ path }) => field.startsWith(`${path}:`)),
+    );
+
+    if (hidden) {
+      throw new ForbiddenError(
+        `You cannot sort on '${hidden.field}': your scope hides some of the records it reaches.`,
+      );
+    }
+
+    const search = consumes.includes('search')
+      ? QueryStringParser.parseSearch(collection, context)
+      : null;
+
+    return new RelationScopes(
+      scopes,
+      search ? await this.getCollectionsScopedForRelatedRecords(context, collection) : undefined,
+    );
+  }
+
+  /**
+   * Undefined rather than empty, so a filter changes only where a scope applies. Reads the raw
+   * scopes rather than `getScopeForRelatedRecords`, which parses them: a search on one collection
+   * must not fail on a scope another collection could not parse.
+   */
+  private async getCollectionsScopedForRelatedRecords(
+    context: Context,
+    collection: Collection,
+  ): Promise<string[] | undefined> {
+    const { renderingId, id: userId } = context.state.user;
+    const names = await Promise.all(
+      collection.dataSource.collections.map(async ({ name }) => {
+        const scope =
+          (await this.scopeAppliesToRelatedRecords(name, context)) &&
+          (await this.forestAdminClient.getScope({ renderingId, userId, collectionName: name }));
+
+        return scope ? name : null;
+      }),
+    );
+
+    const excluded = names.filter(Boolean);
+
+    return excluded.length ? excluded : undefined;
+  }
+
   private async collectRelationScopes(
     context: Context,
     collection: Collection,
     projection: Projection,
     prefix?: string,
+    ancestorAbsent?: ConditionTree,
   ): Promise<RelationScope[]> {
     const scopes = await Promise.all(
       Object.entries(projection.relations).map(async ([name, subProjection]) => {
@@ -343,12 +420,28 @@ export default class AuthorizationService {
           (relation as ManyToOneSchema | OneToOneSchema).foreignCollection,
         );
         const path = prefix ? `${prefix}:${name}` : name;
+
+        // A missing foreign key, rather than a missing related key, so a relation the customizer
+        // emulates still matches rows with no related record. A record is also absent when a
+        // relation on the way to it is, which an emulated relation would not read as missing.
+        const absent = ConditionTreeFactory.union(
+          ancestorAbsent,
+          relation.type === 'ManyToOne'
+            ? new ConditionTreeLeaf(
+                prefix ? `${prefix}:${relation.foreignKey}` : relation.foreignKey,
+                'Missing',
+              )
+            : new ConditionTreeLeaf(
+                `${path}:${SchemaUtils.getPrimaryKeys(foreignCollection.schema)[0]}`,
+                'Missing',
+              ),
+        );
         const [scope, nested] = await Promise.all([
           this.getScopeForRelatedRecords(foreignCollection, context),
-          this.collectRelationScopes(context, foreignCollection, subProjection, path),
+          this.collectRelationScopes(context, foreignCollection, subProjection, path, absent),
         ]);
 
-        return scope ? [{ path, collection: foreignCollection, scope }, ...nested] : nested;
+        return scope ? [{ path, collection: foreignCollection, scope, absent }, ...nested] : nested;
       }),
     );
 

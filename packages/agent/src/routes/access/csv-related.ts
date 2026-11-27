@@ -43,7 +43,17 @@ export default class CsvRelatedRoute extends RelationRoute {
     const header = CsvGenerator.filterHeader(requestedHeader, requested.projection, projection);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const caller = QueryStringParser.parseCaller(context);
-    const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
+    const queryScopes = await this.services.authorization.getQueryRelationScopes(
+      context,
+      this.foreignCollection,
+    );
+    const filter = ContextFilterFactory.buildPaginated(
+      this.foreignCollection,
+      context,
+      scope,
+      undefined,
+      queryScopes,
+    );
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const relationScopes = await this.services.authorization.getRelationScopes(
       context,
