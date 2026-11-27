@@ -13,14 +13,10 @@ import { StepExecutionMode, StepType } from '../../src/types/validated/step-defi
 
 const customer = { collectionName: 'customers', recordId: [1], stepIndex: 0 };
 const EMPTY_LOAD_ERROR = '"Load UBOs" loaded no UBOs, so this step has none to run for.';
-const EMPTY_SINGLE_ERROR = 'This step uses "Load UBO" as its source, but that step didn\'t load any record.';
+const EMPTY_SINGLE_ERROR =
+  'This step uses "Load UBO" as its source, but that step didn\'t load any record.';
 
-function loadStep(
-  stepId: string,
-  stepIndex: number,
-  args: Record<string, unknown>,
-  title: string,
-) {
+function loadStep(stepId: string, stepIndex: number, args: Record<string, unknown>, title: string) {
   return {
     stepDefinition: {
       type: StepType.LoadRelatedRecord,
@@ -215,6 +211,7 @@ describe('a step using a load that loaded no record', () => {
         executionResult: { skipped: true, emptySourceStepIndex: 1 },
       });
     });
+
     it('runs the step as usual when the Skip load did load a record', async () => {
       const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
       const loaded = {

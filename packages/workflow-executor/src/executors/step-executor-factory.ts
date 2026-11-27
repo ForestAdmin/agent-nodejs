@@ -129,7 +129,11 @@ async function findSkippingLoad(
     .preRecordedArgs?.selectedRecordStepId;
   if (pin === undefined || pin === WORKFLOW_START_STEP_ID) return null;
 
-  const source = findPinnedLoadStep(step.previousSteps, pin, step.callScope?.currentFrameStepIndexes);
+  const source = findPinnedLoadStep(
+    step.previousSteps,
+    pin,
+    step.callScope?.currentFrameStepIndexes,
+  );
   if (!source) return null;
 
   const executions = await runStore.getStepExecutions(step.runId);

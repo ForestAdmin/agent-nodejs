@@ -10,10 +10,7 @@ import { StepType } from '../types/validated/step-definition';
 // load it skipped for, which the run view names, and a skipped load tells the orchestrator it
 // loaded none, so a Sub-workflow on it is skipped too.
 export default class SkippedForNoRecordStepExecutor extends BaseStepExecutor {
-  constructor(
-    context: ExecutionContext,
-    private readonly emptySourceStepIndex: number,
-  ) {
+  constructor(context: ExecutionContext, private readonly emptySourceStepIndex: number) {
     super(context);
   }
 
@@ -31,7 +28,9 @@ export default class SkippedForNoRecordStepExecutor extends BaseStepExecutor {
     });
 
     return this.buildOutcomeResult(
-      stepDefinition.type === StepType.LoadRelatedRecord ? EMPTY_LOAD_OUTCOME : { status: 'success' },
+      stepDefinition.type === StepType.LoadRelatedRecord
+        ? EMPTY_LOAD_OUTCOME
+        : { status: 'success' },
     );
   }
 

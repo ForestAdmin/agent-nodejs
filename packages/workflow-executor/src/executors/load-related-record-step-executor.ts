@@ -320,6 +320,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<StepExecutionResult> {
     if (this.isMultiple) {
       const candidates = await this.collectMultipleCandidates(target, suggestViaAi);
+
       if (candidates.availableRecordIds.length === 0 && this.skipsWhenEmpty) {
         return this.persistSkip(target);
       }
