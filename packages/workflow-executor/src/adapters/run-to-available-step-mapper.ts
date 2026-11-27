@@ -200,6 +200,8 @@ function walkCallStack(history: ServerStepHistory[], pending: ServerStepHistory)
 
   history.forEach(entry => {
     if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
+    // A Sub-workflow the orchestrator skipped because its load was empty opened no call.
+    if (entry.context?.skippedForNoRecord === true) return;
 
     const frameOpenedAt = openCalls.at(-1)?.stepIndex ?? ROOT_FRAME;
 

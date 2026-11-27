@@ -24,6 +24,24 @@ describe('serializeStepForWire', () => {
 
       expect(result.selectedRecordRef.recordId).toBe('order-1|42');
     });
+
+    // PRD-2399: a step skipped because its load was empty has no record, and the run view must load.
+    it.each(['read-record', 'update-record', 'trigger-action'] as const)(
+      'passes a %s step skipped for an empty load through as it is',
+      type => {
+        const step = {
+          type,
+          stepIndex: 3,
+          executionResult: { skipped: true, emptySourceStepIndex: 1 },
+        } as StepExecutionData;
+
+        expect(serializeStepForWire(step)).toEqual({
+          type,
+          stepIndex: 3,
+          executionResult: { skipped: true, emptySourceStepIndex: 1 },
+        });
+      },
+    );
   });
 
   describe('load-related-record', () => {

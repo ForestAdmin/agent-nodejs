@@ -29,7 +29,7 @@ import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
 import { serializeRecordId } from '../record-id';
-import { isPerRecordExecution } from '../types/step-execution-data';
+import { isPerRecordExecution, isSkippedForNoRecord } from '../types/step-execution-data';
 import {
   StepExecutionMode,
   StepType,
@@ -476,7 +476,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       };
     }
 
-    if (execution?.type !== 'read-record') return { found: false, reason: 'field-not-loaded' };
+    // A Get Data skipped because its load was empty read nothing, so the Decision takes its default.
+    if (execution?.type !== 'read-record' || isSkippedForNoRecord(execution)) {
+      return { found: false, reason: 'field-not-loaded' };
+    }
 
     const field = execution.executionResult.fields.find(f => f.name === condition.fieldName);
     if (!field || !('value' in field)) return { found: false, reason: 'field-not-loaded' };

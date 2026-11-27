@@ -316,6 +316,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<StepExecutionResult> {
     if (this.isMultiple) {
       const candidates = await this.collectMultipleCandidates(target, suggestViaAi);
+      if (candidates.availableRecordIds.length === 0 && this.skipsWhenEmpty) {
+        return this.persistSkip(target);
+      }
 
       return this.persistAwaitInput(target, sourceSchema, {
         ...this.multiplePendingFields(candidates),
@@ -327,6 +330,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       target,
       suggestViaAi,
     );
+    if (availableRecordIds.length === 0 && this.skipsWhenEmpty) return this.persistSkip(target);
 
     return this.persistAwaitInput(target, sourceSchema, {
       availableRecordIds,
@@ -814,7 +818,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async persistSkip(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
   ): Promise<StepExecutionResult> {
-    // Full AI made this call on its own — log it so an unexpectedly empty relation is auditable.
+    // Full AI, or a load set to Skip, made this call on its own: logged so an empty relation is auditable.
     this.context.logger(
       'Info',
       'load-related-record: no candidate to load, continuing without a record',
@@ -829,7 +833,21 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       selectedRecordRef: target.selectedRecordRef,
     });
 
-    return this.buildOutcomeResult({ status: 'success' });
+    return this.buildOutcomeResult({ status: 'success', loadedRecordCount: 0 });
+  }
+
+  // A decline loads no record either, which the orchestrator needs to skip a Sub-workflow on it.
+  protected override async declineConfirmation(
+    execution: LoadRelatedRecordStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    await super.declineConfirmation(execution);
+
+    return this.buildOutcomeResult({ status: 'success', loadedRecordCount: 0 });
+  }
+
+  // Set to Skip, a load with no record to offer carries on rather than wait for a person to say so.
+  private get skipsWhenEmpty(): boolean {
+    return this.context.stepDefinition.preRecordedArgs?.ifNoRecords === 'skip';
   }
 
   // One record for a Single step, several for a Multiple one.
@@ -851,8 +869,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     return this.buildOutcomeResult({
       status: 'success',
-      ...('records' in loaded &&
-        loaded.records.length > 0 && { loadedRecordCount: loaded.records.length }),
+      ...('records' in loaded && { loadedRecordCount: loaded.records.length }),
     });
   }
 

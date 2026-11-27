@@ -215,3 +215,22 @@ describe('RecordStepOutcomeSchema — approval outcomes', () => {
     ).toThrow();
   });
 });
+
+// PRD-2399: the orchestrator skips a Sub-workflow pinned to a load that loaded none.
+describe('RecordStepOutcomeSchema — loadedRecordCount', () => {
+  const outcome = (loadedRecordCount: number) => ({
+    type: 'record',
+    stepId: 'load-ubos',
+    stepIndex: 1,
+    status: 'success',
+    loadedRecordCount,
+  });
+
+  it('accepts a load that loaded no record', () => {
+    expect(RecordStepOutcomeSchema.parse(outcome(0))).toEqual(outcome(0));
+  });
+
+  it('refuses a negative count', () => {
+    expect(() => RecordStepOutcomeSchema.parse(outcome(-1))).toThrow();
+  });
+});

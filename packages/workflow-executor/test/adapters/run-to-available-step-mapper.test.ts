@@ -1165,6 +1165,31 @@ describe('toAvailableStepExecution', () => {
       });
     });
 
+    // PRD-2399: the orchestrator skips a call whose load was empty and set to Skip.
+    it('does not count a call skipped for an empty load as open', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1, context: { skippedForNoRecord: true } },
+            { selectedRecordStepId: 'load-2', calledWorkflowCollectionName: 'ubos' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual(
+        expect.objectContaining({
+          startStepIndex: 0,
+          selectedRecordStepId: 'load-1',
+          calledWorkflowCollectionName: 'orders',
+        }),
+      );
+    });
+
     it('leaves a run with no sub-workflow call unscoped', () => {
       expect(callScopeOf(makeRun())).toBeUndefined();
     });

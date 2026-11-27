@@ -674,6 +674,21 @@ describe('the Multiple flag and the condition quantifier', () => {
     expect(parsed.preRecordedArgs?.multiple).toBe(true);
   });
 
+  // PRD-2399: what the steps using a load do when it loads no record.
+  it.each([
+    ['skip', 'skip'],
+    ['stop', 'stop'],
+    [null, undefined],
+    ['later', undefined],
+  ])('reads the no-record setting %p as %p, so anything but Skip stops', (value, expected) => {
+    const parsed = LoadRelatedRecordStepDefinitionSchema.parse({
+      type: StepType.LoadRelatedRecord,
+      preRecordedArgs: { relationName: 'ubos', ifNoRecords: value },
+    });
+
+    expect(parsed.preRecordedArgs?.ifNoRecords).toBe(expected);
+  });
+
   const conditionWith = (quantifier: unknown) => ({
     type: StepType.Condition,
     options: ['Escalate', 'Approve'],

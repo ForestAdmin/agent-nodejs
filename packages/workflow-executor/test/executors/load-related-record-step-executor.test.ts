@@ -5231,7 +5231,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(result.stepOutcome).not.toHaveProperty('loadedRecordCount');
+      expect(result.stepOutcome).toEqual(expect.objectContaining({ loadedRecordCount: 0 }));
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ executionResult: { skipped: true } }),
@@ -5327,11 +5327,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect(result.stepOutcome).toMatchObject({ status: 'success', loadedRecordCount: 2 });
       });
 
-      it('reports no record count when the confirmation declines', async () => {
+      it('reports a count of 0 when the confirmation declines', async () => {
         const { result } = await confirm({ userConfirmed: false });
 
         expect(result.stepOutcome.status).toBe('success');
-        expect(result.stepOutcome).not.toHaveProperty('loadedRecordCount');
+        expect(result.stepOutcome).toEqual(expect.objectContaining({ loadedRecordCount: 0 }));
       });
 
       it('loads none when the confirmation declines', async () => {
@@ -5515,5 +5515,150 @@ describe('LoadRelatedRecordStepExecutor inside a Sub-workflow call', () => {
       'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
     );
     expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+  });
+});
+
+// PRD-2399: the orchestrator skips a Sub-workflow pinned to an empty Skip load only on a count of 0.
+describe('empty load: what the orchestrator is told, and Skip', () => {
+  const pendingSingle = (userConfirmation: Record<string, unknown>) =>
+    ({
+      type: 'load-related-record',
+      stepIndex: 0,
+      pendingData: {
+        availableFields: [{ name: 'order', displayName: 'Order' }],
+        suggestedField: { name: 'order', displayName: 'Order' },
+        availableRecordIds: [cand([99])],
+        suggestedRecord: cand([99]),
+      },
+      selectedRecordRef: makeRecordRef(),
+      userConfirmation,
+    } as LoadRelatedRecordStepExecutionData);
+
+  it('reports a count of 0 when Full AI finds no record to load', async () => {
+    const runStore = makeMockRunStore();
+    const context = makeContext({
+      agentPort: makeMockAgentPort([]),
+      runStore,
+      stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'load-1',
+      stepIndex: 0,
+      status: 'success',
+      loadedRecordCount: 0,
+    });
+  });
+
+  it('reports a count of 0 when the operator declines every record offered', async () => {
+    const runStore = makeMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([pendingSingle({ userConfirmed: false })]),
+    });
+    const context = makeContext({ agentPort: makeMockAgentPort(), runStore });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'load-1',
+      stepIndex: 0,
+      status: 'success',
+      loadedRecordCount: 0,
+    });
+  });
+
+  it('reports no count when a Single step loads its record', async () => {
+    const runStore = makeMockRunStore({
+      getStepExecutions: jest
+        .fn()
+        .mockResolvedValue([pendingSingle({ userConfirmed: true, selectedRecordId: [99] })]),
+    });
+    const context = makeContext({ agentPort: makeMockAgentPort(), runStore });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'load-1',
+      stepIndex: 0,
+      status: 'success',
+    });
+  });
+
+  it.each([StepExecutionMode.Manual, StepExecutionMode.AutomatedWithConfirmation])(
+    'carries on without pausing in %s mode when it is set to Skip and finds no record',
+    async executionType => {
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        agentPort: makeMockAgentPort([]),
+        runStore,
+        stepDefinition: makeStep({
+          executionType,
+          preRecordedArgs: { relationName: 'order', ifNoRecords: 'skip' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'load-1',
+        stepIndex: 0,
+        status: 'success',
+        loadedRecordCount: 0,
+      });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'load-related-record',
+        stepIndex: 0,
+        executionParams: { name: 'order', displayName: 'Order' },
+        executionResult: { skipped: true },
+        selectedRecordRef: makeRecordRef(),
+      });
+    },
+  );
+
+  it('still pauses on an empty load set to Stop, so the operator decides as today', async () => {
+    const runStore = makeMockRunStore();
+    const context = makeContext({
+      agentPort: makeMockAgentPort([]),
+      runStore,
+      stepDefinition: makeStep({
+        executionType: StepExecutionMode.Manual,
+        preRecordedArgs: { relationName: 'order', ifNoRecords: 'stop' },
+      }),
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'load-1',
+      stepIndex: 0,
+      status: 'awaiting-input',
+    });
+  });
+
+  it('still pauses on a Skip load that has records to offer', async () => {
+    const runStore = makeMockRunStore();
+    const context = makeContext({
+      agentPort: makeMockAgentPort(),
+      runStore,
+      stepDefinition: makeStep({
+        executionType: StepExecutionMode.Manual,
+        preRecordedArgs: { relationName: 'order', ifNoRecords: 'skip' },
+      }),
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'load-1',
+      stepIndex: 0,
+      status: 'awaiting-input',
+    });
   });
 });

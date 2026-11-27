@@ -13,7 +13,10 @@ import type {
   RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { StepExecutionData } from '../types/step-execution-data';
+import type {
+  SkippedForNoRecordStepExecutionData,
+  StepExecutionData,
+} from '../types/step-execution-data';
 import type { RecordRef } from '../types/validated/collection';
 import type { CallScope, Step } from '../types/validated/execution';
 import type {
@@ -56,7 +59,7 @@ import ReadRecordStepExecutor from './read-record-step-executor';
 import { classifyMissingSourceRecord, findPinnedLoadStep } from './record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
-import { isPerRecordExecution } from '../types/step-execution-data';
+import { isPerRecordExecution, isSkippedForNoRecord } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
 
@@ -99,6 +102,82 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
   }
 
   return null;
+}
+
+// A load counts as empty once it loaded no record: none found, every candidate declined, or
+// "Continue without". A result outside the declared shape is an executor defect, never empty.
+function loadedNothing(execution: StepExecutionData | undefined): boolean {
+  if (execution?.type !== 'load-related-record' || isPerRecordExecution(execution)) return false;
+
+  const result = execution.executionResult;
+  if (result && 'records' in result) return result.records.length === 0;
+
+  return classifyMissingSourceRecord(execution) !== undefined;
+}
+
+// The index of the empty load a step skips for (PRD-2399): its own load, or the Multiple load its
+// chain runs once per record of, set to Skip and empty, or the empty load an earlier skip carries
+// down, whatever the loads in between are set to. Null runs the step as before.
+async function findSkippingLoad(
+  step: AvailableStepExecution,
+  perRecordSource: PerRecordSource | null,
+  runStore: RunStore,
+): Promise<number | null> {
+  if (!PER_RECORD_STEP_TYPES.includes(step.stepDefinition.type)) return null;
+  // A skip must take a branch, which only the operator can pick.
+  if ((step.stepDefinition as TriggerActionStepDefinition).approvalOutcomes === true) return null;
+
+  const pin = (step.stepDefinition as { preRecordedArgs?: { selectedRecordStepId?: string } })
+    .preRecordedArgs?.selectedRecordStepId;
+  if (pin === undefined || pin === WORKFLOW_START_STEP_ID) return null;
+
+  const source = findPinnedLoadStep(step.previousSteps, pin, step.callScope?.currentFrameStepIndexes);
+  if (!source) return null;
+
+  const executions = await runStore.getStepExecutions(step.runId);
+  const direct = findStepExecution(source, executions);
+  if (isSkippedForNoRecord(direct)) return direct.executionResult.emptySourceStepIndex;
+
+  const load = perRecordSource?.root ?? source;
+  const execution = perRecordSource ? findStepExecution(load, executions) : direct;
+  if (isSkippedForNoRecord(execution)) return execution.executionResult.emptySourceStepIndex;
+
+  const { ifNoRecords } =
+    (load.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs ?? {};
+
+  return ifNoRecords === 'skip' && loadedNothing(execution) ? load.stepOutcome.stepIndex : null;
+}
+
+// The step runs on no record: it keeps the empty load it skipped for, which the run view names,
+// and a skipped load tells the orchestrator it loaded none, so a Sub-workflow on it is skipped too.
+function skipForNoRecord(context: ExecutionContext, emptySourceStepIndex: number): IStepExecutor {
+  const { runId, stepId, stepIndex, stepDefinition } = context;
+
+  return {
+    execute: async (): Promise<StepExecutionResult> => {
+      await context.runStore.saveStepExecution(runId, {
+        type: stepDefinition.type as SkippedForNoRecordStepExecutionData['type'],
+        stepIndex,
+        executionResult: { skipped: true, emptySourceStepIndex },
+      });
+      context.logger('Info', 'Step skipped: the load it uses loaded no record', {
+        runId,
+        stepId,
+        stepIndex,
+        emptySourceStepIndex,
+      });
+
+      return {
+        stepOutcome: {
+          type: 'record',
+          stepId,
+          stepIndex,
+          status: 'success',
+          ...(stepDefinition.type === StepType.LoadRelatedRecord && { loadedRecordCount: 0 }),
+        },
+      };
+    },
+  };
 }
 
 // The record a call opened once per record runs on: its Multiple step's record at the call's
@@ -203,6 +282,9 @@ export default class StepExecutorFactory {
         runStore: await scopeToRecordCalls(step, builtContext.runStore),
       };
       const perRecordSource = findPerRecordSource(step);
+      const emptySourceStepIndex = await findSkippingLoad(step, perRecordSource, context.runStore);
+
+      if (emptySourceStepIndex !== null) return skipForNoRecord(context, emptySourceStepIndex);
 
       if (perRecordSource) {
         if ((step.stepDefinition as TriggerActionStepDefinition).approvalOutcomes === true) {

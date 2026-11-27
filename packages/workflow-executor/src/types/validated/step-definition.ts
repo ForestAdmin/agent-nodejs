@@ -366,6 +366,11 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
       filters: z.unknown().optional(),
       /** Loads several records, and the steps sourced from it run once per record. Absent = Single. */
       multiple: z.boolean().optional(),
+      /**
+       * What the steps using this load do when it loads no record. Absent, null (a new step not
+       * yet set) or anything else is Stop: a bad value must not make the whole run unreadable.
+       */
+      ifNoRecords: z.enum(['skip', 'stop']).optional().catch(undefined),
     })
     .optional(),
 });

@@ -70,7 +70,7 @@ function makeContextConfig(): StepContextConfig {
     aiModelPort: { getModel: jest.fn().mockReturnValue({}) },
     agentPort: {},
     workflowPort: {},
-    runStore: {},
+    runStore: { getStepExecutions: jest.fn().mockResolvedValue([]) },
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
     forestServerUrl: FOREST_SERVER_URL,

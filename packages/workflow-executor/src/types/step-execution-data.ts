@@ -333,6 +333,27 @@ export interface PerRecordStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: undefined;
 }
 
+// A step skipped because the load it reads loaded no record and was set to Skip: it ran on no
+// record, so it holds only the load that came back empty, which the run view names.
+export interface SkippedForNoRecordStepExecutionData extends BaseStepExecutionData {
+  type: PerRecordExecution['type'];
+  executionResult: { skipped: true; emptySourceStepIndex: number };
+  iterations?: undefined;
+  selectedRecordRef?: undefined;
+  executionParams?: undefined;
+  pendingData?: undefined;
+  userConfirmation?: undefined;
+  idempotencyPhase?: undefined;
+}
+
+export function isSkippedForNoRecord(
+  execution: StepExecutionData | undefined,
+): execution is SkippedForNoRecordStepExecutionData {
+  const result = execution?.executionResult as { emptySourceStepIndex?: unknown } | undefined;
+
+  return typeof result?.emptySourceStepIndex === 'number';
+}
+
 export function isPerRecordExecution(
   execution: StepExecutionData | undefined,
 ): execution is PerRecordStepExecutionData {
@@ -354,6 +375,7 @@ export type StepExecutionData =
   | LoadRelatedRecordStepExecutionData
   | McpStepExecutionData
   | GuidanceStepExecutionData
-  | PerRecordStepExecutionData;
+  | PerRecordStepExecutionData
+  | SkippedForNoRecordStepExecutionData;
 
 export type ExecutedStepExecutionData = StepExecutionData;
