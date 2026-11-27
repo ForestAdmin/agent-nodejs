@@ -8,12 +8,7 @@ import type {
   RecordRef,
 } from '../types/validated/collection';
 
-import {
-  ActivityLogCreationError,
-  AgentPortError,
-  InvalidPreRecordedArgsError,
-  RecordNotFoundError,
-} from '../errors';
+import { AgentPortError, InvalidPreRecordedArgsError, RecordNotFoundError } from '../errors';
 
 export type RelationPathHop = { relationDisplayName: string; collectionDisplayName: string };
 
@@ -25,13 +20,10 @@ export type RelationPathResolution =
 const FORBIDDEN_AGENT_STATUSES: ReadonlySet<number> = new Set([401, 403]);
 
 function isAccessDenied(error: unknown): boolean {
-  if (error instanceof AgentPortError) {
-    return error.httpStatus !== undefined && FORBIDDEN_AGENT_STATUSES.has(error.httpStatus);
-  }
-
   return (
-    error instanceof ActivityLogCreationError &&
-    (error.cause as { reason?: unknown } | undefined)?.reason === 'notAuthorized'
+    error instanceof AgentPortError &&
+    error.httpStatus !== undefined &&
+    FORBIDDEN_AGENT_STATUSES.has(error.httpStatus)
   );
 }
 
