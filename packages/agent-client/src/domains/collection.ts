@@ -139,7 +139,8 @@ export default class Collection extends CollectionChart {
         async () => {
           const action = await this.action(actionName, context);
           if (fill) await fill(action);
-          assertActionValuesExecutable(action);
+          // The agent runs a signed approval request on its signed values, not on this form's.
+          if (!signedApprovalRequest) assertActionValuesExecutable(action);
           isExecuteSent = true;
 
           return action.execute({

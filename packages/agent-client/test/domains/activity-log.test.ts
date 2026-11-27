@@ -443,7 +443,7 @@ describe('activity logging inside agent-client calls', () => {
       );
     });
 
-    it('should refuse to execute a form whose values are left empty, and mark the entry failed', async () => {
+    function setupWithRequiredAmount() {
       const { httpRequester, service, query } = setup();
       const collection = new Collection(
         'users',
@@ -463,6 +463,12 @@ describe('activity logging inside agent-client calls', () => {
         },
       );
 
+      return { collection, service, query };
+    }
+
+    it('should refuse to execute a form whose values are left empty, and mark the entry failed', async () => {
+      const { collection, service, query } = setupWithRequiredAmount();
+
       const error = await collection.executeAction('refund').catch(caught => caught);
       await drainActivityLogs();
 
@@ -471,6 +477,29 @@ describe('activity logging inside agent-client calls', () => {
       expect(query).not.toHaveBeenCalled();
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('should send a signed approval request whatever the values of the fresh form', async () => {
+      const { collection, query } = setupWithRequiredAmount();
+      const signedApprovalRequest = { token: 'signed' };
+      query.mockResolvedValue({ success: 'done' });
+
+      await expect(collection.executeAction('refund', { signedApprovalRequest })).resolves.toEqual({
+        success: 'done',
+      });
+      expect(query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'post',
+          path: '/forest/actions/refund',
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                signed_approval_request: signedApprovalRequest,
+              }),
+            }),
+          }),
+        }),
       );
     });
 
