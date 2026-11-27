@@ -849,12 +849,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.buildOutcomeResult(EMPTY_LOAD_OUTCOME);
   }
 
-  // Set to Skip, a load with no record to offer carries on rather than wait for a person to say so,
-  // but only on a pinned relation: otherwise the operator can still switch to one that has records.
+  // Set to Skip, a load with no record to offer carries on rather than wait for a person to say so.
+  // A Single load with no pinned relation still pauses, since the operator can switch to one that
+  // has records. A Multiple load never switches relation, so nothing is gained by pausing it.
   private get skipsWhenEmpty(): boolean {
     const { ifNoRecords, relationName } = this.context.stepDefinition.preRecordedArgs ?? {};
 
-    return ifNoRecords === 'skip' && relationName !== undefined;
+    return ifNoRecords === 'skip' && (this.isMultiple || relationName !== undefined);
   }
 
   // One record for a Single step, several for a Multiple one.

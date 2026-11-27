@@ -5683,16 +5683,20 @@ describe('empty load: what the orchestrator is told, and Skip', () => {
     });
   });
 
-  it.each([StepExecutionMode.Manual, StepExecutionMode.AutomatedWithConfirmation])(
-    'carries on without pausing in %s mode when a Multiple load set to Skip finds no record',
-    async executionType => {
+  it.each([
+    [StepExecutionMode.Manual, 'order'],
+    [StepExecutionMode.AutomatedWithConfirmation, 'order'],
+    [StepExecutionMode.Manual, undefined],
+  ])(
+    'carries on without pausing in %s mode when a Multiple load set to Skip finds no record (relation pinned: %s)',
+    async (executionType, relationName) => {
       const runStore = makeMockRunStore();
       const context = makeContext({
         agentPort: makeMockAgentPort([]),
         runStore,
         stepDefinition: makeStep({
           executionType,
-          preRecordedArgs: { relationName: 'order', multiple: true, ifNoRecords: 'skip' },
+          preRecordedArgs: { relationName, multiple: true, ifNoRecords: 'skip' },
         }),
       });
 
