@@ -4,6 +4,7 @@ import type { StepExecutionData } from '../../src/types/step-execution-data';
 
 import { drainActivityLogs } from '@forestadmin/agent-client';
 
+import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import StepExecutorFactory from '../../src/executors/step-executor-factory';
 import SchemaCache from '../../src/schema-cache';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
@@ -212,6 +213,50 @@ describe('a step using a load that loaded no record', () => {
         type: 'load-related-record',
         stepIndex: 5,
         executionResult: { skipped: true, emptySourceStepIndex: 1 },
+      });
+    });
+    it('runs the step as usual when the Skip load did load a record', async () => {
+      const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
+      const loaded = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        executionParams: { name: 'ubos', displayName: 'UBOs' },
+        executionResult: {
+          relation: { name: 'ubos', displayName: 'UBOs' },
+          record: { collectionName: 'ubos', recordId: [9], stepIndex: 1 },
+        },
+        selectedRecordRef: customer,
+      } as StepExecutionData;
+      const { config, saveStepExecution } = makeConfig([loaded]);
+
+      const executor = await StepExecutorFactory.create(
+        makeStep(getData('load-ubo'), previous),
+        config,
+        jest.fn(),
+      );
+
+      expect(executor).toBeInstanceOf(ReadRecordStepExecutor);
+      expect(saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails the step, rather than the run, when saving the skip fails', async () => {
+      const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
+      const { config, saveStepExecution } = makeConfig([emptyLoad(1)]);
+      saveStepExecution.mockRejectedValueOnce(new Error('store unavailable'));
+
+      const executor = await StepExecutorFactory.create(
+        makeStep(getData('load-ubo'), previous),
+        config,
+        jest.fn(),
+      );
+      const { stepOutcome } = await executor.execute();
+
+      expect(stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'step-under-test',
+        stepIndex: 5,
+        status: 'error',
+        error: 'Unexpected error during step execution',
       });
     });
   });

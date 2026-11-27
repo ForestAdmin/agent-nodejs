@@ -36,6 +36,10 @@ import { MAX_SELECTED_RECORDS } from '../http/pending-data-validators';
 import { serializeRecordId } from '../record-id';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
+// What a load that ends with no record reports, so the orchestrator can tell it from one that
+// loaded some and skip a Sub-workflow on it. A step skipped for an earlier empty load reports it too.
+export const EMPTY_LOAD_OUTCOME = { status: 'success', loadedRecordCount: 0 } as const;
+
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 You are given relations to follow, each shown as "<source record> → <relation> (→ <target collection>)".
 Choose the relation that LEADS TO the collection the user wants to load — decide from each
@@ -833,7 +837,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       selectedRecordRef: target.selectedRecordRef,
     });
 
-    return this.buildOutcomeResult({ status: 'success', loadedRecordCount: 0 });
+    return this.buildOutcomeResult(EMPTY_LOAD_OUTCOME);
   }
 
   // A decline loads no record either, which the orchestrator needs to skip a Sub-workflow on it.
@@ -842,12 +846,15 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<StepExecutionResult> {
     await super.declineConfirmation(execution);
 
-    return this.buildOutcomeResult({ status: 'success', loadedRecordCount: 0 });
+    return this.buildOutcomeResult(EMPTY_LOAD_OUTCOME);
   }
 
-  // Set to Skip, a load with no record to offer carries on rather than wait for a person to say so.
+  // Set to Skip, a load with no record to offer carries on rather than wait for a person to say so,
+  // but only on a pinned relation: otherwise the operator can still switch to one that has records.
   private get skipsWhenEmpty(): boolean {
-    return this.context.stepDefinition.preRecordedArgs?.ifNoRecords === 'skip';
+    const { ifNoRecords, relationName } = this.context.stepDefinition.preRecordedArgs ?? {};
+
+    return ifNoRecords === 'skip' && relationName !== undefined;
   }
 
   // One record for a Single step, several for a Multiple one.

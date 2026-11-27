@@ -5661,4 +5661,57 @@ describe('empty load: what the orchestrator is told, and Skip', () => {
       status: 'awaiting-input',
     });
   });
+
+  it('still pauses on an empty Skip load whose relation is not pinned, so the operator can switch relation', async () => {
+    const runStore = makeMockRunStore();
+    const context = makeContext({
+      agentPort: makeMockAgentPort([]),
+      runStore,
+      stepDefinition: makeStep({
+        executionType: StepExecutionMode.Manual,
+        preRecordedArgs: { ifNoRecords: 'skip' },
+      }),
+    });
+
+    const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'load-1',
+      stepIndex: 0,
+      status: 'awaiting-input',
+    });
+  });
+
+  it.each([StepExecutionMode.Manual, StepExecutionMode.AutomatedWithConfirmation])(
+    'carries on without pausing in %s mode when a Multiple load set to Skip finds no record',
+    async executionType => {
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        agentPort: makeMockAgentPort([]),
+        runStore,
+        stepDefinition: makeStep({
+          executionType,
+          preRecordedArgs: { relationName: 'order', multiple: true, ifNoRecords: 'skip' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'load-1',
+        stepIndex: 0,
+        status: 'success',
+        loadedRecordCount: 0,
+      });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'load-related-record',
+        stepIndex: 0,
+        executionParams: { name: 'order', displayName: 'Order' },
+        executionResult: { skipped: true },
+        selectedRecordRef: makeRecordRef(),
+      });
+    },
+  );
 });

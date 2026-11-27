@@ -13,10 +13,7 @@ import type {
   RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
-import type {
-  SkippedForNoRecordStepExecutionData,
-  StepExecutionData,
-} from '../types/step-execution-data';
+import type { StepExecutionData } from '../types/step-execution-data';
 import type { RecordRef } from '../types/validated/collection';
 import type { CallScope, Step } from '../types/validated/execution';
 import type {
@@ -57,6 +54,7 @@ import McpStepExecutor from './mcp-step-executor';
 import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
 import { classifyMissingSourceRecord, findPinnedLoadStep } from './record-step-executor';
+import SkippedForNoRecordStepExecutor from './skipped-for-no-record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
 import { isPerRecordExecution, isSkippedForNoRecord } from '../types/step-execution-data';
@@ -146,38 +144,6 @@ async function findSkippingLoad(
     (load.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs ?? {};
 
   return ifNoRecords === 'skip' && loadedNothing(execution) ? load.stepOutcome.stepIndex : null;
-}
-
-// The step runs on no record: it keeps the empty load it skipped for, which the run view names,
-// and a skipped load tells the orchestrator it loaded none, so a Sub-workflow on it is skipped too.
-function skipForNoRecord(context: ExecutionContext, emptySourceStepIndex: number): IStepExecutor {
-  const { runId, stepId, stepIndex, stepDefinition } = context;
-
-  return {
-    execute: async (): Promise<StepExecutionResult> => {
-      await context.runStore.saveStepExecution(runId, {
-        type: stepDefinition.type as SkippedForNoRecordStepExecutionData['type'],
-        stepIndex,
-        executionResult: { skipped: true, emptySourceStepIndex },
-      });
-      context.logger('Info', 'Step skipped: the load it uses loaded no record', {
-        runId,
-        stepId,
-        stepIndex,
-        emptySourceStepIndex,
-      });
-
-      return {
-        stepOutcome: {
-          type: 'record',
-          stepId,
-          stepIndex,
-          status: 'success',
-          ...(stepDefinition.type === StepType.LoadRelatedRecord && { loadedRecordCount: 0 }),
-        },
-      };
-    },
-  };
 }
 
 // The record a call opened once per record runs on: its Multiple step's record at the call's
@@ -284,7 +250,9 @@ export default class StepExecutorFactory {
       const perRecordSource = findPerRecordSource(step);
       const emptySourceStepIndex = await findSkippingLoad(step, perRecordSource, context.runStore);
 
-      if (emptySourceStepIndex !== null) return skipForNoRecord(context, emptySourceStepIndex);
+      if (emptySourceStepIndex !== null) {
+        return new SkippedForNoRecordStepExecutor(context, emptySourceStepIndex);
+      }
 
       if (perRecordSource) {
         if ((step.stepDefinition as TriggerActionStepDefinition).approvalOutcomes === true) {
