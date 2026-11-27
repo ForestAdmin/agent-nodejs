@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import type { StepUser } from '../../src/types/execution-context';
-import type { ExecuteActionOptions } from '@forestadmin/agent-client';
+import type { ActivityLogConfig, ExecuteActionOptions } from '@forestadmin/agent-client';
 
 import {
   ActivityLogBlockedError,
@@ -1140,6 +1140,100 @@ describe('AgentClientAgentPort', () => {
           user,
         ),
       ).rejects.toThrow(AgentPortError);
+    });
+  });
+
+  describe('getRelatedRecordId', () => {
+    const customersSchema = {
+      collectionName: 'customers',
+      collectionId: 'col-customers',
+      collectionDisplayName: 'Customers',
+      primaryKeyFields: ['id'],
+      fields: [{ fieldName: 'id', displayName: 'id', isRelationship: false }],
+      actions: [],
+    };
+
+    const query = {
+      collection: 'claims',
+      id: [3],
+      relation: 'customer',
+      relatedSchema: customersSchema,
+    };
+
+    it('reads only the linkage of the relation, projecting the related primary key', async () => {
+      mockCollection.getOne.mockResolvedValueOnce({
+        data: { attributes: {}, relationships: { customer: { data: { id: '12' } } } },
+      });
+
+      const result = await port.getRelatedRecordId(query, user);
+
+      expect(result).toEqual(['12']);
+      expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
+        [3],
+        { fields: ['customer@@@id'] },
+        { skipDeserialization: true },
+      );
+    });
+
+    it('reads the id a smart reference attribute holds', async () => {
+      mockCollection.getOne.mockResolvedValueOnce({
+        data: { attributes: { customer: 'uuid-7' }, relationships: {} },
+      });
+
+      await expect(port.getRelatedRecordId(query, user)).resolves.toEqual(['uuid-7']);
+    });
+
+    it('splits a composite related key', async () => {
+      mockCollection.getOne.mockResolvedValueOnce({
+        data: { relationships: { customer: { data: { id: '1|2' } } } },
+      });
+
+      await expect(
+        port.getRelatedRecordId(
+          { ...query, relatedSchema: { ...customersSchema, primaryKeyFields: ['a', 'b'] } },
+          user,
+        ),
+      ).resolves.toEqual(['1', '2']);
+    });
+
+    it.each([
+      ['no linkage', { relationships: { customer: { data: null } } }],
+      ['an empty reference attribute', { attributes: { customer: '' }, relationships: {} }],
+    ])('returns null on %s', async (_label, data) => {
+      mockCollection.getOne.mockResolvedValueOnce({ data });
+
+      await expect(port.getRelatedRecordId(query, user)).resolves.toBeNull();
+    });
+
+    it('throws RecordNotFoundError when the parent answers 404', async () => {
+      mockCollection.getOne.mockRejectedValueOnce(new Error('Not found'));
+      mockedIs404Error.mockReturnValue(true);
+
+      await expect(port.getRelatedRecordId(query, user)).rejects.toThrow(RecordNotFoundError);
+    });
+
+    it('logs the read as a related-data listing on the parent record', async () => {
+      mockCollection.getOne.mockResolvedValueOnce({
+        data: { relationships: { customer: { data: { id: '12' } } } },
+      });
+      const context = { forestServerToken: 't' } as unknown as ActivityLogConfig;
+
+      await port.getRelatedRecordId(query, user, {
+        context,
+        call: { label: 'list relation "Customer"' },
+      });
+
+      expect(withActivityLog).toHaveBeenCalledWith(
+        context,
+        {
+          action: 'listRelatedData',
+          collectionName: 'claims',
+          recordIds: ['3'],
+          label: 'list relation "Customer"',
+        },
+        expect.any(Function),
+      );
     });
   });
 

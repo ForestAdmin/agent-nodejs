@@ -268,6 +268,27 @@ export const isDeterministicConditionStep = (
   step: ConditionStepDefinition,
 ): step is DeterministicConditionStep => step.preRecordedArgs !== undefined;
 
+export const MAX_RELATION_PATH_LENGTH = 3;
+
+const RelationPathSchema = z
+  .array(z.string().min(1))
+  .min(1)
+  .max(MAX_RELATION_PATH_LENGTH)
+  .optional();
+
+function requireRelationPathRoot(
+  args: { selectedRecordStepId?: string; relationPath?: string[] },
+  ctx: z.RefinementCtx,
+): void {
+  if (args.relationPath !== undefined && args.selectedRecordStepId === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['relationPath'],
+      message: 'a relation path needs a selectedRecordStepId to start from',
+    });
+  }
+}
+
 export const ReadRecordStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.ReadRecord),
@@ -280,11 +301,13 @@ export const ReadRecordStepDefinitionSchema = z.object({
        * record. Stable across revisions, unlike the runtime stepIndex.
        */
       selectedRecordStepId: z.string().optional(),
+      relationPath: RelationPathSchema,
       // Legacy runtime index; superseded by selectedRecordStepId. Kept for back-compat.
       selectedRecordStepIndex: z.number().int().optional(),
       /** Technical names of the fields to read */
       fieldNames: z.array(z.string()).optional(),
     })
+    .superRefine(requireRelationPathRoot)
     .optional(),
 });
 export type ReadRecordStepDefinition = z.infer<typeof ReadRecordStepDefinitionSchema>;
@@ -304,12 +327,14 @@ export const UpdateRecordStepDefinitionSchema = z.object({
        * record. Stable across revisions, unlike the runtime stepIndex.
        */
       selectedRecordStepId: z.string().optional(),
+      relationPath: RelationPathSchema,
       // Legacy runtime index; superseded by selectedRecordStepId. Kept for back-compat.
       selectedRecordStepIndex: z.number().int().optional(),
       /** Technical name of the field to update */
       fieldName: z.string().optional(),
       value: z.unknown().optional(),
     })
+    .superRefine(requireRelationPathRoot)
     .optional(),
 });
 export type UpdateRecordStepDefinition = z.infer<typeof UpdateRecordStepDefinitionSchema>;
@@ -331,9 +356,11 @@ export const TriggerActionStepDefinitionSchema = z.object({
        * for the trigger record. Stable across revisions, unlike the runtime stepIndex.
        */
       selectedRecordStepId: z.string().optional(),
+      relationPath: RelationPathSchema,
       /** Technical name of the action to trigger */
       actionName: z.string().optional(),
     })
+    .superRefine(requireRelationPathRoot)
     .optional(),
   // Saved with an `approved` and a `rejected` branch: a request filed for approval pauses the step
   // until it is reviewed, instead of succeeding as soon as it is filed.
@@ -360,6 +387,7 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
        * stepIndex), so the editor can write it deterministically.
        */
       selectedRecordStepId: z.string().optional(),
+      relationPath: RelationPathSchema,
       /** "From collection" — the relation to follow (technical name) */
       relationName: z.string().optional(),
       /** 1–n relation filter (conditionTree), forwarded verbatim; loosely typed as it's trusted config the agent validates. */
@@ -367,6 +395,7 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
       /** Loads several records, and the steps sourced from it run once per record. Absent = Single. */
       multiple: z.boolean().optional(),
     })
+    .superRefine(requireRelationPathRoot)
     .optional(),
 });
 export type LoadRelatedRecordStepDefinition = z.infer<typeof LoadRelatedRecordStepDefinitionSchema>;

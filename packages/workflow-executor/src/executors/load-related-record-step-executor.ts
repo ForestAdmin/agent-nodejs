@@ -188,7 +188,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const sourceRecords =
       preRecordedArgs?.selectedRecordStepId !== undefined
-        ? [await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)]
+        ? [
+            await this.resolveSourceRecordRef(
+              preRecordedArgs.selectedRecordStepId,
+              preRecordedArgs.relationPath,
+            ),
+          ]
         : await this.getAvailableRecordRefs();
 
     const candidates = await this.buildRelationCandidates(sourceRecords);

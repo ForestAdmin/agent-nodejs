@@ -509,6 +509,8 @@ export class McpToolCallLimitError extends WorkflowExecutorError {
 }
 
 export class AgentPortError extends WorkflowExecutorError {
+  readonly httpStatus?: number;
+
   constructor(operation: string, cause: unknown, agentMessage?: string) {
     const causeText = cause instanceof Error ? cause.message : String(cause);
 
@@ -519,6 +521,9 @@ export class AgentPortError extends WorkflowExecutorError {
       'An error occurred while accessing your data. Please try again.',
     );
     this.cause = cause;
+
+    const { status } = (cause ?? {}) as { status?: unknown };
+    if (typeof status === 'number') this.httpStatus = status;
   }
 }
 
@@ -883,6 +888,26 @@ export class SourceRecordStepNotReachedError extends WorkflowCallSiteError {
     super(
       `Sub-workflow call pins step "${pinnedStepId}", which did not run before the call`,
       'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    );
+  }
+}
+
+export class RelationPathEmptyError extends WorkflowOperatorError {
+  constructor(stepTitle: string | undefined, recordName: string, pathLabel: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'this step';
+    super(
+      `No record at relation path ${pathLabel}`,
+      `Couldn't run ${step}: no ${recordName} was found at ${pathLabel}.`,
+    );
+  }
+}
+
+export class CollectionAccessDeniedError extends WorkflowConfigurationError {
+  constructor(stepTitle: string | undefined, collectionDisplayName: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'this step';
+    super(
+      `Access denied to collection ${collectionDisplayName} on a relation path`,
+      `Couldn't run ${step}: the user running this workflow can't access ${collectionDisplayName}.`,
     );
   }
 }

@@ -10,7 +10,9 @@ import type {
   GetActionFormQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
+  GetRelatedRecordIdQuery,
   GetSingleRelatedDataQuery,
+  Id,
   ResolvePolymorphicTypeQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
@@ -287,61 +289,13 @@ export default class AgentClientAgentPort implements AgentPort {
 
     return this.callAgent('getSingleRelatedData', () =>
       withActivityLog(audit?.context, entry ?? null, async () => {
-        // The agent can't parse multiple sub-fields on one relation in a single projection
-        // (`fields[store]=id,name` is read as a single field name → ValidationError). The linkage
-        // `id` carries the (packed) related PK regardless of projection, so project at most ONE
-        // field: the requested reference field, else a single PK field just to pull the relation
-        // into the response.
-        const projectedField = fields?.[0] ?? relatedSchema.primaryKeyFields[0];
+        const recordId = await this.readRelatedRecordId(
+          { collection, id, relation, relatedSchema },
+          user,
+          fields?.[0],
+        );
 
-        let body: RawRecordBody;
-
-        try {
-          body = await this.createClient(user)
-            .collection(collection)
-            .getOne<RawRecordBody>(
-              id,
-              { fields: [`${relation}@@@${projectedField}`] },
-              { skipDeserialization: true },
-            );
-        } catch (error) {
-          if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
-
-          throw error;
-        }
-
-        // Some agents answer a missing composite-key record with a 200 + empty body instead of 404,
-        // like getRecord above. Reading that as an unset relation would report "nothing to load" for
-        // a parent that was never read — the exact confusion this method exists to remove.
-        if (!body?.data) throw new RecordNotFoundError(collection, id);
-
-        const node = body.data;
-        // Raw keys are the agent's own field names, so no inflection to second-guess. A linkage
-        // covers the Rails `belongs_to` DSL, forest-express references and v2 agents; the attribute
-        // covers a forest-rails `field ... reference:`, whose value IS the related id.
-        // An empty string is the idiomatic Ruby answer for an unset association (`&.id.to_s`), and it
-        // would serialize to an id-less by-id URL, which agents route to the index action instead.
-        const linkageId = node.relationships?.[relation]?.data?.id;
-        const attribute = node.attributes?.[relation];
-
-        // A `field ... reference:` block that returns the record instead of its id serializes the
-        // whole record under the attribute — captured from forest-rails, not assumed — so the id sits
-        // one level in. Any other scalar IS the id.
-        const raw =
-          linkageId ??
-          (attribute && typeof attribute === 'object'
-            ? (attribute as { id?: unknown }).id
-            : attribute);
-
-        if (raw == null || raw === '') return null;
-
-        // Only a composite key is pipe-packed, so a single-key value is never split — a smart field's
-        // value is written by the client and splitting it would tear it in two. Such a value cannot
-        // hold a pipe either way: `serializeRecordId` refuses one rather than emit an id the agent
-        // would unpack into the wrong number of key parts. That surfaces as an AgentPortError naming
-        // the value, which is cryptic but loud; naming the relation too would need a domain error.
-        const recordId =
-          relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
+        if (recordId === null) return null;
 
         // The target is read even when the caller projected nothing, on its first PK alone. Skipping
         // the read to save the round trip also skipped the readability check below, so a relation
@@ -367,6 +321,84 @@ export default class AgentClientAgentPort implements AgentPort {
         }
       }),
     );
+  }
+
+  async getRelatedRecordId(
+    { collection, id, relation, relatedSchema }: GetRelatedRecordIdQuery,
+    user: StepUser,
+    audit?: AgentAudit,
+  ): Promise<Id[] | null> {
+    const entry = audit && {
+      action: 'listRelatedData' as const,
+      collectionName: collection,
+      recordIds: [serializeRecordId(id)],
+      label: audit.call?.label,
+    };
+
+    return this.callAgent('getRelatedRecordId', () =>
+      withActivityLog(audit?.context, entry ?? null, () =>
+        this.readRelatedRecordId({ collection, id, relation, relatedSchema }, user),
+      ),
+    );
+  }
+
+  private async readRelatedRecordId(
+    { collection, id, relation, relatedSchema }: GetRelatedRecordIdQuery,
+    user: StepUser,
+    projectedReferenceField?: string,
+  ): Promise<Id[] | null> {
+    // The agent can't parse multiple sub-fields on one relation in a single projection
+    // (`fields[store]=id,name` is read as a single field name → ValidationError). The linkage
+    // `id` carries the (packed) related PK regardless of projection, so project at most ONE
+    // field: the requested reference field, else a single PK field just to pull the relation
+    // into the response.
+    const projectedField = projectedReferenceField ?? relatedSchema.primaryKeyFields[0];
+
+    let body: RawRecordBody;
+
+    try {
+      body = await this.createClient(user)
+        .collection(collection)
+        .getOne<RawRecordBody>(
+          id,
+          { fields: [`${relation}@@@${projectedField}`] },
+          { skipDeserialization: true },
+        );
+    } catch (error) {
+      if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
+
+      throw error;
+    }
+
+    // Some agents answer a missing composite-key record with a 200 + empty body instead of 404,
+    // like getRecord above. Reading that as an unset relation would report "nothing to load" for
+    // a parent that was never read — the exact confusion this method exists to remove.
+    if (!body?.data) throw new RecordNotFoundError(collection, id);
+
+    const node = body.data;
+    // Raw keys are the agent's own field names, so no inflection to second-guess. A linkage
+    // covers the Rails `belongs_to` DSL, forest-express references and v2 agents; the attribute
+    // covers a forest-rails `field ... reference:`, whose value IS the related id.
+    // An empty string is the idiomatic Ruby answer for an unset association (`&.id.to_s`), and it
+    // would serialize to an id-less by-id URL, which agents route to the index action instead.
+    const linkageId = node.relationships?.[relation]?.data?.id;
+    const attribute = node.attributes?.[relation];
+
+    // A `field ... reference:` block that returns the record instead of its id serializes the
+    // whole record under the attribute — captured from forest-rails, not assumed — so the id sits
+    // one level in. Any other scalar IS the id.
+    const raw =
+      linkageId ??
+      (attribute && typeof attribute === 'object' ? (attribute as { id?: unknown }).id : attribute);
+
+    if (raw == null || raw === '') return null;
+
+    // Only a composite key is pipe-packed, so a single-key value is never split — a smart field's
+    // value is written by the client and splitting it would tear it in two. Such a value cannot
+    // hold a pipe either way: `serializeRecordId` refuses one rather than emit an id the agent
+    // would unpack into the wrong number of key parts. That surfaces as an AgentPortError naming
+    // the value, which is cryptic but loud; naming the relation too would need a domain error.
+    return relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
   }
 
   async executeAction(

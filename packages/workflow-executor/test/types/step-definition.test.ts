@@ -2,8 +2,11 @@ import {
   ConditionStepDefinitionSchema,
   GuidanceStepDefinitionSchema,
   LoadRelatedRecordStepDefinitionSchema,
+  ReadRecordStepDefinitionSchema,
   StepExecutionMode,
   StepType,
+  TriggerActionStepDefinitionSchema,
+  UpdateRecordStepDefinitionSchema,
 } from '../../src/types/validated/step-definition';
 
 describe('ConditionStepDefinitionSchema executionType', () => {
@@ -699,5 +702,47 @@ describe('the Multiple flag and the condition quantifier', () => {
 
   it('refuses a quantifier outside any, every and none', () => {
     expect(ConditionStepDefinitionSchema.safeParse(conditionWith('some')).success).toBe(false);
+  });
+});
+
+describe('the relation path of a record step', () => {
+  describe.each([
+    ['Get Data', ReadRecordStepDefinitionSchema, StepType.ReadRecord],
+    ['Update Data', UpdateRecordStepDefinitionSchema, StepType.UpdateRecord],
+    ['Trigger Action', TriggerActionStepDefinitionSchema, StepType.TriggerAction],
+    ['Load Related Record', LoadRelatedRecordStepDefinitionSchema, StepType.LoadRelatedRecord],
+  ])('on %s', (_label, schema, type) => {
+    const parse = (preRecordedArgs: Record<string, unknown>) =>
+      schema.safeParse({ type, preRecordedArgs });
+
+    it('keeps a path of up to three relations', () => {
+      const result = parse({
+        selectedRecordStepId: 'workflow-start',
+        relationPath: ['claim', 'card', 'initiator'],
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.preRecordedArgs).toMatchObject({
+        relationPath: ['claim', 'card', 'initiator'],
+      });
+    });
+
+    it.each([
+      ['more than three relations', ['a', 'b', 'c', 'd']],
+      ['no relation', []],
+      ['an empty relation name', ['customer', '']],
+    ])('refuses a path with %s', (_case, relationPath) => {
+      expect(parse({ selectedRecordStepId: 'workflow-start', relationPath }).success).toBe(false);
+    });
+
+    it('refuses a path without a record to start from', () => {
+      const result = parse({ relationPath: ['customer'] });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]).toMatchObject({
+        path: ['preRecordedArgs', 'relationPath'],
+        message: 'a relation path needs a selectedRecordStepId to start from',
+      });
+    });
   });
 });

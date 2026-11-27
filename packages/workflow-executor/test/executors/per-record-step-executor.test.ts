@@ -315,6 +315,32 @@ describe('a step running once per record', () => {
       );
     });
 
+    it('follows its relation path from each record in turn', async () => {
+      const agentPort = makeAgentPort({
+        getRelatedRecordId: jest.fn(async ({ id }) => [`addr-${id[0]}`]),
+      });
+      const { run, row } = await setup({
+        stepDefinition: readUbos({ relationPath: ['address'], fieldNames: ['city'] }),
+        agentPort,
+      });
+
+      const result = await run();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRelatedRecordId.mock.calls.map(([query]) => query.id)).toStrictEqual([
+        [1],
+        [2],
+        [3],
+      ]);
+      expect((await row()).iterations?.map(iteration => iteration.selectedRecordRef)).toStrictEqual(
+        [1, 2, 3].map(id => ({
+          collectionName: 'addresses',
+          recordId: [`addr-${id}`],
+          stepIndex: ubo(id).stepIndex,
+        })),
+      );
+    });
+
     it('lists every record when the step starts, before the first one has run', async () => {
       let rowSeenOnFirstRead: StepIteration[] | undefined;
       const agentPort = makeAgentPort();

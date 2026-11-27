@@ -7,7 +7,9 @@ import type {
   GetActionFormQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
+  GetRelatedRecordIdQuery,
   GetSingleRelatedDataQuery,
+  Id,
   ResolvePolymorphicTypeQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
@@ -64,6 +66,15 @@ export default class AgentWithLog {
     const label = await this.relationLabel(query.collection, query.relation);
 
     return this.agentPort.getSingleRelatedData(query, this.user, {
+      context: this.activityLog,
+      call: { label },
+    });
+  }
+
+  async getRelatedRecordId(query: GetRelatedRecordIdQuery): Promise<Id[] | null> {
+    const label = await this.relationLabel(query.collection, query.relation);
+
+    return this.agentPort.getRelatedRecordId(query, this.user, {
       context: this.activityLog,
       call: { label },
     });
