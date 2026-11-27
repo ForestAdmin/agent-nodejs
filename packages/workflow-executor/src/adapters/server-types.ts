@@ -142,6 +142,7 @@ export type ServerWorkflowConditionNode =
   | {
       sourceType?: string | null;
       sourceStepId: string;
+      relationPath?: string[];
       fieldName: string;
       operator: string;
       value?: unknown;

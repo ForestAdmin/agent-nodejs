@@ -100,7 +100,15 @@ const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'previous_year_to_date',
 ];
 
-export const CONDITION_SOURCE_TYPES = ['get-data', 'sub-workflow'] as const;
+export const MAX_RELATION_PATH_LENGTH = 3;
+
+const RelationPathSchema = z
+  .array(z.string().min(1))
+  .min(1)
+  .max(MAX_RELATION_PATH_LENGTH)
+  .optional();
+
+export const CONDITION_SOURCE_TYPES = ['get-data', 'sub-workflow', 'record'] as const;
 export type ConditionSourceType = (typeof CONDITION_SOURCE_TYPES)[number];
 
 const SUB_WORKFLOW_END_FIELD_NAME = 'end';
@@ -176,6 +184,8 @@ const DeterministicConditionSchema = z
       .transform((value): ConditionSourceType => value ?? 'get-data'),
     /** Stable BPMN id of the upstream step whose output holds the value. */
     sourceStepId: z.string().min(1),
+    /** A record source only: the to-one relations followed from the record its step names. */
+    relationPath: RelationPathSchema,
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),
     value: z.unknown().optional(),
@@ -194,6 +204,14 @@ const DeterministicConditionSchema = z
     }
 
     if (condition.sourceType === 'sub-workflow') checkSubWorkflowEndCondition(condition, ctx);
+
+    if (condition.relationPath !== undefined && condition.sourceType !== 'record') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['relationPath'],
+        message: 'only a record source follows a relation path',
+      });
+    }
   });
 export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
 
@@ -267,14 +285,6 @@ export type DeterministicConditionStep = ConditionStepDefinition &
 export const isDeterministicConditionStep = (
   step: ConditionStepDefinition,
 ): step is DeterministicConditionStep => step.preRecordedArgs !== undefined;
-
-export const MAX_RELATION_PATH_LENGTH = 3;
-
-const RelationPathSchema = z
-  .array(z.string().min(1))
-  .min(1)
-  .max(MAX_RELATION_PATH_LENGTH)
-  .optional();
 
 function requireRelationPathRoot(
   args: { selectedRecordStepId?: string; relationPath?: string[] },

@@ -30,7 +30,11 @@ export interface WithUserConfirmation<T extends Record<string, unknown> = Record
 
 // A code rather than a sentence: executionParams is replayed into the AI context of later steps,
 // and the run view is what words this for the operator.
-export type ConditionNotLoadedReason = 'source-step-not-reached' | 'field-not-loaded';
+// 'record-not-found': a record source's step loaded no record, or its relation path led to none.
+export type ConditionNotLoadedReason =
+  | 'source-step-not-reached'
+  | 'field-not-loaded'
+  | 'record-not-found';
 
 /**
  * `index` is the position in the definition's conditions at the same level. `met: null` = the
