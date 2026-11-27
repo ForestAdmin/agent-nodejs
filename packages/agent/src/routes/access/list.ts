@@ -19,7 +19,17 @@ export default class ListRoute extends CollectionRoute {
     await this.services.authorization.assertCanReadQueryFields(context, this.collection);
 
     const scope = await this.services.authorization.getScope(this.collection, context);
-    let paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+    const queryScopes = await this.services.authorization.getQueryRelationScopes(
+      context,
+      this.collection,
+    );
+    let paginatedFilter = ContextFilterFactory.buildPaginated(
+      this.collection,
+      context,
+      scope,
+      undefined,
+      queryScopes,
+    );
     paginatedFilter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
       context,
       paginatedFilter,

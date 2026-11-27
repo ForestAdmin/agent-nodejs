@@ -13,6 +13,8 @@ export type FilterComponents = {
   searchExtended?: boolean;
   segment?: string;
   liveQuerySegment?: LiveQuerySegment;
+  /** Collections whose fields a search must not read, as they are named below any renaming. */
+  searchExcludedCollections?: string[];
 };
 
 export type PlainFilter = {
@@ -28,6 +30,7 @@ export default class Filter {
   searchExtended?: boolean;
   segment?: string;
   liveQuerySegment?: LiveQuerySegment;
+  searchExcludedCollections?: string[];
 
   get isNestable(): boolean {
     return !this.search && !this.segment && !this.liveQuerySegment;
@@ -39,6 +42,7 @@ export default class Filter {
     this.searchExtended = parts.searchExtended;
     this.segment = parts.segment;
     this.liveQuerySegment = parts.liveQuerySegment;
+    this.searchExcludedCollections = parts.searchExcludedCollections;
   }
 
   override(fields: FilterComponents): Filter {

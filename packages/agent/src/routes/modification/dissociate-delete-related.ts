@@ -121,10 +121,17 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
       throw new ValidationError('Expected no empty id list');
     }
 
+    const queryScopes = await this.services.authorization.getQueryRelationScopes(
+      context,
+      this.foreignCollection,
+      ['filter', 'search'],
+    );
+
     return ContextFilterFactory.build(this.foreignCollection, context, null, {
+      searchExcludedCollections: queryScopes.searchExcludedCollections,
       conditionTree: ConditionTreeFactory.intersect(
         await this.services.authorization.getScope(this.foreignCollection, context),
-        QueryStringParser.parseConditionTree(this.foreignCollection, context),
+        queryScopes.restrict(QueryStringParser.parseConditionTree(this.foreignCollection, context)),
         selectedIds,
       ),
     });

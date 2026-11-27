@@ -32,7 +32,18 @@ export default class CountRelatedRoute extends RelationRoute {
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
       const scope = await this.services.authorization.getScope(this.foreignCollection, context);
       const caller = QueryStringParser.parseCaller(context);
-      const filter = ContextFilterFactory.build(this.foreignCollection, context, scope);
+      const queryScopes = await this.services.authorization.getQueryRelationScopes(
+        context,
+        this.foreignCollection,
+        ['filter', 'search'],
+      );
+      const filter = ContextFilterFactory.build(
+        this.foreignCollection,
+        context,
+        scope,
+        undefined,
+        queryScopes,
+      );
 
       const aggregationResult = await CollectionUtils.aggregateRelation(
         this.collection,

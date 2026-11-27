@@ -1,20 +1,28 @@
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { DataSource, Operator } from '@forestadmin/datasource-toolkit';
 import type { Readable } from 'stream';
 
+import { ForbiddenError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import Chart from '../../src/routes/access/chart';
+import Count from '../../src/routes/access/count';
+import CountRelated from '../../src/routes/access/count-related';
 import Csv from '../../src/routes/access/csv';
 import CsvRelated from '../../src/routes/access/csv-related';
 import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
+import ActionRoute from '../../src/routes/modification/action/action';
+import Delete from '../../src/routes/modification/delete';
+import DissociateDeleteRelated from '../../src/routes/modification/dissociate-delete-related';
 import Update from '../../src/routes/modification/update';
 import AuthorizationService from '../../src/services/authorization/authorization';
 import * as factories from '../__factories__';
 
 describe('scopes on related collections', () => {
   const options = factories.forestAdminHttpDriverOptions.build();
+
+  const filterOperators = new Set<Operator>(['Equal', 'Missing']);
 
   const buildDataSource = (): DataSource => {
     const dataSource = factories.dataSource.buildWithCollections([
@@ -23,7 +31,7 @@ describe('scopes on related collections', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.numericPrimaryKey().build(),
-            accountId: factories.columnSchema.build({ columnType: 'Number' }),
+            accountId: factories.columnSchema.build({ columnType: 'Number', filterOperators }),
             holderId: factories.columnSchema.build({ columnType: 'Number' }),
             account: factories.manyToOneSchema.build({
               foreignCollection: 'accounts',
@@ -41,7 +49,7 @@ describe('scopes on related collections', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.numericPrimaryKey().build(),
-            iban: factories.columnSchema.build({ columnType: 'String' }),
+            iban: factories.columnSchema.build({ columnType: 'String', filterOperators }),
             organizationId: factories.columnSchema.build({ columnType: 'Number' }),
             organization: factories.manyToOneSchema.build({
               foreignCollection: 'organizations',
@@ -55,7 +63,7 @@ describe('scopes on related collections', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.numericPrimaryKey().build(),
-            name: factories.columnSchema.build({ columnType: 'String' }),
+            name: factories.columnSchema.build({ columnType: 'String', filterOperators }),
             accounts: factories.oneToManySchema.build({
               foreignCollection: 'accounts',
               originKey: 'organizationId',
@@ -77,6 +85,11 @@ describe('scopes on related collections', () => {
               originKey: 'holderId',
               originKeyTarget: 'id',
             }),
+            membership: factories.oneToOneSchema.build({
+              foreignCollection: 'memberships',
+              originKey: 'holderId',
+              originKeyTarget: 'id',
+            }),
             organizations: factories.manyToManySchema.build({
               foreignCollection: 'organizations',
               throughCollection: 'memberships',
@@ -95,7 +108,7 @@ describe('scopes on related collections', () => {
             id: factories.columnSchema.numericPrimaryKey().build(),
             holderId: factories.columnSchema.build({ columnType: 'Number' }),
             organizationId: factories.columnSchema.build({ columnType: 'Number' }),
-            status: factories.columnSchema.build({ columnType: 'String' }),
+            status: factories.columnSchema.build({ columnType: 'String', filterOperators }),
             holder: factories.manyToOneSchema.build({
               foreignCollection: 'holders',
               foreignKey: 'holderId',
@@ -412,6 +425,342 @@ describe('scopes on related collections', () => {
           ],
         }),
       );
+    });
+  });
+
+  describe('filters, sorts and searches through a scoped relation', () => {
+    const filterOn = (field: string, value: unknown = 'FR76') => ({
+      filters: JSON.stringify({ field, operator: 'equal', value }),
+    });
+    const inScopeOrNoAccount = {
+      aggregator: 'Or',
+      conditions: [
+        { field: 'account:organization:name', operator: 'Equal', value: 'OwnOrg' },
+        { field: 'accountId', operator: 'Missing' },
+      ],
+    };
+    const listedTree = async (query: Record<string, unknown>, flagged = true) => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(buildServices({ flagged }), options, dataSource, 'cards').handleList(
+        buildContext({ query }, projectionHeader),
+      );
+
+      return list.mock.calls[0][1].conditionTree?.toPlainObject();
+    };
+    const excludedFrom = (filter: unknown) =>
+      (filter as { searchExcludedCollections?: string[] }).searchExcludedCollections;
+    const holdsRestriction = (tree: unknown) =>
+      JSON.stringify(tree).includes('{"field":"accountId","operator":"Missing"}');
+
+    it('should match a card only when its account is in scope or absent', async () => {
+      expect(await listedTree(filterOn('account:iban'))).toEqual({
+        aggregator: 'And',
+        conditions: [
+          { field: 'account:iban', operator: 'Equal', value: 'FR76' },
+          inScopeOrNoAccount,
+        ],
+      });
+    });
+
+    it('should restrict a condition on each scoped relation it crosses', async () => {
+      expect(await listedTree(filterOn('account:organization:name', 'OwnOrg'))).toEqual({
+        aggregator: 'And',
+        conditions: [
+          { field: 'account:organization:name', operator: 'Equal', value: 'OwnOrg' },
+          inScopeOrNoAccount,
+          {
+            aggregator: 'Or',
+            conditions: [
+              { field: 'account:organization:name', operator: 'Equal', value: 'OwnOrg' },
+              { field: 'account:organizationId', operator: 'Missing' },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('should match a holder only when its one-to-one membership is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('holders'), 'list').mockResolvedValue([]);
+
+      await new List(buildServices(), options, dataSource, 'holders').handleList(
+        buildContext({ query: filterOn('membership:status', 'active') }),
+      );
+
+      expect(list.mock.calls[0][1].conditionTree.toPlainObject()).toEqual({
+        aggregator: 'And',
+        conditions: [
+          { field: 'membership:status', operator: 'Equal', value: 'active' },
+          {
+            aggregator: 'Or',
+            conditions: [
+              { field: 'membership:status', operator: 'Equal', value: 'active' },
+              { field: 'membership:id', operator: 'Missing' },
+            ],
+          },
+          { field: 'region', operator: 'Equal', value: 'EU' },
+        ],
+      });
+    });
+
+    it('should leave a condition on the card itself unchanged', async () => {
+      expect(await listedTree(filterOn('accountId', 20))).toEqual({
+        field: 'accountId',
+        operator: 'Equal',
+        value: 20,
+      });
+    });
+
+    it('should leave the condition unchanged when the related scope is not flagged', async () => {
+      expect(await listedTree(filterOn('account:iban'), false)).toEqual({
+        field: 'account:iban',
+        operator: 'Equal',
+        value: 'FR76',
+      });
+    });
+
+    it("should keep the card's own scope as written", async () => {
+      (scopes as Record<string, unknown>).cards = {
+        field: 'account:iban',
+        operator: 'equal',
+        value: 'FR76',
+      };
+
+      try {
+        expect(await listedTree({})).toEqual({
+          field: 'account:iban',
+          operator: 'Equal',
+          value: 'FR76',
+        });
+      } finally {
+        delete (scopes as Record<string, unknown>).cards;
+      }
+    });
+
+    it('should count only the cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([{ value: 1, group: {} }]);
+
+      await new Count(buildServices(), options, dataSource, 'cards').handleCount(
+        buildContext({ query: filterOn('account:iban') }),
+      );
+
+      expect(aggregate.mock.calls[0][1].conditionTree.toPlainObject()).toEqual({
+        aggregator: 'And',
+        conditions: [
+          { field: 'account:iban', operator: 'Equal', value: 'FR76' },
+          inScopeOrNoAccount,
+        ],
+      });
+    });
+
+    it('should refuse a sort through a scoped relation', async () => {
+      const dataSource = buildDataSource();
+      jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await expect(
+        new List(buildServices(), options, dataSource, 'cards').handleList(
+          buildContext({ query: { sort: 'account.iban' } }, projectionHeader),
+        ),
+      ).rejects.toThrow(ForbiddenError);
+    });
+
+    it('should sort through the relation when its scope is not flagged', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(buildServices({ flagged: false }), options, dataSource, 'cards').handleList(
+        buildContext({ query: { sort: 'account.iban' } }, projectionHeader),
+      );
+
+      expect(list.mock.calls[0][1].sort[0]).toEqual({ field: 'account:iban', ascending: true });
+    });
+
+    it('should tell the search which scoped collections to leave out', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+      dataSource.getCollection('cards').schema.searchable = true;
+
+      await new List(buildServices(), options, dataSource, 'cards').handleList(
+        buildContext({ query: { search: 'FR76' } }, projectionHeader),
+      );
+
+      expect([...excludedFrom(list.mock.calls[0][1])].sort()).toEqual([
+        'accounts',
+        'holders',
+        'memberships',
+        'organizations',
+      ]);
+    });
+
+    it('should leave no collection out of the search when no scope is flagged', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+      dataSource.getCollection('cards').schema.searchable = true;
+
+      await new List(buildServices({ flagged: false }), options, dataSource, 'cards').handleList(
+        buildContext({ query: { search: 'FR76' } }, projectionHeader),
+      );
+
+      expect(excludedFrom(list.mock.calls[0][1]) ?? []).toEqual([]);
+    });
+
+    it('should leave out of a pie chart the cards whose account is hidden', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const body = { type: 'Pie', aggregator: 'Count', groupByFieldName: 'account:iban' };
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([]);
+
+      await new Chart(services, options, dataSource, 'cards').handleChart(
+        buildContext({}, {}, body),
+      );
+
+      expect(aggregate.mock.calls[0][1].conditionTree.toPlainObject()).toEqual(inScopeOrNoAccount);
+    });
+
+    it('should run a bulk action only on the cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      dataSource.getCollection('cards').schema.actions = {
+        Freeze: { scope: 'Bulk', staticForm: true },
+      };
+      const route = new ActionRoute(buildServices(), options, dataSource, 'cards', 'Freeze');
+      const body = {
+        data: {
+          attributes: {
+            all_records: true,
+            all_records_ids_excluded: [],
+            all_records_subset_query: filterOn('account:iban'),
+          },
+        },
+      };
+
+      // @ts-expect-error: the selection is private to the route
+      const filter = await route.getRecordSelection(buildContext({}, {}, body));
+
+      expect(holdsRestriction(filter.conditionTree.toPlainObject())).toBe(true);
+    });
+
+    it('should leave out of a value chart the cards whose account is hidden', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const body = {
+        type: 'Value',
+        aggregator: 'Sum',
+        aggregateFieldName: 'account:organizationId',
+      };
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([]);
+
+      await new Chart(services, options, dataSource, 'cards').handleChart(
+        buildContext({}, {}, body),
+      );
+
+      expect(aggregate.mock.calls[0][1].conditionTree.toPlainObject()).toEqual(inScopeOrNoAccount);
+    });
+
+    it('should list only the related cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new ListRelated(
+        buildServices(),
+        options,
+        dataSource,
+        'holders',
+        'cards',
+      ).handleListRelated(
+        buildContext(
+          { params: { parentId: '100' }, query: filterOn('account:iban') },
+          projectionHeader,
+        ),
+      );
+
+      expect(holdsRestriction(list.mock.calls[0][1].conditionTree.toPlainObject())).toBe(true);
+    });
+
+    it('should count only the related cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([]);
+
+      await new CountRelated(
+        buildServices(),
+        options,
+        dataSource,
+        'holders',
+        'cards',
+      ).handleCountRelated(
+        buildContext({ params: { parentId: '100' }, query: filterOn('account:iban') }),
+      );
+
+      expect(holdsRestriction(aggregate.mock.calls[0][1].conditionTree.toPlainObject())).toBe(true);
+    });
+
+    it('should export only the cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+      const context = buildContext({ query: { ...exportQuery, ...filterOn('account:iban') } });
+
+      await new Csv(buildServices(), options, dataSource, 'cards').handleCsv(context);
+      await readCsv(context.response.body as Readable);
+
+      expect(holdsRestriction(list.mock.calls[0][1].conditionTree.toPlainObject())).toBe(true);
+    });
+
+    it('should delete only the cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const remove = jest.spyOn(dataSource.getCollection('cards'), 'delete').mockResolvedValue();
+      const body = {
+        data: {
+          attributes: {
+            all_records: true,
+            all_records_ids_excluded: [],
+            all_records_subset_query: filterOn('account:iban'),
+          },
+        },
+      };
+
+      await new Delete(buildServices(), options, dataSource, 'cards').handleListDelete(
+        buildContext({}, {}, body),
+      );
+
+      expect(holdsRestriction(remove.mock.calls[0][1].conditionTree.toPlainObject())).toBe(true);
+    });
+
+    it('should delete only the related cards whose account is in scope or absent', async () => {
+      const dataSource = buildDataSource();
+      const remove = jest.spyOn(dataSource.getCollection('cards'), 'delete').mockResolvedValue();
+      const body = {
+        data: {
+          attributes: {
+            all_records: true,
+            all_records_ids_excluded: [],
+            all_records_subset_query: filterOn('account:iban'),
+          },
+        },
+      };
+
+      await new DissociateDeleteRelated(
+        buildServices(),
+        options,
+        dataSource,
+        'holders',
+        'cards',
+      ).handleDissociateDeleteRelatedRoute(
+        buildContext({ params: { parentId: '100' }, query: { delete: 'true' } }, {}, body),
+      );
+
+      expect(holdsRestriction(remove.mock.calls[0][1].conditionTree.toPlainObject())).toBe(true);
     });
   });
 });

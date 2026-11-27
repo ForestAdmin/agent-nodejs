@@ -1,4 +1,5 @@
 import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type RelationScopes from './relation-scopes';
 import type { Context } from 'koa';
 
 import {
@@ -17,6 +18,7 @@ export default class ContextFilterFactory {
     context: Context,
     scope: ConditionTree,
     partialFilter?: Partial<PaginatedFilter>,
+    relationScopes?: RelationScopes,
   ): PaginatedFilter {
     return new PaginatedFilter({
       sort: ContextFilterFactory.withPrimaryKeyTiebreaker(
@@ -24,7 +26,7 @@ export default class ContextFilterFactory {
         QueryStringParser.parseSort(collection, context),
       ),
       page: QueryStringParser.parsePagination(context),
-      ...ContextFilterFactory.build(collection, context, scope),
+      ...ContextFilterFactory.build(collection, context, scope, undefined, relationScopes),
       ...partialFilter,
     });
   }
@@ -34,16 +36,21 @@ export default class ContextFilterFactory {
     context: Context,
     scope: ConditionTree,
     partialFilter?: Partial<Filter>,
+    relationScopes?: RelationScopes,
   ): PaginatedFilter {
+    const tree = QueryStringParser.parseConditionTree(collection, context);
+
     return new Filter({
       search: QueryStringParser.parseSearch(collection, context),
       segment: QueryStringParser.parseSegment(collection, context),
       liveQuerySegment: QueryStringParser.parseLiveQuerySegment(context),
       searchExtended: QueryStringParser.parseSearchExtended(context),
+      // The caller's own scope is intersected as written: it decides which rows exist for them.
       conditionTree: ConditionTreeFactory.intersect(
-        QueryStringParser.parseConditionTree(collection, context),
+        relationScopes ? relationScopes.restrict(tree) : tree,
         scope,
       ),
+      searchExcludedCollections: relationScopes?.searchExcludedCollections,
       ...partialFilter,
     });
   }

@@ -2,6 +2,7 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import CsvRoute from '../../../src/routes/access/csv';
 import ContextFilterFactory from '../../../src/utils/context-filter-factory';
+import RelationScopes from '../../../src/utils/relation-scopes';
 import CsvGenerator from '../../../src/utils/csv-generator';
 import * as factories from '../../__factories__';
 import readCsv from '../../__helper__/read-csv';
@@ -108,7 +109,13 @@ describe('CsvRoute', () => {
       expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
       expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
 
-      expect(buildPaginated).toHaveBeenCalledWith(booksCollection, context, scopeCondition);
+      expect(buildPaginated).toHaveBeenCalledWith(
+        booksCollection,
+        context,
+        scopeCondition,
+        undefined,
+        expect.any(RelationScopes),
+      );
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(

@@ -5,9 +5,11 @@ import {
   ConditionTreeLeaf,
   DataSourceDecorator,
   PaginatedFilter,
+  Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
+import { DataSourceCustomizer } from '../../../src';
 import SearchCollectionDecorator from '../../../src/decorators/search/collection';
 
 const caller = factories.caller.build();
@@ -1030,6 +1032,121 @@ describe('getSearchedFields', () => {
 
       expect(footprint).toEqual(['holder:nationalId']);
       expect(footprint).toEqual(expect.arrayContaining(read));
+    });
+  });
+
+  describe('when the filter leaves collections out of the search', () => {
+    const buildCards = () =>
+      buildCollection(
+        {
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            label: factories.columnSchema.text().build(),
+            holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            holder: factories.manyToOneSchema.build({
+              foreignCollection: 'holders',
+              foreignKey: 'holderId',
+            }),
+          },
+        },
+        [
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: { name: factories.columnSchema.text().build() },
+            }),
+          }),
+        ],
+      );
+    const searching = (search: string) =>
+      Object.assign(factories.filter.build({ search, searchExtended: true }), {
+        searchExcludedCollections: ['holders'],
+      });
+
+    test('an extended search keeps the fields of the card and drops the left-out relation', async () => {
+      const decorator = buildCards();
+
+      const filter = await decorator.refineFilter(caller, searching('martin'));
+
+      expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('an included field on the left-out relation is not searched', async () => {
+      const decorator = buildCards();
+      decorator.replaceSearch({ includeFields: ['holder:name'] });
+
+      const filter = await decorator.refineFilter(caller, searching('martin'));
+
+      expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('a term typed on a field of the left-out relation reads none of its fields', async () => {
+      const decorator = buildCards();
+      decorator.replaceSearch({ excludeFields: [] });
+
+      const filter = await decorator.refineFilter(caller, searching('holder.name:martin'));
+
+      expect(filter.conditionTree.projection).toEqual(['label']);
+    });
+
+    test("a handler's generated search drops the left-out relation", async () => {
+      const decorator = buildCards();
+      decorator.replaceSearch((value, extended, ctx) =>
+        ctx.generateSearchFilter(value, { extended }),
+      );
+
+      const filter = await decorator.refineFilter(caller, searching('martin'));
+
+      expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('the left-out relation stays out through every customization layer', async () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cards',
+          schema: factories.collectionSchema.unsearchable().build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              label: factories.columnSchema.text().build(),
+              holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              holder: factories.manyToOneSchema.build({
+                foreignCollection: 'holders',
+                foreignKey: 'holderId',
+              }),
+            },
+          }),
+          list: jest.fn().mockResolvedValue([]),
+        }),
+        factories.collection.build({
+          name: 'holders',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.text().build(),
+            },
+          }),
+        }),
+      ]);
+      const customized = new DataSourceCustomizer()
+        .addDataSource(async () => dataSource)
+        .customizeCollection('cards', cards => cards.renameField('holder', 'owner'));
+      // The agent stacks its own customizer on top of the one the developer built.
+      const served = await new DataSourceCustomizer()
+        .addDataSource(async () => customized.getDataSource(() => {}))
+        .getDataSource(() => {});
+
+      await served.getCollection('cards').list(
+        caller,
+        new PaginatedFilter({
+          search: 'martin',
+          searchExtended: true,
+          searchExcludedCollections: ['holders'],
+        }),
+        new Projection('id'),
+      );
+
+      const reached = (dataSource.getCollection('cards').list as jest.Mock).mock.calls[0][1];
+      expect(reached.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
     });
   });
 });

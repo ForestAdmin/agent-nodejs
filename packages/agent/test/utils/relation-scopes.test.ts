@@ -52,11 +52,13 @@ describe('RelationScopes', () => {
     path: 'account',
     collection: accounts,
     scope: new ConditionTreeLeaf('organization:name', 'Equal', 'OwnOrg'),
+    absent: new ConditionTreeLeaf('accountId', 'Missing'),
   };
   const organizationScope = {
     path: 'account:organization',
     collection: organizations,
     scope: new ConditionTreeLeaf('tier', 'Equal', 'gold'),
+    absent: new ConditionTreeLeaf('account:organizationId', 'Missing'),
   };
 
   const caller = factories.caller.build();
@@ -142,6 +144,7 @@ describe('RelationScopes', () => {
           path: 'account',
           collection: accounts,
           scope: new ConditionTreeLeaf('openedAt', 'GreaterThan', '2024-01-01T00:00:00.000Z'),
+          absent: new ConditionTreeLeaf('accountId', 'Missing'),
         },
       ]);
 
@@ -204,7 +207,12 @@ describe('RelationScopes', () => {
       });
       jest.spyOn(slots, 'list').mockResolvedValue([{ shelf: 'a|b', position: 'c' }]);
       const relationScopes = new RelationScopes([
-        { path: 'slot', collection: slots, scope: new ConditionTreeLeaf('label', 'Equal', 'kept') },
+        {
+          path: 'slot',
+          collection: slots,
+          scope: new ConditionTreeLeaf('label', 'Equal', 'kept'),
+          absent: new ConditionTreeLeaf('slotId', 'Missing'),
+        },
       ]);
 
       const records = await relationScopes.redact(
@@ -226,6 +234,25 @@ describe('RelationScopes', () => {
       const records = [{ id: 1, account: { iban: 'FR76', extra: true } }];
 
       expect(await new RelationScopes().redact(records, projection, caller)).toBe(records);
+    });
+  });
+
+  describe('restrict', () => {
+    test('should leave the query unrestricted when no relation is scoped', () => {
+      const tree = new ConditionTreeLeaf('account:iban', 'Equal', 'FR76');
+
+      expect(new RelationScopes().restrict(tree)).toBe(tree);
+      expect(new RelationScopes().rowRestriction).toBeNull();
+    });
+
+    test('should restrict the rows to the related records in scope or absent', () => {
+      expect(new RelationScopes([accountScope]).rowRestriction.toPlainObject()).toEqual({
+        aggregator: 'Or',
+        conditions: [
+          { field: 'account:organization:name', operator: 'Equal', value: 'OwnOrg' },
+          { field: 'accountId', operator: 'Missing' },
+        ],
+      });
     });
   });
 });

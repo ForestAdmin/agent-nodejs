@@ -27,7 +27,18 @@ export default class CountRoute extends CollectionRoute {
 
       const scope = await this.services.authorization.getScope(this.collection, context);
       const caller = QueryStringParser.parseCaller(context);
-      let filter = ContextFilterFactory.build(this.collection, context, scope);
+      const queryScopes = await this.services.authorization.getQueryRelationScopes(
+        context,
+        this.collection,
+        ['filter', 'search'],
+      );
+      let filter = ContextFilterFactory.build(
+        this.collection,
+        context,
+        scope,
+        undefined,
+        queryScopes,
+      );
       filter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
         context,
         filter,
