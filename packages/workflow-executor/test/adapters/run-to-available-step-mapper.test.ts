@@ -355,6 +355,33 @@ describe('toAvailableStepExecution', () => {
   });
 
   describe('previousSteps', () => {
+    it('marks a step a person completed by hand, and only that one', () => {
+      const task = makeTaskStepDef({ taskType: ServerTaskTypeEnum.UpdateData, title: 't' });
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { manuallyCompleted: true },
+            stepDefinition: task,
+          }),
+          makeStepHistory({
+            stepName: 's1',
+            stepIndex: 1,
+            done: true,
+            context: { status: 'success' },
+            stepDefinition: task,
+          }),
+          makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const steps = toAvailableStepExecution(run)?.previousSteps;
+
+      expect(steps?.map(step => step.manuallyCompleted)).toEqual([true, undefined]);
+    });
+
     it('should include done steps preceding the available step', () => {
       const run = makeRun({
         workflowHistory: [

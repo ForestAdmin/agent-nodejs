@@ -128,7 +128,12 @@ describe('a step using a load that loaded no record', () => {
 
     // The orchestrator reads a load completed by hand as empty, so both sides skip together.
     it('is skipped when a person completed the Skip load by hand, which saved nothing', async () => {
-      const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
+      const previous = [
+        {
+          ...loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO'),
+          manuallyCompleted: true,
+        },
+      ];
 
       const { saveStepExecution } = await run(makeStep(getData('load-ubo'), previous), []);
 
@@ -137,6 +142,22 @@ describe('a step using a load that loaded no record', () => {
         stepIndex: 5,
         executionResult: { skipped: true, emptySourceStepIndex: 1 },
       });
+    });
+
+    // A load this runtime ran whose row is gone fails loudly: it may have loaded records.
+    it('fails rather than skips when the Skip load ran but its saved row is missing', async () => {
+      const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
+
+      const { stepOutcome, saveStepExecution } = await run(
+        makeStep(getData('load-ubo'), previous),
+        [],
+      );
+
+      expect(stepOutcome.status).toBe('error');
+      expect(saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ executionResult: expect.objectContaining({ skipped: true }) }),
+      );
     });
 
     it('is skipped when the operator declined every record the Skip load offered', async () => {
@@ -335,6 +356,34 @@ describe('a step using a load that loaded no record', () => {
       expect(stepOutcome).toEqual(
         expect.objectContaining({ status: 'error', error: EMPTY_LOAD_ERROR }),
       );
+    });
+
+    it('is skipped when a Skip load between it and the Multiple load was completed by hand', async () => {
+      const previous = [
+        ...multiple({ ifNoRecords: 'stop' }),
+        {
+          ...loadStep(
+            'load-address',
+            2,
+            { selectedRecordStepId: 'load-ubos', ifNoRecords: 'skip' },
+            'Load address',
+          ),
+          manuallyCompleted: true,
+        },
+      ];
+      const loadedUbos = emptyLoad(1, {
+        executionResult: { relation: 'ubos', records: [customer] },
+      });
+
+      const { saveStepExecution } = await run(makeStep(getData('load-address'), previous), [
+        loadedUbos,
+      ]);
+
+      expect(saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'read-record',
+        stepIndex: 5,
+        executionResult: { skipped: true, emptySourceStepIndex: 2 },
+      });
     });
 
     it('skips a step two loads down the chain, through a per-record load', async () => {

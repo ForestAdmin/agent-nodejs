@@ -103,10 +103,11 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
 }
 
 // A load counts as empty once it loaded no record: none found, every candidate declined,
-// "Continue without", or nothing saved at all, which is a load a person completed by hand, as the
-// orchestrator reads it. A result outside the declared shape is an executor defect, never empty.
-function loadedNothing(execution: StepExecutionData | undefined): boolean {
-  if (!execution) return true;
+// "Continue without", or completed by hand with nothing saved, as the orchestrator reads it. A row
+// missing for a load this runtime ran may hide records, and a result outside the declared shape is
+// an executor defect: neither is empty.
+function loadedNothing(load: Step, execution: StepExecutionData | undefined): boolean {
+  if (!execution) return load.manuallyCompleted === true;
   if (execution.type !== 'load-related-record' || isPerRecordExecution(execution)) return false;
 
   const result = execution.executionResult;
@@ -144,14 +145,21 @@ async function findSkippingLoad(
   const direct = findStepExecution(source, executions);
   if (isSkippedForNoRecord(direct)) return direct.executionResult.emptySourceStepIndex;
 
+  // A Skip load between the step and its Multiple load, completed by hand, is empty too.
+  if (perRecordSource && skipsFor(source, direct)) return source.stepOutcome.stepIndex;
+
   const load = perRecordSource?.root ?? source;
   const execution = perRecordSource ? findStepExecution(load, executions) : direct;
   if (isSkippedForNoRecord(execution)) return execution.executionResult.emptySourceStepIndex;
 
+  return skipsFor(load, execution) ? load.stepOutcome.stepIndex : null;
+}
+
+function skipsFor(load: Step, execution: StepExecutionData | undefined): boolean {
   const { ifNoRecords } =
     (load.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs ?? {};
 
-  return ifNoRecords === 'skip' && loadedNothing(execution) ? load.stepOutcome.stepIndex : null;
+  return ifNoRecords === 'skip' && loadedNothing(load, execution);
 }
 
 // The record a call opened once per record runs on: its Multiple step's record at the call's

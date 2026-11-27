@@ -133,6 +133,7 @@ function tryMapStep(s: ServerStepHistory): Step | null {
       stepDefinition: toStepDefinition(s.stepDefinition),
       stepOutcome: toStepOutcome(s),
       ...(s.originalStepIndex !== undefined && { originalStepIndex: s.originalStepIndex }),
+      ...(s.context?.manuallyCompleted === true && { manuallyCompleted: true as const }),
     };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
