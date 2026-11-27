@@ -83,10 +83,12 @@ export type ActionFormField = {
 
 export type ActionForm = {
   fields: ActionFormField[];
-  // True when every required field has a value (the agent-client form state's completeness check).
+  // True when every required field has a value and every value fits its field.
   canExecute: boolean;
-  // Required fields still missing a value (empty when canExecute is true).
+  // Required fields still missing a value.
   requiredFields: string[];
+  // Values the execute would refuse, with what each field expects.
+  invalidValues: { field: string; expected: string }[];
   // Fields from `values` that no longer exist in the form (dropped by dynamic-form change hooks).
   skippedFields: string[];
 };

@@ -17,6 +17,7 @@ export interface ActionFormResponse {
   fields: ActionFormFieldResponse[];
   canExecute: boolean;
   requiredFields: string[];
+  invalidValues: { field: string; expected: string }[];
   skippedFields: string[];
   layout: ForestServerActionFormLayoutElement[];
 }
@@ -27,7 +28,7 @@ export function mapActionForm(
   layout: ForestServerActionFormLayoutElement[],
   logger: Logger,
 ): ActionFormResponse {
-  const { fields, requiredFields } = action.describeForm();
+  const { fields, requiredFields, invalidValues, canExecute } = action.describeForm();
 
   return {
     fields: fields.map(({ name, type, value, isRequired, enumValues }) => ({
@@ -37,8 +38,9 @@ export function mapActionForm(
       isRequired,
       ...(enumValues !== undefined && { enumValues }),
     })),
-    canExecute: requiredFields.length === 0,
+    canExecute,
     requiredFields,
+    invalidValues,
     skippedFields,
     layout: sanitizeActionLayout(layout, logger),
   };

@@ -128,6 +128,7 @@ describe('action routes middleware', () => {
       fields: [{ name: 'reason', type: 'String', value: null, isRequired: true }],
       canExecute: false,
       requiredFields: ['reason'],
+      invalidValues: [],
       skippedFields: [],
       layout: [{ component: 'input', fieldId: 'reason' }],
     });

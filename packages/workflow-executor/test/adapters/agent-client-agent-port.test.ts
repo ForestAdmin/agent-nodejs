@@ -1540,7 +1540,7 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('leaves an invalid value to the execute, which pauses the step', async () => {
+    it('should name an invalid value and keep the form from executing', async () => {
       mockAction.tryToSetFields.mockResolvedValue([]);
       mockAction.getFields.mockReturnValue([
         makeField({ name: 'amount', type: 'Number', value: '12', required: true }),
@@ -1551,7 +1551,11 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(form).toMatchObject({ canExecute: true, requiredFields: [] });
+      expect(form).toMatchObject({
+        canExecute: false,
+        requiredFields: [],
+        invalidValues: [{ field: 'amount', expected: 'a number' }],
+      });
     });
 
     it('gives the options of a list of Enum', async () => {

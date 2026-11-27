@@ -121,6 +121,16 @@ describe('mapActionForm', () => {
     expect(result.canExecute).toBe(true);
   });
 
+  it('names a value of the wrong type and sets canExecute false', () => {
+    const action = actionWith([{ name: 'amount', type: 'Number', value: '12', isRequired: true }]);
+
+    const result = mapForm(action, [], []);
+
+    expect(result.requiredFields).toEqual([]);
+    expect(result.invalidValues).toEqual([{ field: 'amount', expected: 'a number' }]);
+    expect(result.canExecute).toBe(false);
+  });
+
   it('passes skippedFields and non-html layout elements through unchanged', () => {
     const layout = [{ component: 'page', elements: [] }] as never;
     const action = actionWith([]);

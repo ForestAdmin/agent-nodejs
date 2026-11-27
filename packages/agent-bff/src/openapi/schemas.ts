@@ -205,15 +205,18 @@ export const ActionFormResponseSchema = z
     fields: z.array(ActionFormResponseFieldSchema),
     canExecute: z.boolean(),
     requiredFields: z.array(z.string()),
+    invalidValues: z.array(z.object({ field: z.string(), expected: z.string() })),
     skippedFields: z.array(z.string()),
     layout: z.array(z.unknown()),
   })
   .openapi('ActionFormResponse', {
     description:
       'The loaded form. `canExecute` is true only when every required field already carries a ' +
-      'value: a null or absent value counts as missing, an explicit empty string or 0 as ' +
-      'present. ' +
-      '`requiredFields` names the required fields still missing a value. `skippedFields` names ' +
+      'value and every value fits its field: a null or absent value counts as missing, an ' +
+      'explicit empty string or 0 as present. ' +
+      '`requiredFields` names the required fields still missing a value. `invalidValues` names ' +
+      'each value the execute would refuse with 422, and what its field expects. ' +
+      '`skippedFields` names ' +
       'the submitted fields the static form does not carry; the same names are rejected with 400 ' +
       'on execute. `layout` is the agent layout tree relayed verbatim (pages, rows, separators, ' +
       'HTML blocks and field references, discriminated by `component`); it is the agent own ' +

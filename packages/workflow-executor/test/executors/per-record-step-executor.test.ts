@@ -1007,6 +1007,7 @@ describe('a step running once per record', () => {
           fields: [],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         }) as never,
       });

@@ -469,6 +469,7 @@ describe('a client generated from the emitted OpenAPI document', () => {
           ],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
           layout: [],
         },

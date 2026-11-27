@@ -416,7 +416,7 @@ export default class AgentClientAgentPort implements AgentPort {
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
       const skippedFields = values ? await act.tryToSetFields(values) : [];
 
-      const { fields, requiredFields } = act.describeForm();
+      const { fields, requiredFields, invalidValues, canExecute } = act.describeForm();
 
       return {
         fields: fields.map(
@@ -431,8 +431,9 @@ export default class AgentClientAgentPort implements AgentPort {
             ...(allowedValues ? { allowedValues } : {}),
           }),
         ),
-        canExecute: requiredFields.length === 0,
+        canExecute,
         requiredFields,
+        invalidValues,
         skippedFields,
       };
     });

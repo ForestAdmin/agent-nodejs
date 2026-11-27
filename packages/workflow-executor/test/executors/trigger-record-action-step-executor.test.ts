@@ -65,9 +65,13 @@ function makeMockAgentPort(): AgentPort {
     }),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
     // Default: a formless action (no fields) — matches the prior behavior of most tests.
-    getActionForm: jest
-      .fn()
-      .mockResolvedValue({ fields: [], canExecute: true, requiredFields: [], skippedFields: [] }),
+    getActionForm: jest.fn().mockResolvedValue({
+      fields: [],
+      canExecute: true,
+      requiredFields: [],
+      invalidValues: [],
+      skippedFields: [],
+    }),
   } as unknown as AgentPort;
 }
 
@@ -360,12 +364,14 @@ describe('TriggerRecordActionStepExecutor', () => {
           fields: [{ name: 'amount', type: 'Number', isRequired: true }],
           canExecute: false,
           requiredFields: ['amount'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValueOnce({
           fields: [{ name: 'amount', type: 'Number', isRequired: true, value: 50 }],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
@@ -969,12 +975,14 @@ describe('TriggerRecordActionStepExecutor', () => {
           fields: [{ name: 'amount', type: 'Number', isRequired: true }],
           canExecute: false,
           requiredFields: ['amount'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValueOnce({
           fields: [{ name: 'amount', type: 'Number', isRequired: true, value: 50 }],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
     }
@@ -1056,12 +1064,14 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: false,
           requiredFields: ['plan'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValueOnce({
           fields: [{ name: 'plan', type: 'String', isRequired: true, value: 'basic' }],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
       const mockModel = makeMockModel({ values: { plan: 'basic' } }, 'fill_action_form');
@@ -1100,6 +1110,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: false,
           requiredFields: ['body'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValueOnce({
@@ -1115,6 +1126,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
       const mockModel = makeMockModel({ values: { body: '<p>Hi</p>' } }, 'fill_action_form');
@@ -1154,9 +1166,16 @@ describe('TriggerRecordActionStepExecutor', () => {
           fields,
           canExecute: false,
           requiredFields: ['body', 'note'],
+          invalidValues: [],
           skippedFields: [],
         })
-        .mockResolvedValueOnce({ fields, canExecute: true, requiredFields: [], skippedFields: [] });
+        .mockResolvedValueOnce({
+          fields,
+          canExecute: true,
+          requiredFields: [],
+          invalidValues: [],
+          skippedFields: [],
+        });
       const html = '<p>Refund <strong>approved</strong></p>';
       const mockModel = makeMockModel({ values: { body: html, note: html } }, 'fill_action_form');
       const logger = jest.fn();
@@ -1225,6 +1244,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           fields: [{ name: 'closing_notice_type', type: 'Enum', isRequired: true }],
           canExecute: false,
           requiredFields: ['closing_notice_type'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValue({
@@ -1239,6 +1259,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
@@ -1294,6 +1315,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           fields: [{ name: 'closing_notice_type', type: 'Enum', isRequired: true }],
           canExecute: false,
           requiredFields: ['closing_notice_type'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValue({
@@ -1308,6 +1330,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
@@ -1368,6 +1391,7 @@ describe('TriggerRecordActionStepExecutor', () => {
               fields,
               canExecute: requiredFields.length === 0,
               requiredFields,
+              invalidValues: [],
               skippedFields: [],
             });
           },
@@ -1539,12 +1563,14 @@ describe('TriggerRecordActionStepExecutor', () => {
             fields: closingFields,
             canExecute: false,
             requiredFields: closingFields.map(f => f.name),
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValue({
             fields: filledClosingFields,
             canExecute: true,
             requiredFields: [],
+            invalidValues: [],
             skippedFields: [],
           });
       }
@@ -1620,6 +1646,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['a', 'b'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValueOnce({
@@ -1630,6 +1657,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['b', 'x'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValueOnce({
@@ -1640,6 +1668,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['b'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValue({
@@ -1650,6 +1679,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: true,
             requiredFields: [],
+            invalidValues: [],
             skippedFields: [],
           });
         (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
@@ -1753,6 +1783,7 @@ describe('TriggerRecordActionStepExecutor', () => {
               })),
               canExecute: filled === closingChain.length,
               requiredFields: closingChain.slice(filled).map(({ name }) => name),
+              invalidValues: [],
               skippedFields: [],
             });
           },
@@ -1821,6 +1852,7 @@ describe('TriggerRecordActionStepExecutor', () => {
                 ...(category === undefined ? ['closing_reason_category'] : []),
                 ...(details === undefined ? ['closing_reason_details'] : []),
               ],
+              invalidValues: [],
               skippedFields: [],
             });
           },
@@ -1874,6 +1906,7 @@ describe('TriggerRecordActionStepExecutor', () => {
               })),
               canExecute: filled === chain.length,
               requiredFields: chain.slice(filled, filled + 1).map(({ name }) => name),
+              invalidValues: [],
               skippedFields: [],
             });
           },
@@ -1918,6 +1951,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['reason', 'iban'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValue({
@@ -1927,6 +1961,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['iban'],
+            invalidValues: [],
             skippedFields: [],
           });
         const mockModel = makeMockModel(undefined, 'fill_action_form');
@@ -1978,6 +2013,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: false,
           requiredFields: ['plan'],
+          invalidValues: [],
           skippedFields: [],
         });
         const mockModel = makeMockModel({ values: { plan: 'enterprise' } }, 'fill_action_form');
@@ -2033,6 +2069,7 @@ describe('TriggerRecordActionStepExecutor', () => {
               fields: [{ name: 'iban', type: 'String', isRequired: true }, ...steps],
               canExecute: false,
               requiredFields: ['iban', `step_${filled + 1}`],
+              invalidValues: [],
               skippedFields: [],
             });
           },
@@ -2074,6 +2111,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['title'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValueOnce({
@@ -2083,6 +2121,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: true,
             requiredFields: [],
+            invalidValues: [],
             skippedFields: [],
           });
         (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
@@ -2095,6 +2134,48 @@ describe('TriggerRecordActionStepExecutor', () => {
 
         expect(agentPort.executeAction).toHaveBeenCalledWith(
           expect.objectContaining({ values: { title: 'x', tags: [] } }),
+          { user: expect.anything(), forestServerToken: undefined },
+          expect.anything(),
+        );
+      });
+
+      it('submits the value the AI corrects once the form names it invalid', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock)
+          .mockResolvedValueOnce({
+            fields: [{ name: 'amount', type: 'Number', isRequired: true }],
+            canExecute: false,
+            requiredFields: ['amount'],
+            invalidValues: [],
+            skippedFields: [],
+          })
+          .mockResolvedValueOnce({
+            fields: [{ name: 'amount', type: 'Number', isRequired: true, value: '12' }],
+            canExecute: false,
+            requiredFields: [],
+            invalidValues: [{ field: 'amount', expected: 'a number' }],
+            skippedFields: [],
+          })
+          .mockResolvedValue({
+            fields: [{ name: 'amount', type: 'Number', isRequired: true, value: 12 }],
+            canExecute: true,
+            requiredFields: [],
+            invalidValues: [],
+            skippedFields: [],
+          });
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(mockModel.invoke, [{ amount: '12' }, { amount: 12 }]);
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore()),
+        ).execute();
+
+        expect(JSON.stringify(mockModel.invoke.mock.calls[1])).toContain(
+          'invalid: expected a number',
+        );
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { amount: 12 } }),
           { user: expect.anything(), forestServerToken: undefined },
           expect.anything(),
         );
@@ -2115,6 +2196,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['region', 'plan'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValueOnce({
@@ -2137,6 +2219,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: false,
             requiredFields: ['tax_id'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValue({
@@ -2159,6 +2242,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: true,
             requiredFields: [],
+            invalidValues: [],
             skippedFields: [],
           });
         (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
@@ -2195,6 +2279,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             fields: [{ name: 'tags', type: ['String'], isRequired: true, allowedValues }],
             canExecute: false,
             requiredFields: ['tags'],
+            invalidValues: [],
             skippedFields: [],
           })
           .mockResolvedValue({
@@ -2209,6 +2294,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             ],
             canExecute: true,
             requiredFields: [],
+            invalidValues: [],
             skippedFields: [],
           });
         (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
@@ -2238,6 +2324,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         fields: [{ name: 'amount', type: 'Number', isRequired: true }],
         canExecute: false,
         requiredFields: ['amount'],
+        invalidValues: [],
         skippedFields: [],
       });
       // AI returns no values → loop makes no progress → required field unfilled.
@@ -2278,6 +2365,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         ],
         canExecute: false,
         requiredFields: ['amount', 'iban'],
+        invalidValues: [],
         skippedFields: [],
       });
       const logger = jest.fn();
@@ -3254,6 +3342,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         fields: [{ name: 'reason', type: 'String', isRequired: true }],
         canExecute: false,
         requiredFields: ['reason'],
+        invalidValues: [],
         skippedFields: [],
       });
       const mockModel = makeMockModel();
@@ -3298,6 +3387,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         ],
         canExecute: true,
         requiredFields: [],
+        invalidValues: [],
         skippedFields: [],
       });
       // AI fills amount but leaves `reason` out (no context) — must stay empty.
@@ -3338,6 +3428,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           fields: [{ name: 'tags', type: ['String'], isRequired: true }],
           canExecute: false,
           requiredFields: ['tags'],
+          invalidValues: [],
           skippedFields: [],
         })
         .mockResolvedValue({
@@ -3347,6 +3438,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
           canExecute: true,
           requiredFields: [],
+          invalidValues: [],
           skippedFields: [],
         });
       const mockModel = makeMockModel(undefined, 'fill_action_form');
@@ -3854,6 +3946,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         fields: [{ name: 'reason', type: 'String', isRequired: true }],
         canExecute: false,
         requiredFields: ['reason'],
+        invalidValues: [],
         skippedFields: [],
       });
       const runStore = makeMockRunStore();

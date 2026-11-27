@@ -179,9 +179,13 @@ function createMockAgentPort(): jest.Mocked<AgentPort> {
     resolvePolymorphicType: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn().mockResolvedValue({ result: undefined }),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
-    getActionForm: jest
-      .fn()
-      .mockResolvedValue({ fields: [], canExecute: true, requiredFields: [], skippedFields: [] }),
+    getActionForm: jest.fn().mockResolvedValue({
+      fields: [],
+      canExecute: true,
+      requiredFields: [],
+      invalidValues: [],
+      skippedFields: [],
+    }),
     probe: jest.fn().mockResolvedValue(undefined),
   } as jest.Mocked<AgentPort>;
 }
@@ -642,12 +646,14 @@ describe('workflow execution (integration)', () => {
         fields: [{ name: 'block_fx', type: 'Boolean', isRequired: true }],
         canExecute: false,
         requiredFields: ['block_fx'],
+        invalidValues: [],
         skippedFields: [],
       })
       .mockResolvedValueOnce({
         fields: [{ name: 'block_fx', type: 'Boolean', isRequired: true, value: true }],
         canExecute: true,
         requiredFields: [],
+        invalidValues: [],
         skippedFields: [],
       });
     agentPort.executeAction.mockRejectedValue(
