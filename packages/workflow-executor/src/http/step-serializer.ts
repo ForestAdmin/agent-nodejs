@@ -8,7 +8,7 @@ import type {
 import type { RecordRef } from '../types/validated/collection';
 
 import { serializeRecordId } from '../record-id';
-import { isPerRecordExecution } from '../types/step-execution-data';
+import { isPerRecordExecution, isSkippedForNoRecord } from '../types/step-execution-data';
 
 function serializeRecordRef(ref: RecordRef): unknown {
   return { ...ref, recordId: serializeRecordId(ref.recordId) };
@@ -75,6 +75,9 @@ export default function serializeStepForWire(step: StepExecutionData): unknown {
       iterations: step.iterations.map(iteration => serializeIteration(step.type, iteration)),
     };
   }
+
+  // A step skipped because its load was empty ran on no record, so there is none to serialize.
+  if (isSkippedForNoRecord(step)) return step;
 
   switch (step.type) {
     case 'read-record':

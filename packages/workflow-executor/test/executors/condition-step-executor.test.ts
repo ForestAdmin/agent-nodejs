@@ -933,6 +933,32 @@ describe('ConditionStepExecutor', () => {
       );
     });
 
+    // PRD-2399: a Get Data skipped because its load was empty takes the Decision to its default.
+    it('takes the default option when the Get Data step was skipped for an empty load', async () => {
+      const { context } = makeDeterministicContext(amountArgs, [], {
+        runStore: makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([
+            {
+              type: 'read-record',
+              stepIndex: 1,
+              executionResult: { skipped: true, emptySourceStepIndex: 0 },
+            },
+          ]),
+        }),
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'success', selectedOption: 'Other' }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({ reason: 'field-not-loaded' }),
+      );
+    });
+
     it('counts a condition as not met when the source step stored another kind of execution', async () => {
       const { context } = makeDeterministicContext(amountArgs, [], {
         runStore: makeMockRunStore({

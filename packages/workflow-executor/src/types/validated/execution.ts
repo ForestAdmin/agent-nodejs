@@ -28,6 +28,8 @@ export const StepSchema = z
     // step it copies. The executor never ran the clone, so its record lives at that index.
     // Absent for steps the executor ran itself.
     originalStepIndex: z.number().int().nonnegative().optional(),
+    // Set when a person completed the step by hand: the executor saved nothing for it.
+    manuallyCompleted: z.literal(true).optional(),
   })
   .strict();
 export type Step = z.infer<typeof StepSchema>;

@@ -36,6 +36,10 @@ import { MAX_SELECTED_RECORDS } from '../http/pending-data-validators';
 import { serializeRecordId } from '../record-id';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
+// What a load that ends with no record reports, so the orchestrator can tell it from one that
+// loaded some and skip a Sub-workflow on it. A step skipped for an earlier empty load reports it too.
+export const EMPTY_LOAD_OUTCOME = { status: 'success', loadedRecordCount: 0 } as const;
+
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 You are given relations to follow, each shown as "<source record> → <relation> (→ <target collection>)".
 Choose the relation that LEADS TO the collection the user wants to load — decide from each
@@ -317,6 +321,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     if (this.isMultiple) {
       const candidates = await this.collectMultipleCandidates(target, suggestViaAi);
 
+      if (candidates.availableRecordIds.length === 0 && this.skipsWhenEmpty) {
+        return this.persistSkip(target);
+      }
+
       return this.persistAwaitInput(target, sourceSchema, {
         ...this.multiplePendingFields(candidates),
         suggestNoRecord: suggestViaAi && candidates.suggestedRecords?.length === 0,
@@ -327,6 +335,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       target,
       suggestViaAi,
     );
+    if (availableRecordIds.length === 0 && this.skipsWhenEmpty) return this.persistSkip(target);
 
     return this.persistAwaitInput(target, sourceSchema, {
       availableRecordIds,
@@ -814,7 +823,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async persistSkip(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
   ): Promise<StepExecutionResult> {
-    // Full AI made this call on its own — log it so an unexpectedly empty relation is auditable.
+    // Full AI, or a load set to Skip, made this call on its own: logged so an empty relation is auditable.
     this.context.logger(
       'Info',
       'load-related-record: no candidate to load, continuing without a record',
@@ -829,7 +838,25 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       selectedRecordRef: target.selectedRecordRef,
     });
 
-    return this.buildOutcomeResult({ status: 'success' });
+    return this.buildOutcomeResult(EMPTY_LOAD_OUTCOME);
+  }
+
+  // A decline loads no record either, which the orchestrator needs to skip a Sub-workflow on it.
+  protected override async declineConfirmation(
+    execution: LoadRelatedRecordStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    await super.declineConfirmation(execution);
+
+    return this.buildOutcomeResult(EMPTY_LOAD_OUTCOME);
+  }
+
+  // Set to Skip, a load with no record to offer carries on rather than wait for a person to say so.
+  // A Single load with no pinned relation still pauses, since the operator can switch to one that
+  // has records. A Multiple load never switches relation, so nothing is gained by pausing it.
+  private get skipsWhenEmpty(): boolean {
+    const { ifNoRecords, relationName } = this.context.stepDefinition.preRecordedArgs ?? {};
+
+    return ifNoRecords === 'skip' && (this.isMultiple || relationName !== undefined);
   }
 
   // One record for a Single step, several for a Multiple one.
@@ -851,8 +878,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     return this.buildOutcomeResult({
       status: 'success',
-      ...('records' in loaded &&
-        loaded.records.length > 0 && { loadedRecordCount: loaded.records.length }),
+      ...('records' in loaded && { loadedRecordCount: loaded.records.length }),
     });
   }
 

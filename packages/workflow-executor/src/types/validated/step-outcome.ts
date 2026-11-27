@@ -82,9 +82,10 @@ export const RecordStepOutcomeSchema = z
     type: z.literal('record'),
     status: RecordStepStatusSchema,
     approvalRequest: z.object({ id: z.string() }).optional(),
-    // How many records a Multiple Load Related Record step loaded, when it loaded any: the
-    // orchestrator opens one Sub-workflow call per record from it.
-    loadedRecordCount: z.number().int().positive().optional(),
+    // How many records a Multiple Load Related Record step loaded: the orchestrator opens one
+    // Sub-workflow call per record from it. 0 on any load that loaded none, Single included, so it
+    // can skip a Sub-workflow pinned to a load set to Skip.
+    loadedRecordCount: z.number().int().nonnegative().optional(),
     /** Present when status is 'awaiting-input' because the step waits for its approval requests. */
     awaitingInputReason: AwaitingInputReasonSchema.optional(),
     approvalRequests: z.array(ApprovalRequestRefSchema).optional(),

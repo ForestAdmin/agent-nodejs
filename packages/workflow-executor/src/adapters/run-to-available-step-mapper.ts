@@ -133,6 +133,7 @@ function tryMapStep(s: ServerStepHistory): Step | null {
       stepDefinition: toStepDefinition(s.stepDefinition),
       stepOutcome: toStepOutcome(s),
       ...(s.originalStepIndex !== undefined && { originalStepIndex: s.originalStepIndex }),
+      ...(s.context?.manuallyCompleted === true && { manuallyCompleted: true as const }),
     };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
@@ -185,6 +186,8 @@ interface Call {
 interface CallStackWalk {
   openCalls: Call[];
   closedCalls: Array<{ call: Call; endStepId: string }>;
+  // Sub-workflow steps the orchestrator skipped because their load was empty: no call, no End.
+  skippedCalls: Array<{ stepId: string; stepIndex: number; frameOpenedAt: number }>;
   // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
   frameOfStep: Map<number, number>;
   stepNameOf: Map<number, string>;
@@ -195,13 +198,20 @@ interface CallStackWalk {
 function walkCallStack(history: ServerStepHistory[], pending: ServerStepHistory): CallStackWalk {
   const openCalls: Call[] = [];
   const closedCalls: CallStackWalk['closedCalls'] = [];
+  const skippedCalls: CallStackWalk['skippedCalls'] = [];
   const frameOfStep = new Map<number, number>();
   const stepNameOf = new Map<number, string>();
 
   history.forEach(entry => {
     if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
-
     const frameOpenedAt = openCalls.at(-1)?.stepIndex ?? ROOT_FRAME;
+
+    // A Sub-workflow the orchestrator skipped because its load was empty opened no call.
+    if (entry.context?.skippedForNoRecord === true) {
+      skippedCalls.push({ stepId: entry.stepName, stepIndex: entry.stepIndex, frameOpenedAt });
+
+      return;
+    }
 
     if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
       openCalls.push({
@@ -227,7 +237,7 @@ function walkCallStack(history: ServerStepHistory[], pending: ServerStepHistory)
     }
   });
 
-  return { openCalls, closedCalls, frameOfStep, stepNameOf };
+  return { openCalls, closedCalls, skippedCalls, frameOfStep, stepNameOf };
 }
 
 // Undefined for a step of a called workflow while no call is open, a history with no frame to read.
@@ -247,22 +257,33 @@ function toSubWorkflowEnds(
   pending: ServerStepHistory,
 ): SubWorkflowEnd[] | undefined {
   const frame = frameOfPending(walk, pending);
-  const latestEndOf = new Map<string, SubWorkflowEnd>();
+  // A pass skipped for no record reached no End, so it hides the End an earlier pass reached.
+  const latestEndOf = new Map<string, { stepIndex: number; end: SubWorkflowEnd | null }>();
+
+  const keepLatest = (stepId: string, stepIndex: number, end: SubWorkflowEnd | null) => {
+    if ((latestEndOf.get(stepId)?.stepIndex ?? -1) < stepIndex) {
+      latestEndOf.set(stepId, { stepIndex, end });
+    }
+  };
 
   walk.closedCalls
     .filter(({ call, endStepId }) => call.frameOpenedAt === frame && call.stepId && endStepId)
     .forEach(({ call, endStepId }) =>
-      latestEndOf.set(
+      keepLatest(
         call.stepId,
+        call.stepIndex,
         call.callRecordIndex !== undefined
           ? { stepId: call.stepId, perRecord: true }
           : { stepId: call.stepId, endStepId },
       ),
     );
+  walk.skippedCalls
+    .filter(skipped => skipped.frameOpenedAt === frame)
+    .forEach(skipped => keepLatest(skipped.stepId, skipped.stepIndex, null));
 
-  if (latestEndOf.size === 0) return undefined;
+  const ends = [...latestEndOf.values()].flatMap(({ end }) => (end ? [end] : []));
 
-  return [...latestEndOf.values()];
+  return ends.length > 0 ? ends : undefined;
 }
 
 // excludedStepIndexes: inside calls opened once per record, the steps of every closed call opened

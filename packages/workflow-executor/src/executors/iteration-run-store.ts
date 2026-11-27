@@ -4,7 +4,7 @@ import type { RecordRef } from '../types/validated/collection';
 
 import { StepStateError } from '../errors';
 import { serializeRecordId } from '../record-id';
-import { isPerRecordExecution } from '../types/step-execution-data';
+import { isPerRecordExecution, isSkippedForNoRecord } from '../types/step-execution-data';
 
 // The fields a single-record execution and an iteration share.
 const ITERATION_FIELDS = [
@@ -58,6 +58,7 @@ export function narrowToRecord(
 
   if (
     row.type === 'load-related-record' &&
+    !isSkippedForNoRecord(row) &&
     row.executionResult !== undefined &&
     'records' in row.executionResult
   ) {

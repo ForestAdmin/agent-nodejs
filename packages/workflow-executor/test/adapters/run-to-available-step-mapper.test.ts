@@ -355,6 +355,33 @@ describe('toAvailableStepExecution', () => {
   });
 
   describe('previousSteps', () => {
+    it('marks a step a person completed by hand, and only that one', () => {
+      const task = makeTaskStepDef({ taskType: ServerTaskTypeEnum.UpdateData, title: 't' });
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { manuallyCompleted: true },
+            stepDefinition: task,
+          }),
+          makeStepHistory({
+            stepName: 's1',
+            stepIndex: 1,
+            done: true,
+            context: { status: 'success' },
+            stepDefinition: task,
+          }),
+          makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const steps = toAvailableStepExecution(run)?.previousSteps;
+
+      expect(steps?.map(step => step.manuallyCompleted)).toEqual([true, undefined]);
+    });
+
     it('should include done steps preceding the available step', () => {
       const run = makeRun({
         workflowHistory: [
@@ -1163,6 +1190,31 @@ describe('toAvailableStepExecution', () => {
         calledWorkflowCollectionName: 'orders',
         isPinned: true,
       });
+    });
+
+    // PRD-2399: the orchestrator skips a call whose load was empty and set to Skip.
+    it('does not count a call skipped for an empty load as open', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1, context: { skippedForNoRecord: true } },
+            { selectedRecordStepId: 'load-2', calledWorkflowCollectionName: 'ubos' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual(
+        expect.objectContaining({
+          startStepIndex: 0,
+          selectedRecordStepId: 'load-1',
+          calledWorkflowCollectionName: 'orders',
+        }),
+      );
     });
 
     it('leaves a run with no sub-workflow call unscoped', () => {
@@ -2034,6 +2086,31 @@ describe('toAvailableStepExecution', () => {
         { stepId: 'call-1', endStepId: 'end-approved' },
         { stepId: 'call-2', endStepId: 'end-other' },
       ]);
+    });
+
+    // PRD-2399: a later pass skipped for an empty load reached no End, so the earlier one is stale.
+    it('forgets the End of a Sub-workflow step whose latest run was skipped for no record', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0),
+          makeClose('end-approved', 1),
+          makeStart('call-1', 2, { context: { skippedForNoRecord: true } }),
+          makeStart('call-2', 3),
+          makeClose('end-other', 4),
+          pendingRoot(5),
+        ]),
+      ).toEqual([{ stepId: 'call-2', endStepId: 'end-other' }]);
+    });
+
+    it('reads the End of a call that ran after a skipped pass of the same step', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0, { context: { skippedForNoRecord: true } }),
+          makeStart('call-1', 1),
+          makeClose('end-approved', 2),
+          pendingRoot(3),
+        ]),
+      ).toEqual([{ stepId: 'call-1', endStepId: 'end-approved' }]);
     });
 
     it('reports a Sub-workflow step run once per record as such, not by its last record End', () => {
