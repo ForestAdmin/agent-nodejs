@@ -264,13 +264,23 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     }
 
     if (schema.type === 'OneToOne') {
+      // A record with no related record has every related field missing, so it is kept by
+      // listing the related records where the field is present and excluding the ones they reach.
+      const targetSchema = CollectionUtils.getFieldSchema(
+        this.childCollection,
+        schema.originKeyTarget,
+      ) as ColumnSchema;
+      const inverse = leaf.operator === 'Missing' && targetSchema.filterOperators?.has('NotIn');
+      const unnested = leaf.unnest();
       const records = await relation.list(
         caller,
-        new Filter({ conditionTree: leaf.unnest() }),
+        new Filter({
+          conditionTree: inverse ? unnested.override({ operator: 'Present' }) : unnested,
+        }),
         new Projection(schema.originKey),
       );
 
-      return new ConditionTreeLeaf(schema.originKeyTarget, 'In', [
+      return new ConditionTreeLeaf(schema.originKeyTarget, inverse ? 'NotIn' : 'In', [
         ...new Set(
           records
             .map(record => RecordUtils.getFieldValue(record, schema.originKey))

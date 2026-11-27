@@ -1036,7 +1036,7 @@ describe('getSearchedFields', () => {
   });
 
   describe('when the filter leaves collections out of the search', () => {
-    const buildCards = () =>
+    const buildCardsWithHolder = () =>
       buildCollection(
         {
           fields: {
@@ -1053,18 +1053,41 @@ describe('getSearchedFields', () => {
           factories.collection.build({
             name: 'holders',
             schema: factories.collectionSchema.build({
+              fields: {
+                name: factories.columnSchema.text().build(),
+                regionId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                region: factories.manyToOneSchema.build({
+                  foreignCollection: 'regions',
+                  foreignKey: 'regionId',
+                }),
+              },
+            }),
+          }),
+          factories.collection.build({
+            name: 'regions',
+            schema: factories.collectionSchema.build({
               fields: { name: factories.columnSchema.text().build() },
             }),
           }),
         ],
       );
-    const searching = (search: string) =>
+    const searching = (search: string, excluded = ['holders']) =>
       Object.assign(factories.filter.build({ search, searchExtended: true }), {
-        searchExcludedCollections: ['holders'],
+        searchExcludedCollections: excluded,
       });
 
+    test('a field reached through a left-out collection two relations away is not searched', async () => {
+      const decorator = buildCardsWithHolder();
+      decorator.replaceSearch({ includeFields: ['holder:region:name'] });
+
+      const filter = await decorator.refineFilter(caller, searching('martin', ['regions']));
+
+      expect(filter.conditionTree.projection).toContain('holder:name');
+      expect(filter.conditionTree.projection).not.toContain('holder:region:name');
+    });
+
     test('an extended search keeps the fields of the card and drops the left-out relation', async () => {
-      const decorator = buildCards();
+      const decorator = buildCardsWithHolder();
 
       const filter = await decorator.refineFilter(caller, searching('martin'));
 
@@ -1072,7 +1095,7 @@ describe('getSearchedFields', () => {
     });
 
     test('an included field on the left-out relation is not searched', async () => {
-      const decorator = buildCards();
+      const decorator = buildCardsWithHolder();
       decorator.replaceSearch({ includeFields: ['holder:name'] });
 
       const filter = await decorator.refineFilter(caller, searching('martin'));
@@ -1081,7 +1104,7 @@ describe('getSearchedFields', () => {
     });
 
     test('a term typed on a field of the left-out relation reads none of its fields', async () => {
-      const decorator = buildCards();
+      const decorator = buildCardsWithHolder();
       decorator.replaceSearch({ excludeFields: [] });
 
       const filter = await decorator.refineFilter(caller, searching('holder.name:martin'));
@@ -1090,7 +1113,7 @@ describe('getSearchedFields', () => {
     });
 
     test("a handler's generated search drops the left-out relation", async () => {
-      const decorator = buildCards();
+      const decorator = buildCardsWithHolder();
       decorator.replaceSearch((value, extended, ctx) =>
         ctx.generateSearchFilter(value, { extended }),
       );
@@ -1145,8 +1168,16 @@ describe('getSearchedFields', () => {
         new Projection('id'),
       );
 
-      const reached = (dataSource.getCollection('cards').list as jest.Mock).mock.calls[0][1];
-      expect(reached.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+      const { list } = dataSource.getCollection('cards');
+      expect(list).toHaveBeenCalledTimes(1);
+      expect(list).toHaveBeenCalledWith(
+        caller,
+        expect.objectContaining({
+          conditionTree: new ConditionTreeLeaf('label', 'IContains', 'martin'),
+          search: null,
+        }),
+        new Projection('id'),
+      );
     });
   });
 });

@@ -148,6 +148,43 @@ describe('AssociateRelatedRoute', () => {
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
 
+    test('updates the related record by its id alone when the request carries a search', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books',
+        'myBookPersons',
+      );
+      services.authorization.getScope = jest.fn().mockResolvedValue(null);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', search: 'martin', searchExtended: 'true' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await route.handleAssociateRelatedRoute(context);
+
+      expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledTimes(1);
+      expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'john.doe@domain.com' }),
+        expect.objectContaining({
+          conditionTree: factories.conditionTreeLeaf.build({
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-222222222222',
+            field: 'id',
+          }),
+          search: null,
+          searchExtended: false,
+        }),
+        { bookId: '123e4567-e89b-12d3-a456-111111111111' },
+      );
+    });
+
     test('does not update the related records when the user cannot edit the foreign collection', async () => {
       const { services, dataSource, options } = setupWithOneToManyRelation();
 

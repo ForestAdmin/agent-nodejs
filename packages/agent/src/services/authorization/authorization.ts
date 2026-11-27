@@ -314,12 +314,21 @@ export default class AuthorizationService {
     collection: Collection,
     context: Context,
   ): Promise<ConditionTree> {
-    const applies = await this.forestAdminClient.scopeAppliesToRelatedRecords?.({
-      renderingId: context.state.user.renderingId,
-      collectionName: collection.name,
-    });
+    return (await this.scopeAppliesToRelatedRecords(collection.name, context))
+      ? this.getScope(collection, context)
+      : null;
+  }
 
-    return applies ? this.getScope(collection, context) : null;
+  private async scopeAppliesToRelatedRecords(
+    collectionName: string,
+    context: Context,
+  ): Promise<boolean> {
+    return Boolean(
+      await this.forestAdminClient.scopeAppliesToRelatedRecords?.({
+        renderingId: context.state.user.renderingId,
+        collectionName,
+      }),
+    );
   }
 
   /** The caller's scope on each collection the projection reaches through a to-one relation. */
@@ -383,12 +392,8 @@ export default class AuthorizationService {
     const { renderingId, id: userId } = context.state.user;
     const names = await Promise.all(
       collection.dataSource.collections.map(async ({ name }) => {
-        const applies = await this.forestAdminClient.scopeAppliesToRelatedRecords?.({
-          renderingId,
-          collectionName: name,
-        });
         const scope =
-          applies &&
+          (await this.scopeAppliesToRelatedRecords(name, context)) &&
           (await this.forestAdminClient.getScope({ renderingId, userId, collectionName: name }));
 
         return scope ? name : null;

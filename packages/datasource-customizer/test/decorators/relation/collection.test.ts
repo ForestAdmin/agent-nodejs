@@ -709,6 +709,18 @@ describe('RelationCollectionDecorator', () => {
         expect(records).toStrictEqual([{ personId: 201, name: 'Sharon J. Whalen' }]);
       });
 
+      test('should keep records with no related record when a one to one field is missing', async () => {
+        const records = await newPersons.list(
+          factories.caller.build(),
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('passport:passportId', 'Missing'),
+          }),
+          new Projection('personId', 'name'),
+        );
+
+        expect(records).toStrictEqual([{ personId: 203, name: 'Joseph P. Rodriguez' }]);
+      });
+
       test('should filter by native relation behind an emulated one', async () => {
         const records = await newPersons.list(
           factories.caller.build(),
