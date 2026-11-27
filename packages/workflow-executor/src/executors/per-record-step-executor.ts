@@ -25,7 +25,7 @@ import {
 } from '../errors';
 import { findStepExecution } from './base-step-executor';
 import IterationRunStore, { isSameRecord } from './iteration-run-store';
-import { classifyMissingSourceRecord } from './record-step-executor';
+import { classifyMissingSourceRecord } from './pinned-record';
 import { serializeRecordId } from '../record-id';
 import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType } from '../types/validated/step-definition';
