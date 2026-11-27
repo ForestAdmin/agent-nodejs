@@ -7,6 +7,7 @@ import type {
   PausedConditionExecutionParams,
   StepExecutionData,
 } from '../types/step-execution-data';
+import type { RecordRef } from '../types/validated/collection';
 import type {
   ConditionStepDefinition,
   DeterministicCondition,
@@ -19,6 +20,7 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  CollectionAccessDeniedError,
   InvalidStepDefinitionError,
   MalformedToolCallError,
   MissingConditionQuantifierError,
@@ -27,12 +29,19 @@ import {
 } from '../errors';
 import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
+import {
+  findPinnedLoadStep,
+  loadedRecordsOf,
+  resolveWorkflowStartRecordRef,
+} from './pinned-record';
+import followRelationPath from './relation-path';
 import patchBodySchemas from '../http/pending-data-validators';
 import { serializeRecordId } from '../record-id';
 import { isPerRecordExecution } from '../types/step-execution-data';
 import {
   StepExecutionMode,
   StepType,
+  WORKFLOW_START_STEP_ID,
   isDeterministicConditionGroup,
   isDeterministicConditionStep,
 } from '../types/validated/step-definition';
@@ -63,6 +72,37 @@ function combine(aggregator: 'and' | 'or', verdicts: Array<boolean | null>): boo
   if (verdicts.includes(settling)) return settling;
 
   return verdicts.includes(null) ? null : !settling;
+}
+
+// What a record source holds: null for a record not found, keyed by the record's serialized id when
+// its step loaded several.
+type RecordSourceRead =
+  | { kind: 'not-reached' }
+  | { kind: 'single'; values: Record<string, unknown> | null }
+  | {
+      kind: 'per-record';
+      records: Array<{ recordId: string; values: Record<string, unknown> | null }>;
+    };
+
+type RecordSourceReader = (condition: DeterministicCondition) => Promise<RecordSourceRead>;
+
+interface EvaluationScope {
+  stepExecutions: StepExecutionData[];
+  clock: Clock;
+  readRecordSource: RecordSourceReader;
+}
+
+const recordSourceKey = ({ sourceStepId, relationPath }: DeterministicCondition): string =>
+  JSON.stringify([sourceStepId, relationPath ?? []]);
+
+function collectRecordConditions(
+  nodes: DeterministicConditionGroup['conditions'],
+): DeterministicCondition[] {
+  return nodes.flatMap(node => {
+    if (isDeterministicConditionGroup(node)) return collectRecordConditions(node.conditions);
+
+    return node.sourceType === 'record' ? [node] : [];
+  });
 }
 
 type ResolvedConditionValue =
@@ -223,16 +263,26 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     const { optionConditions, fallbackOption } = step.preRecordedArgs;
     // One clock per step, so "today" cannot flip between the first and the last condition.
     const clock: Clock = { now: new Date(), timezone: this.context.timezone };
+    const scope: EvaluationScope = {
+      stepExecutions,
+      clock,
+      readRecordSource: this.createRecordSourceReader(step, stepExecutions),
+    };
     const unchecked = new Set<string>();
 
     let matchedOption: string | undefined;
-    const evaluations = optionConditions.map(({ option, aggregator, conditions }) => {
+    const evaluations: ConditionEvaluation[] = [];
+
+    for (const { option, aggregator, conditions } of optionConditions) {
       // Options are taken first match first, so none is taken past one left undecided.
       if (matchedOption !== undefined || unchecked.size > 0) {
-        return { option, outcome: 'not-evaluated' } satisfies ConditionEvaluation;
+        evaluations.push({ option, outcome: 'not-evaluated' });
+        // eslint-disable-next-line no-continue
+        continue;
       }
 
-      const group = this.evaluateGroup(option, { aggregator, conditions }, stepExecutions, clock);
+      // eslint-disable-next-line no-await-in-loop
+      const group = await this.evaluateGroup(option, { aggregator, conditions }, scope);
 
       // Only a record without a value that could still change a quantified condition leaves the
       // option undecided.
@@ -241,12 +291,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       const matched = group.verdict === true;
       if (matched) matchedOption = option;
 
-      return {
+      evaluations.push({
         option,
         outcome: matched ? 'matched' : 'not-matched',
         conditions: group.conditions,
-      } satisfies ConditionEvaluation;
-    });
+      });
+    }
 
     // A record without a value that could change the branch: the decision takes none, and the
     // operator picks one, knowing which records went unchecked.
@@ -295,37 +345,27 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
   // A value that could not be read counts as not met, as on a single record. A group's verdict is
   // three-valued like its conditions', and its trace `met` is false while undecided.
-  private evaluateGroup(
+  private async evaluateGroup(
     option: string,
     { aggregator, conditions }: DeterministicConditionGroup,
-    stepExecutions: StepExecutionData[],
-    clock: Clock,
-  ): { verdict: boolean | null; unchecked: string[]; met: boolean; conditions: ConditionResult[] } {
-    const evaluated = conditions.map((node, index) => {
-      if (isDeterministicConditionGroup(node)) {
-        const { verdict, unchecked, ...result } = this.evaluateGroup(
-          option,
-          node,
-          stepExecutions,
-          clock,
-        );
+    scope: EvaluationScope,
+  ): Promise<{
+    verdict: boolean | null;
+    unchecked: string[];
+    met: boolean;
+    conditions: ConditionResult[];
+  }> {
+    const evaluated: Array<{
+      verdict: boolean | null;
+      unchecked: string[];
+      result: ConditionResult;
+    }> = [];
 
-        return { verdict, unchecked, result: { index, ...result } as ConditionResult };
-      }
+    for (const [index, node] of conditions.entries()) {
+      // eslint-disable-next-line no-await-in-loop
+      evaluated.push(await this.evaluateNode(option, node, index, scope));
+    }
 
-      const result = this.evaluateCondition(option, node, stepExecutions, clock);
-
-      return {
-        verdict: result.unchecked ? null : result.met === true,
-        unchecked: result.unchecked ?? [],
-        result: {
-          index,
-          met: result.met,
-          ...(result.reason && { reason: result.reason }),
-          ...(result.records && { records: result.records }),
-        } as ConditionResult,
-      };
-    });
     const verdict = combine(
       aggregator,
       evaluated.map(child => child.verdict),
@@ -339,13 +379,43 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     };
   }
 
-  private evaluateCondition(
+  private async evaluateNode(
+    option: string,
+    node: DeterministicConditionGroup['conditions'][number],
+    index: number,
+    scope: EvaluationScope,
+  ): Promise<{ verdict: boolean | null; unchecked: string[]; result: ConditionResult }> {
+    if (isDeterministicConditionGroup(node)) {
+      const { verdict, unchecked, ...result } = await this.evaluateGroup(option, node, scope);
+
+      return { verdict, unchecked, result: { index, ...result } as ConditionResult };
+    }
+
+    const result = await this.evaluateCondition(option, node, scope);
+
+    return {
+      verdict: result.unchecked ? null : result.met === true,
+      unchecked: result.unchecked ?? [],
+      result: {
+        index,
+        met: result.met,
+        ...(result.reason && { reason: result.reason }),
+        ...(result.records && { records: result.records }),
+      } as ConditionResult,
+    };
+  }
+
+  private async evaluateCondition(
     option: string,
     condition: DeterministicCondition,
-    stepExecutions: StepExecutionData[],
-    clock: Clock,
-  ): EvaluatedCondition {
-    const resolved = this.resolveConditionValue(option, condition, stepExecutions);
+    { stepExecutions, clock, readRecordSource }: EvaluationScope,
+  ): Promise<EvaluatedCondition> {
+    const resolved = await this.resolveConditionValue(
+      option,
+      condition,
+      stepExecutions,
+      readRecordSource,
+    );
 
     if (resolved.found === 'per-record') {
       if (!condition.quantifier) {
@@ -422,17 +492,24 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
   // are already restricted to the live path, and in a loop the same step id repeats.
-  private resolveConditionValue(
+  private async resolveConditionValue(
     option: string,
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): ResolvedConditionValue {
+    readRecordSource: RecordSourceReader,
+  ): Promise<ResolvedConditionValue> {
     switch (condition.sourceType) {
       case 'get-data':
         return this.resolveGetDataValue(condition, stepExecutions);
 
       case 'sub-workflow':
         return this.resolveSubWorkflowEndValue(option, condition);
+
+      case 'record':
+        return ConditionStepExecutor.toConditionValue(
+          await readRecordSource(condition),
+          condition.fieldName,
+        );
 
       /* istanbul ignore next — the schema only lets a known source type through */
       default: {
@@ -496,6 +573,146 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     }
 
     return { found: true, value: call.endStepId };
+  }
+
+  private static toConditionValue(
+    read: RecordSourceRead,
+    fieldName: string,
+  ): ResolvedConditionValue {
+    const valueOf = (values: Record<string, unknown> | null) =>
+      values && fieldName in values ? { found: true, value: values[fieldName] } : { found: false };
+
+    if (read.kind === 'not-reached') return { found: false, reason: 'source-step-not-reached' };
+
+    if (read.kind === 'per-record') {
+      return {
+        found: 'per-record',
+        values: read.records.map(({ recordId, values }) => ({ recordId, ...valueOf(values) })),
+      };
+    }
+
+    if (read.values === null) return { found: false, reason: 'record-not-found' };
+
+    const field = valueOf(read.values);
+
+    return field.found
+      ? { found: true, value: field.value }
+      : { found: false, reason: 'field-not-loaded' };
+  }
+
+  // Each record source is read once per evaluation, with every field its conditions compare, and
+  // only when an option evaluated needs it: an option never reached costs no agent call.
+  private createRecordSourceReader(
+    step: DeterministicConditionStep,
+    stepExecutions: StepExecutionData[],
+  ): RecordSourceReader {
+    const fieldsBySource = new Map<string, Set<string>>();
+
+    step.preRecordedArgs.optionConditions.forEach(({ conditions }) =>
+      collectRecordConditions(conditions).forEach(condition => {
+        const key = recordSourceKey(condition);
+        const fields = fieldsBySource.get(key) ?? new Set<string>();
+        fields.add(condition.fieldName);
+        fieldsBySource.set(key, fields);
+      }),
+    );
+
+    const reads = new Map<string, Promise<RecordSourceRead>>();
+
+    return condition => {
+      const key = recordSourceKey(condition);
+
+      if (!reads.has(key)) {
+        const fields = [...(fieldsBySource.get(key) ?? [condition.fieldName])];
+        reads.set(key, this.readRecordSource(condition, fields, stepExecutions));
+      }
+
+      return reads.get(key) as Promise<RecordSourceRead>;
+    };
+  }
+
+  // The root is the record a step's "On record" would name: the run's (or the call's) record, or
+  // what a Load Related Record step loaded. Several loaded records give one value per record.
+  private async readRecordSource(
+    { sourceStepId, relationPath }: DeterministicCondition,
+    fields: string[],
+    stepExecutions: StepExecutionData[],
+  ): Promise<RecordSourceRead> {
+    if (sourceStepId === WORKFLOW_START_STEP_ID) {
+      const root = await resolveWorkflowStartRecordRef(this.context);
+
+      return { kind: 'single', values: await this.readAlongPath(root, relationPath, fields) };
+    }
+
+    // Inside a call, only this call's own steps: another call of the workflow repeats the id.
+    const sourceStep = findPinnedLoadStep(
+      this.context.previousSteps,
+      sourceStepId,
+      this.context.callScope?.currentFrameStepIndexes,
+    );
+    if (!sourceStep) return { kind: 'not-reached' };
+
+    const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+    const roots = ConditionStepExecutor.recordSourceRoots(execution);
+
+    if (!roots) {
+      const [root] = loadedRecordsOf(execution);
+
+      return {
+        kind: 'single',
+        values: root ? await this.readAlongPath(root, relationPath, fields) : null,
+      };
+    }
+
+    const records: Array<{ recordId: string; values: Record<string, unknown> | null }> = [];
+
+    for (const { recordId, root } of roots) {
+      records.push({
+        recordId,
+        // eslint-disable-next-line no-await-in-loop
+        values: root ? await this.readAlongPath(root, relationPath, fields) : null,
+      });
+    }
+
+    return { kind: 'per-record', records };
+  }
+
+  // Undefined for a step that loaded one record. A record is named as the steps running once per
+  // record name it: by the record the Multiple step loaded, which for a Load Related Record running
+  // once per record is the record it ran for, whatever it loaded.
+  private static recordSourceRoots(
+    execution: StepExecutionData | undefined,
+  ): Array<{ recordId: string; root?: RecordRef }> | undefined {
+    if (isPerRecordExecution(execution)) {
+      return execution.iterations.map(({ sourceRecordRef, executionResult }) => ({
+        recordId: serializeRecordId(sourceRecordRef.recordId),
+        root: executionResult && 'record' in executionResult ? executionResult.record : undefined,
+      }));
+    }
+
+    const result = execution?.type === 'load-related-record' && execution.executionResult;
+    if (!result || !('records' in result)) return undefined;
+
+    return result.records.map(root => ({ recordId: serializeRecordId(root.recordId), root }));
+  }
+
+  // A record the path does not lead to, or that the caller cannot see, holds no value; a collection
+  // the caller cannot read stops the step, as it does a step acting on that record.
+  private async readAlongPath(
+    root: RecordRef,
+    relationPath: readonly string[] | undefined,
+    fields: string[],
+  ): Promise<Record<string, unknown> | null> {
+    const resolution = await followRelationPath(this.context, root, relationPath ?? [], fields);
+
+    if (resolution.status === 'forbidden') {
+      throw new CollectionAccessDeniedError(
+        this.context.stepDefinition.title,
+        resolution.collectionDisplayName,
+      );
+    }
+
+    return resolution.status === 'found' ? resolution.values : null;
   }
 
   private readUserChoice(

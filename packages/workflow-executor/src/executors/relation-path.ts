@@ -1,7 +1,12 @@
 import type AgentWithLog from './agent-with-log';
 import type { Id } from '../ports/agent-port';
 import type SchemaResolver from '../schema-resolver';
-import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
+import type {
+  CollectionSchema,
+  FieldSchema,
+  RecordData,
+  RecordRef,
+} from '../types/validated/collection';
 
 import {
   ActivityLogCreationError,
@@ -13,7 +18,7 @@ import {
 export type RelationPathHop = { relationDisplayName: string; collectionDisplayName: string };
 
 export type RelationPathResolution =
-  | { status: 'found'; record: RecordRef }
+  | { status: 'found'; record: RecordRef; values: Record<string, unknown> }
   | { status: 'empty'; hops: RelationPathHop[] }
   | { status: 'forbidden'; collectionDisplayName: string };
 
@@ -53,6 +58,7 @@ export default async function followRelationPath(
   { agent, schemaResolver }: { agent: AgentWithLog; schemaResolver: SchemaResolver },
   root: RecordRef,
   relationPath: readonly string[],
+  targetFields?: readonly string[],
 ): Promise<RelationPathResolution> {
   const hops: RelationPathHop[] = [];
   let current = root;
@@ -103,11 +109,13 @@ export default async function followRelationPath(
     currentSchema = relatedSchema;
   }
 
+  let target: RecordData;
+
   try {
-    await agent.getRecord({
+    target = await agent.getRecord({
       collection: current.collectionName,
       id: current.recordId,
-      fields: [currentSchema.primaryKeyFields[0]],
+      fields: targetFields?.length ? [...targetFields] : [currentSchema.primaryKeyFields[0]],
     });
   } catch (error) {
     if (isAccessDenied(error)) {
@@ -119,5 +127,5 @@ export default async function followRelationPath(
     throw error;
   }
 
-  return { status: 'found', record: current };
+  return { status: 'found', record: current, values: target.values };
 }
