@@ -260,6 +260,11 @@ describe('Utils > QueryConverter', () => {
           ['NotIn', [null], { __field_1__: { [Op.ne]: null } }],
           [
             'NotIn',
+            [],
+            { [Op.or]: [{ __field_1__: { [Op.ne]: null } }, { __field_1__: { [Op.is]: null } }] },
+          ],
+          [
+            'NotIn',
             simpleArrayValue,
             {
               [Op.or]: [

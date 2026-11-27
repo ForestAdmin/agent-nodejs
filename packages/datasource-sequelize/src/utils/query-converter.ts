@@ -190,7 +190,11 @@ export default class QueryConverter {
       };
     }
 
-    if (valueAsArray.length === 0) return { [colName]: { [Op.notIn]: [] } };
+    // Every row is outside an empty list. Sequelize renders `notIn: []` as nothing, which an `Or`
+    // drops, so the condition is spelled out.
+    if (valueAsArray.length === 0) {
+      return { [Op.or]: [{ [colName]: { [Op.ne]: null } }, { [colName]: { [Op.is]: null } }] };
+    }
 
     return {
       [Op.or]: [{ [colName]: { [Op.notIn]: valueAsArray } }, { [colName]: { [Op.is]: null } }],
