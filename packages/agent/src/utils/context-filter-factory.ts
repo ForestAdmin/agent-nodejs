@@ -1,5 +1,5 @@
-import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type RelationScopes from './relation-scopes';
+import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type { Context } from 'koa';
 
 import {
