@@ -1123,6 +1123,62 @@ describe('getSearchedFields', () => {
       expect(filter.conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
     });
 
+    test('the left-out relation stays out below a collection rename', async () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cards',
+          schema: factories.collectionSchema.unsearchable().build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              label: factories.columnSchema.text().build(),
+              holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              holder: factories.manyToOneSchema.build({
+                foreignCollection: 'holders',
+                foreignKey: 'holderId',
+              }),
+            },
+          }),
+          list: jest.fn().mockResolvedValue([]),
+        }),
+        factories.collection.build({
+          name: 'holders',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.text().build(),
+            },
+          }),
+        }),
+      ]);
+      const customized = new DataSourceCustomizer().addDataSource(async () => dataSource);
+      const served = await new DataSourceCustomizer()
+        .addDataSource(async () => customized.getDataSource(() => {}), {
+          rename: { holders: 'customers' },
+        })
+        .getDataSource(() => {});
+
+      await served.getCollection('cards').list(
+        caller,
+        new PaginatedFilter({
+          search: 'martin',
+          searchExtended: true,
+          searchExcludedCollections: ['customers'],
+        }),
+        new Projection('id'),
+      );
+
+      const { list } = dataSource.getCollection('cards');
+      expect(list).toHaveBeenCalledTimes(1);
+      expect(list).toHaveBeenCalledWith(
+        caller,
+        expect.objectContaining({
+          conditionTree: new ConditionTreeLeaf('label', 'IContains', 'martin'),
+          search: null,
+        }),
+        new Projection('id'),
+      );
+    });
+
     test('the left-out relation stays out through every customization layer', async () => {
       const dataSource = factories.dataSource.buildWithCollections([
         factories.collection.build({
