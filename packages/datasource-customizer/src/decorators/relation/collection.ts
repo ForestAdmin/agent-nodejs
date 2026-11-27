@@ -289,16 +289,21 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
       // A record with no related record has every related field missing: it is kept by excluding
       // the records whose related field holds a value. `Present` leaves out empty strings, which
       // hold a value all the same, so those are listed apart.
-      if (leaf.operator === 'Missing' && targetSchema.filterOperators?.has('NotIn')) {
-        const fieldSchema = CollectionUtils.getFieldSchema(
-          relation,
-          unnested.field,
-        ) as ColumnSchema;
+      const fieldSchema =
+        leaf.operator === 'Missing'
+          ? (CollectionUtils.getFieldSchema(relation, unnested.field) as ColumnSchema)
+          : null;
+      const isString = fieldSchema?.columnType === 'String';
+      const canExclude =
+        fieldSchema &&
+        targetSchema.filterOperators?.has('NotIn') &&
+        fieldSchema.filterOperators?.has('Present') &&
+        (!isString || fieldSchema.filterOperators.has('Equal'));
+
+      if (canExclude) {
         const [present, empty] = await Promise.all([
           keysOf(unnested.override({ operator: 'Present' })),
-          fieldSchema.columnType === 'String'
-            ? keysOf(unnested.override({ operator: 'Equal', value: '' }))
-            : [],
+          isString ? keysOf(unnested.override({ operator: 'Equal', value: '' })) : [],
         ]);
 
         return new ConditionTreeLeaf(schema.originKeyTarget, 'NotIn', [

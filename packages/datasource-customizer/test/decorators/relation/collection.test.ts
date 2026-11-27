@@ -90,7 +90,10 @@ describe('RelationCollectionDecorator', () => {
           fields: {
             passportId: factories.columnSchema.numericPrimaryKey().build(),
             issueDate: factories.columnSchema.build({ columnType: 'Dateonly' }),
-            note: factories.columnSchema.build({ columnType: 'String' }),
+            note: factories.columnSchema.build({
+              columnType: 'String',
+              filterOperators: new Set(['Present', 'Equal', 'Missing']),
+            }),
             ownerId: factories.columnSchema.build({
               columnType: 'Number',
               filterOperators: new Set(['In']),
@@ -732,6 +735,20 @@ describe('RelationCollectionDecorator', () => {
         );
 
         expect(records).toStrictEqual([{ personId: 201 }, { personId: 203 }]);
+      });
+
+      test('should list the missing related fields when the related field cannot tell present ones', async () => {
+        await newPersons.list(
+          factories.caller.build(),
+          new Filter({ conditionTree: new ConditionTreeLeaf('passport:ownerId', 'Missing') }),
+          new Projection('personId'),
+        );
+
+        const operators = (passports.list as jest.Mock).mock.calls.map(
+          ([, filter]) => filter.conditionTree?.operator,
+        );
+        expect(operators).toContain('Missing');
+        expect(operators).not.toContain('Present');
       });
 
       test('should filter by native relation behind an emulated one', async () => {
