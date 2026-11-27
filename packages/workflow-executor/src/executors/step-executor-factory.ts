@@ -102,10 +102,12 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
   return null;
 }
 
-// A load counts as empty once it loaded no record: none found, every candidate declined, or
-// "Continue without". A result outside the declared shape is an executor defect, never empty.
+// A load counts as empty once it loaded no record: none found, every candidate declined,
+// "Continue without", or nothing saved at all, which is a load a person completed by hand, as the
+// orchestrator reads it. A result outside the declared shape is an executor defect, never empty.
 function loadedNothing(execution: StepExecutionData | undefined): boolean {
-  if (execution?.type !== 'load-related-record' || isPerRecordExecution(execution)) return false;
+  if (!execution) return true;
+  if (execution.type !== 'load-related-record' || isPerRecordExecution(execution)) return false;
 
   const result = execution.executionResult;
   if (result && 'records' in result) return result.records.length === 0;

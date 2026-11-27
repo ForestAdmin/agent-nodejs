@@ -126,6 +126,19 @@ describe('a step using a load that loaded no record', () => {
       });
     });
 
+    // The orchestrator reads a load completed by hand as empty, so both sides skip together.
+    it('is skipped when a person completed the Skip load by hand, which saved nothing', async () => {
+      const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
+
+      const { saveStepExecution } = await run(makeStep(getData('load-ubo'), previous), []);
+
+      expect(saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'read-record',
+        stepIndex: 5,
+        executionResult: { skipped: true, emptySourceStepIndex: 1 },
+      });
+    });
+
     it('is skipped when the operator declined every record the Skip load offered', async () => {
       const previous = [loadStep('load-ubo', 1, { ifNoRecords: 'skip' }, 'Load UBO')];
       const declined = emptyLoad(1, {
