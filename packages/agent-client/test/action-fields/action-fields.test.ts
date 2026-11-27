@@ -935,7 +935,7 @@ describe('ActionField implementations', () => {
         httpRequester,
         '/forest/actions/test',
         fieldFormStates,
-        ['1'],
+        { ids: ['1'] },
       );
       const [docType, file] = action.getFields();
 

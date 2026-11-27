@@ -2,7 +2,10 @@ import type { Action, AgentActionClient } from '../../src/action/agent-action-cl
 import type { Logger } from '../../src/ports/logger-port';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
-import { ActionOutcomeUnknownError } from '@forestadmin/agent-client';
+import {
+  ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
+} from '@forestadmin/agent-client';
 import describeActionForm from '@forestadmin/agent-client/dist/action-fields/form-description';
 import mayHaveRun from '@forestadmin/agent-client/dist/agent-error';
 import { bodyParser } from '@koa/bodyparser';
@@ -117,6 +120,11 @@ export function clientOf(
       await beforeCall();
       const loaded: Action = await loadAction(params);
       await fill(loaded);
+      const { requiredFields, invalidValues } = loaded.describeForm();
+
+      if (requiredFields.length > 0 || invalidValues.length > 0) {
+        throw new ActionValuesNotExecutableError(requiredFields, invalidValues);
+      }
 
       try {
         return await loaded.execute(maxTimeAllowed === undefined ? undefined : { maxTimeAllowed });

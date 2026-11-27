@@ -14,7 +14,12 @@ export default function relationTargetOf(
   if (field.reference) {
     // reference is `${foreignCollection}.${key}`; the collection name may itself contain dots
     // (e.g. mongoose nested collections like `User.address`), so drop only the trailing key.
-    return { polymorphic: false, target: field.reference.split('.').slice(0, -1).join('.') };
+    const keyStart = field.reference.lastIndexOf('.');
+
+    return {
+      polymorphic: false,
+      target: keyStart === -1 ? field.reference : field.reference.slice(0, keyStart),
+    };
   }
 
   return null;

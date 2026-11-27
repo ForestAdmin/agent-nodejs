@@ -108,7 +108,10 @@ export class InProcessStreamingUnsupportedError extends Error {
 
 export class ActionOutcomeUnknownError extends Error {
   constructor(readonly cause: unknown) {
-    super('The action was sent to the agent but no answer came back, so it may have run.');
+    super(
+      'The action was sent but the agent gave no answer, so it may have run. Check whether it ' +
+        'did before running it again.',
+    );
     this.name = 'ActionOutcomeUnknownError';
   }
 }

@@ -35,17 +35,13 @@ const AGENT_TIMEOUT_MESSAGE = 'The agent did not answer in time.';
 
 const AGENT_UNREACHABLE_MESSAGE = 'The agent could not be reached.';
 
-const ACTION_OUTCOME_UNKNOWN_MESSAGE =
-  'The action was sent but the agent gave no answer, so it may have run. Check whether it did ' +
-  'before running it again.';
-
 // A failure without an HTTP answer names the host and port it tried; the model gets the kind only.
 function isUnanswered(error: unknown): error is AgentTimeoutError | AgentUnreachableError {
   return error instanceof AgentTimeoutError || error instanceof AgentUnreachableError;
 }
 
 function messageOf(error: unknown): string {
-  if (error instanceof ActionOutcomeUnknownError) return ACTION_OUTCOME_UNKNOWN_MESSAGE;
+  if (error instanceof ActionOutcomeUnknownError) return error.message;
 
   if (isUnanswered(error)) {
     return error instanceof AgentTimeoutError ? AGENT_TIMEOUT_MESSAGE : AGENT_UNREACHABLE_MESSAGE;

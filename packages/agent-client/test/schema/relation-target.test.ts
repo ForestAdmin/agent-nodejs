@@ -15,6 +15,13 @@ describe('relationTargetOf', () => {
     });
   });
 
+  it('should read the whole reference as the target when it names no key', () => {
+    expect(relationTargetOf({ reference: 'users' })).toEqual({
+      polymorphic: false,
+      target: 'users',
+    });
+  });
+
   it('should list the targets of a polymorphic relation', () => {
     expect(
       relationTargetOf({

@@ -12,6 +12,7 @@ import type { Context, Middleware } from 'koa';
 import {
   ActionFormValidationError,
   ActionOutcomeUnknownError,
+  ActionValuesNotExecutableError,
   ActivityLogBlockedError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
@@ -21,7 +22,7 @@ import {
 
 import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
-import assertActionValuesExecutable from './action-values-validator';
+import { actionValuesError, logEnumValuesWithoutOptions } from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
 import activityLogConfigOf from '../auth/activity-log-context';
@@ -146,7 +147,7 @@ async function fillValues(
     throw mapAgentError(error, { logger });
   }
 
-  assertActionValuesExecutable(action, logger);
+  logEnumValuesWithoutOptions(action, logger);
 }
 
 // execute() cannot go through the generic callAgent: agent-client turns the native action Error
@@ -162,6 +163,8 @@ function toExecuteError(error: unknown, logger: Logger): unknown {
 
     return approvalRequestFailed();
   }
+
+  if (error instanceof ActionValuesNotExecutableError) return actionValuesError(error, logger);
 
   if (error instanceof ActionFormValidationError) {
     const { unstructuredCause } = error;

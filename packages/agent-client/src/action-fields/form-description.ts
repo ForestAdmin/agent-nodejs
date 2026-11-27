@@ -3,6 +3,7 @@ import type { PlainField } from './types';
 
 import expectedValueOf from './action-values-check';
 import { ActionValuesNotExecutableError } from '../errors';
+import { isEnumFieldType } from '../schema/field-type';
 
 export type AllowedValue = { value: string | number | null; label: string };
 
@@ -41,14 +42,6 @@ export interface DescribableForm {
   getEnumField(name: string): { getOptions(): string[] | null | undefined };
 }
 
-const ENUM_TYPE = 'Enum';
-
-function isEnumType(type: PlainField['type']): boolean {
-  return Array.isArray(type)
-    ? type[0] === ENUM_TYPE
-    : type === ENUM_TYPE || type === `${ENUM_TYPE}List`;
-}
-
 function toAllowedValue(option: unknown): AllowedValue {
   if (option !== null && typeof option === 'object') {
     const { value, label } = option as AllowedValue;
@@ -76,7 +69,7 @@ function describeField(
     ...(widget ? { widget } : {}),
   };
 
-  if (isEnumType(field.getType())) {
+  if (isEnumFieldType(field.getType())) {
     return { ...description, enumValues: form.getEnumField(field.getName()).getOptions() ?? null };
   }
 

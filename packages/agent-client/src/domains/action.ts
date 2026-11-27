@@ -44,17 +44,13 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
-export function extractErrorDetail(error: Pick<AgentHttpError, 'body'>): string | undefined {
-  return errorDetailOf(error.body);
-}
-
 // Translate the transport AgentHttpError into a semantic action error so callers route on meaning.
 // Approval gate = 403 CustomActionRequiresApprovalError; form validation = 400/422; else unchanged.
 function toActionError(error: unknown): unknown {
   if (!(error instanceof AgentHttpError)) return error;
 
   const body = (error.body ?? {}) as ActionErrorBody;
-  const detail = extractErrorDetail(error);
+  const detail = errorDetailOf(error.body);
   const isApproval =
     body.errors?.[0]?.name === 'CustomActionRequiresApprovalError' ||
     !!error.responseText?.includes('CustomActionRequiresApprovalError');
@@ -120,10 +116,17 @@ export default class Action {
     httpRequester: HttpRequester,
     actionPath: string,
     fieldsFormStates: FieldFormStates,
-    ids?: (string | number)[],
-    actionId?: string,
-    createApprovalRequest?: CreateApprovalRequest,
-    timezone?: string,
+    {
+      ids,
+      actionId,
+      createApprovalRequest,
+      timezone,
+    }: {
+      ids?: (string | number)[];
+      actionId?: string;
+      createApprovalRequest?: CreateApprovalRequest;
+      timezone?: string;
+    } = {},
   ) {
     this.collectionName = collectionName;
     this.actionName = actionName;

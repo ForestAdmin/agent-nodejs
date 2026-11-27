@@ -268,13 +268,12 @@ export class ApprovalRequestCreationError extends WorkflowExecutorError {
 }
 
 export class ActionOutcomeUnknownError extends WorkflowExecutorError {
-  constructor(actionName: string, cause?: unknown) {
+  constructor(actionName: string, outcomeUnknown: { message: string; cause?: unknown }) {
     super(
       `Action "${actionName}" got no answer from the agent: it may have run`,
-      'The action was sent but the agent gave no answer, so it may have run. Check whether it ' +
-        'did before running it again.',
+      outcomeUnknown.message,
     );
-    this.cause = cause;
+    this.cause = outcomeUnknown.cause;
   }
 }
 

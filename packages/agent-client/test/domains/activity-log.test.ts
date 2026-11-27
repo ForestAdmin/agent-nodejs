@@ -491,12 +491,23 @@ describe('activity logging inside agent-client calls', () => {
           const { collection, service, query } = setup();
           query.mockRejectedValue(noAnswer);
 
-          const error = await collection.executeAction('refund').catch(caught => caught);
+          const error = await collection
+            .executeAction('refund', { recordIds: [1] })
+            .catch(caught => caught);
           await drainActivityLogs();
 
           expect(error).toBeInstanceOf(ActionOutcomeUnknownError);
           expect(error.cause).toBe(noAnswer);
           expect(service.createMcpActivityLog).toHaveBeenCalledTimes(1);
+          expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+            expect.objectContaining({
+              action: 'action',
+              type: 'write',
+              collectionName: 'users',
+              recordIds: ['1'],
+              label: 'triggered the action "refund"',
+            }),
+          );
           expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
         },
       );
@@ -522,7 +533,9 @@ describe('activity logging inside agent-client calls', () => {
 
       it('should mark the entry failed when the agent was never reached', async () => {
         const { collection, service, query } = setup();
-        const refused = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+        const refused = new AgentUnreachableError(
+          Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }),
+        );
         query.mockRejectedValue(refused);
 
         await expect(collection.executeAction('refund')).rejects.toBe(refused);

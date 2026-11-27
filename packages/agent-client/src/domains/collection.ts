@@ -93,10 +93,12 @@ export default class Collection extends CollectionChart {
       this.httpRequester,
       actionInfo.endpoint,
       fieldsFormStates,
-      ids,
-      actionInfo.id,
-      this.createApprovalRequest,
-      actionContext?.timezone,
+      {
+        ids,
+        actionId: actionInfo.id,
+        createApprovalRequest: this.createApprovalRequest,
+        timezone: actionContext?.timezone,
+      },
     );
 
     await fieldsFormStates.loadInitialState();

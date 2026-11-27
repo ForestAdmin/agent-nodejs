@@ -45,6 +45,23 @@ describe('agent call errors', () => {
     expect(answered(0, { errors: [{ detail: 'x' }] }).agentMessage).toBeUndefined();
   });
 
+  it('should read the detail from the first non-empty message of a JSON:API error body', () => {
+    const error = answered(500, {
+      errors: [{ detail: '  ', message: 'hook crashed' }],
+      error: 'x',
+    });
+
+    expect(error.detail).toBe('hook crashed');
+  });
+
+  it('should read the detail from the top-level error of a flat body', () => {
+    expect(answered(500, { error: 'hook crashed' }).detail).toBe('hook crashed');
+  });
+
+  it('should read no detail from a body that is not a JSON error, such as an HTML page', () => {
+    expect(answered(502, '<html>bad gateway</html>').detail).toBeUndefined();
+  });
+
   it('should leave out an unstructured body', () => {
     const error = new AgentHttpError(400, '<html>Bad Request</html>', '<html>Bad Request</html>');
 

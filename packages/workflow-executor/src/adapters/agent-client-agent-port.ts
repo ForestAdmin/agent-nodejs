@@ -83,7 +83,7 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
   }
 
   if (cause instanceof ClientActionOutcomeUnknownError) {
-    return new ActionOutcomeUnknownError(action, cause.cause);
+    return new ActionOutcomeUnknownError(action, cause);
   }
 
   return cause;

@@ -1,7 +1,7 @@
 import type FieldFormStates from '../../src/action-fields/field-form-states';
 import type HttpRequester from '../../src/http-requester';
 
-import Action, { extractErrorDetail } from '../../src/domains/action';
+import Action from '../../src/domains/action';
 import AgentHttpError, { ActionRequiresApprovalError } from '../../src/errors';
 
 jest.mock('../../src/http-requester');
@@ -36,7 +36,7 @@ describe('Action', () => {
       httpRequester,
       '/forest/actions/send-email',
       fieldsFormStates,
-      ['1', '2'],
+      { ids: ['1', '2'] },
     );
   });
 
@@ -89,8 +89,7 @@ describe('Action', () => {
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
-        ['1'],
-        'users-0-send-email',
+        { ids: ['1'], actionId: 'users-0-send-email' },
       );
 
       httpRequester.query.mockResolvedValue({ success: 'Action executed' });
@@ -175,9 +174,7 @@ describe('Action', () => {
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
-        ['1', '2'],
-        undefined,
-        createApprovalRequest,
+        { ids: ['1', '2'], createApprovalRequest },
       );
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(403, {
@@ -211,9 +208,7 @@ describe('Action', () => {
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
-        ['1'],
-        undefined,
-        createApprovalRequest,
+        { ids: ['1'], createApprovalRequest },
       );
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(403, {
@@ -239,9 +234,7 @@ describe('Action', () => {
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
-        ['1'],
-        undefined,
-        createApprovalRequest,
+        { ids: ['1'], createApprovalRequest },
       );
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(403, {
@@ -263,9 +256,7 @@ describe('Action', () => {
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
-        ['1'],
-        undefined,
-        createApprovalRequest,
+        { ids: ['1'], createApprovalRequest },
       );
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(403, {
@@ -295,9 +286,7 @@ describe('Action', () => {
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
-        ['1'],
-        undefined,
-        createApprovalRequest,
+        { ids: ['1'], createApprovalRequest },
       );
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(403, {
@@ -726,26 +715,5 @@ describe('Action', () => {
 
       expect(action.doesFieldExist('nonexistent')).toBe(false);
     });
-  });
-});
-
-describe('extractErrorDetail', () => {
-  it('returns the first non-empty message of a JSON:API error body', () => {
-    const error = new AgentHttpError(500, {
-      errors: [{ detail: '  ', message: 'hook crashed' }],
-      error: 'ignored',
-    });
-
-    expect(extractErrorDetail(error)).toBe('hook crashed');
-  });
-
-  it('falls back to the top-level error of a flat body', () => {
-    expect(extractErrorDetail(new AgentHttpError(500, { error: 'hook crashed' }))).toBe(
-      'hook crashed',
-    );
-  });
-
-  it('returns nothing for a body that is not a JSON error, such as an HTML page', () => {
-    expect(extractErrorDetail(new AgentHttpError(502, '<html>bad gateway</html>'))).toBeUndefined();
   });
 });
