@@ -439,6 +439,7 @@ describe('scopes on related collections', () => {
         { field: 'accountId', operator: 'Missing' },
       ],
     };
+
     const listedTree = async (query: Record<string, unknown>, flagged = true) => {
       const dataSource = buildDataSource();
       const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
@@ -449,6 +450,7 @@ describe('scopes on related collections', () => {
 
       return list.mock.calls[0][1].conditionTree?.toPlainObject();
     };
+
     const excludedFrom = (filter: unknown) =>
       (filter as { searchExcludedCollections?: string[] }).searchExcludedCollections;
     const allScoped = ['accounts', 'holders', 'memberships', 'organizations'];
@@ -638,9 +640,8 @@ describe('scopes on related collections', () => {
         .mockResolvedValue({ type: 'Error', message: 'the result does not matter' });
       const route = new ActionRoute(buildServices(), options, dataSource, 'cards', 'Freeze');
       // @ts-expect-error: the permission service is private to the route
-      jest
-        .spyOn(route.actionAuthorizationService, 'assertCanTriggerCustomAction')
-        .mockResolvedValue();
+      const { actionAuthorizationService } = route;
+      jest.spyOn(actionAuthorizationService, 'assertCanTriggerCustomAction').mockResolvedValue();
       const body = {
         data: {
           attributes: {

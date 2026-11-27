@@ -3,8 +3,8 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import CsvRoute from '../../../src/routes/access/csv-related';
 import ContextFilterFactory from '../../../src/utils/context-filter-factory';
-import RelationScopes from '../../../src/utils/relation-scopes';
 import CsvGenerator from '../../../src/utils/csv-generator';
+import RelationScopes from '../../../src/utils/relation-scopes';
 import * as factories from '../../__factories__';
 import readCsv from '../../__helper__/read-csv';
 
